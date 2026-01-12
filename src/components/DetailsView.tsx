@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { getMediaDetails, getWatchProviders, getImageUrl } from '@/lib/tmdb';
+import { getMediaDetails, getWatchProviders, getImageUrl, getContentRating } from '@/lib/tmdb';
+import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { Media, WatchProvidersResponse, WatchProvider } from '@/lib/types';
-import { ChevronLeft, Plus, Check, Trash2, Play, Star, Calendar } from 'lucide-react';
+import { ChevronLeft, Plus, Check, Trash2, Play, Star, Calendar, ShieldCheck } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export default function DetailsView() {
@@ -13,31 +14,46 @@ export default function DetailsView() {
   const type = searchParams.get('type') as 'movie' | 'tv';
   const id = searchParams.get('id');
   const router = useRouter();
-  const { apiKey, watchlist, watched, toggleWatchlist, toggleWatched } = useAppContext();
+  const { apiKey, watchlist, watched, toggleWatchlist, toggleWatched, vidAngelEnabled } = useAppContext();
   
   const [media, setMedia] = useState<Media | null>(null);
+  const [rating, setRating] = useState<string | null>(null);
   const [providers, setProviders] = useState<WatchProvidersResponse | null>(null);
+  const [vidAngelAvailable, setVidAngelAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (apiKey && id && type) {
       setLoading(true);
+      
+      const checkVA = async (currentRating: string | null, title: string) => {
+        if (!vidAngelEnabled || !currentRating) return false;
+        if ((type === 'movie' && currentRating === 'R') || (type === 'tv' && currentRating === 'TV-MA')) {
+           return checkVidAngelAvailability(title);
+        }
+        return false;
+      };
+
       Promise.all([
         getMediaDetails(parseInt(id), type, apiKey),
-        getWatchProviders(parseInt(id), type, apiKey)
+        getWatchProviders(parseInt(id), type, apiKey),
+        getContentRating(parseInt(id), type, apiKey)
       ])
-        .then(([mediaData, providerData]) => {
+        .then(async ([mediaData, providerData, ratingData]) => {
           setMedia(mediaData);
           setProviders(providerData);
+          setRating(ratingData);
+          
+          const vaResult = await checkVA(ratingData, mediaData.title || mediaData.name || '');
+          setVidAngelAvailable(vaResult);
         })
         .catch((err) => setError(err.message))
         .finally(() => setLoading(false));
     } else if (!apiKey) {
-       // Wait for apiKey if needed, but if id/type missing, error
        if (id && type) setLoading(false); 
     }
-  }, [id, type, apiKey]);
+  }, [id, type, apiKey, vidAngelEnabled]);
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen">
@@ -100,6 +116,9 @@ export default function DetailsView() {
               <span className="flex items-center gap-1"><Calendar size={14} /> {year}</span>
               <span className="flex items-center gap-1"><Star size={14} className="text-yellow-500 fill-yellow-500" /> {media.vote_average.toFixed(1)}</span>
               <span className="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded uppercase">{media.media_type}</span>
+              {rating && (
+                <span className="bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded border border-black/5 dark:border-white/5">{rating}</span>
+              )}
             </div>
           </div>
         </div>
@@ -107,11 +126,11 @@ export default function DetailsView() {
         <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-8">
              {/* Action Buttons */}
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => toggleWatchlist(media)}
                 className={clsx(
-                  "flex-1 py-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95",
+                  "flex-1 min-w-[140px] py-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95",
                   inWatchlist 
                     ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300" 
                     : "bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500"
@@ -124,7 +143,7 @@ export default function DetailsView() {
               <button
                 onClick={() => toggleWatched(media)}
                 className={clsx(
-                  "flex-1 py-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 border-2",
+                  "flex-1 min-w-[140px] py-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 border-2",
                   inWatched 
                     ? "bg-green-100 dark:bg-green-900/30 border-green-100 dark:border-green-900/30 text-green-700 dark:text-green-300" 
                     : "bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -133,6 +152,18 @@ export default function DetailsView() {
                 <Check size={20} />
                 {inWatched ? 'Watched' : 'Mark Watched'}
               </button>
+
+              {vidAngelAvailable && (
+                <a
+                  href={`https://www.vidangel.com/search?q=${encodeURIComponent(media.title || media.name || '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 min-w-[140px] py-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 bg-amber-500 text-white shadow-lg shadow-amber-200 dark:shadow-none hover:bg-amber-600"
+                >
+                  <ShieldCheck size={20} />
+                  VidAngel
+                </a>
+              )}
             </div>
 
             {/* Overview */}

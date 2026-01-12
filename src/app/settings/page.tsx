@@ -95,13 +95,30 @@ export default function SettingsPage() {
             <label className="relative inline-flex items-center cursor-pointer">
               <input 
                 type="checkbox" 
-                checked={!!(isSyncing ? vidAngelEnabled : tempVidAngelEnabled)} // Use temp state if I add one, but for now I'll just use context direct or add temp state
+                checked={!!tempVidAngelEnabled}
                 onChange={(e) => setTempVidAngelEnabled(e.target.checked)}
                 className="sr-only peer" 
               />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
             </label>
           </div>
+
+          {tempVidAngelEnabled && (
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-3 italic">
+                Note: To check availability, you must be logged in to your VidAngel account in this browser.
+              </p>
+              <a 
+                href="https://www.vidangel.com/login" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/20 px-4 py-2 rounded-lg border border-amber-100 dark:border-amber-900/30 hover:bg-amber-100 transition-colors"
+              >
+                <ExternalLink size={12} />
+                Login to VidAngel
+              </a>
+            </div>
+          )}
         </section>
 
         <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">

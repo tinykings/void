@@ -8,7 +8,9 @@ export const checkVidAngelAvailability = async (title: string): Promise<boolean>
     .replace(/[^a-z0-9-]/g, '');
 
   try {
-    const response = await fetch(`https://api.vidangel.com/api/content/v2/works/?slug=${slug}`);
+    const response = await fetch(`https://api.vidangel.com/api/content/v2/works/?slug=${slug}`, {
+      credentials: 'include'
+    });
     if (!response.ok) return false;
     
     const data = await response.json();

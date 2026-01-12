@@ -105,7 +105,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({ media, showActions = true 
 
         {vidAngelAvailable && (
            <div className="absolute top-2 left-2 z-10">
-             <div className="bg-indigo-600 text-white p-1 rounded-full shadow-md border border-white/20" title="Available on VidAngel">
+             <div className="bg-amber-500 text-white p-1 rounded-full shadow-lg border border-white/30" title="Available on VidAngel">
                <ShieldCheck size={14} strokeWidth={2.5} />
              </div>
            </div>
