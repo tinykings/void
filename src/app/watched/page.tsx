@@ -6,6 +6,8 @@ import { MediaCard } from '@/components/MediaCard';
 import { CheckCircle, Trophy, Sparkles, ArrowLeft, Loader2, CalendarClock } from 'lucide-react';
 import Link from 'next/link';
 import { FilterTabs, FilterType } from '@/components/FilterTabs';
+import { SortControl } from '@/components/SortControl';
+import { SortOption, sortMedia } from '@/lib/sort';
 import { getRecommendations, getMediaDetails } from '@/lib/tmdb';
 import { Media } from '@/lib/types';
 import { clsx } from 'clsx';
@@ -13,6 +15,8 @@ import { clsx } from 'clsx';
 export default function WatchedPage() {
   const { watched, watchlist, apiKey } = useAppContext();
   const [filter, setFilter] = useState<FilterType>('all');
+  const [sort, setSort] = useState<SortOption>('added');
+  
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [recommendations, setRecommendations] = useState<Media[]>([]);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
@@ -57,6 +61,8 @@ export default function WatchedPage() {
     if (filter === 'all') return true;
     return item.media_type === filter;
   });
+
+  const sortedList = sortMedia(filteredList, sort);
 
   const fetchRecommendations = async () => {
     if (!apiKey || watched.length === 0) return;
@@ -135,8 +141,11 @@ export default function WatchedPage() {
             </button>
           ) : (
             <>
-              <div className="flex justify-center md:justify-end w-full">
+              <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-end w-full">
                 <FilterTabs currentFilter={filter} onFilterChange={setFilter} />
+                <div className="flex justify-end">
+                  <SortControl currentSort={sort} onSortChange={setSort} />
+                </div>
               </div>
               {watched.length > 0 && (
                 <button
@@ -210,16 +219,22 @@ export default function WatchedPage() {
             </div>
           ) : (
             <>
-              {filteredList.length === 0 ? (
+              {sortedList.length === 0 ? (
                  <div className="text-center py-20 text-gray-500 dark:text-gray-400">
                    <p>No {filter === 'movie' ? 'Movies' : 'Shows'} in your watched history.</p>
                  </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {filteredList.map((item) => (
-                    <MediaCard key={`${item.media_type}-${item.id}`} media={item} />
-                  ))}
-                </div>
+                <>
+                  <div className="flex items-center gap-2 mb-4">
+                    <CheckCircle className="text-indigo-600 dark:text-indigo-400" size={20} />
+                    <h2 className="text-lg font-bold uppercase tracking-tight text-gray-900 dark:text-white">Watch History</h2>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {sortedList.map((item) => (
+                      <MediaCard key={`${item.media_type}-${item.id}`} media={item} />
+                    ))}
+                  </div>
+                </>
               )}
             </>
           )}

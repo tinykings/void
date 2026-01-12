@@ -6,15 +6,20 @@ import { MediaCard } from '@/components/MediaCard';
 import { List, Play } from 'lucide-react';
 import Link from 'next/link';
 import { FilterTabs, FilterType } from '@/components/FilterTabs';
+import { SortControl } from '@/components/SortControl';
+import { SortOption, sortMedia } from '@/lib/sort';
 
 export default function WatchlistPage() {
   const { watchlist } = useAppContext();
   const [filter, setFilter] = useState<FilterType>('all');
+  const [sort, setSort] = useState<SortOption>('added');
 
   const filteredList = watchlist.filter(item => {
     if (filter === 'all') return true;
     return item.media_type === filter;
   });
+
+  const sortedList = sortMedia(filteredList, sort);
 
   return (
     <div className="p-4">
@@ -23,8 +28,11 @@ export default function WatchlistPage() {
           <List className="text-indigo-600 dark:text-indigo-400" size={24} />
           <h1 className="text-2xl font-black italic tracking-tighter uppercase text-gray-900 dark:text-white">My Watchlist</h1>
         </div>
-        <div className="w-full md:w-auto mb-6 md:mb-0">
+        <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto items-stretch md:items-center mb-6 md:mb-0">
           <FilterTabs currentFilter={filter} onFilterChange={setFilter} />
+          <div className="flex justify-end">
+             <SortControl currentSort={sort} onSortChange={setSort} />
+          </div>
         </div>
       </header>
 
@@ -44,13 +52,13 @@ export default function WatchlistPage() {
         </div>
       ) : (
         <>
-          {filteredList.length === 0 ? (
+          {sortedList.length === 0 ? (
              <div className="text-center py-20 text-gray-500 dark:text-gray-400">
                <p>No {filter === 'movie' ? 'Movies' : 'Shows'} in your watchlist.</p>
              </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {filteredList.map((item) => (
+              {sortedList.map((item) => (
                 <MediaCard key={`${item.media_type}-${item.id}`} media={item} />
               ))}
             </div>
