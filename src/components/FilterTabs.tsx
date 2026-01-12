@@ -19,7 +19,7 @@ export const FilterTabs: React.FC<FilterTabsProps> = ({ currentFilter, onFilterC
   ];
 
   return (
-    <div className="flex p-1 bg-gray-100 dark:bg-gray-900 rounded-xl mb-6 w-full max-w-md mx-auto transition-colors duration-300">
+    <div className="flex p-1 bg-gray-100 dark:bg-gray-900 rounded-xl w-full max-w-md transition-colors duration-300">
       {tabs.map((tab) => {
         const isActive = currentFilter === tab.id;
         const Icon = tab.icon;

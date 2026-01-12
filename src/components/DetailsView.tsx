@@ -1,15 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
 import { getMediaDetails, getWatchProviders, getImageUrl } from '@/lib/tmdb';
 import { Media, WatchProvidersResponse, WatchProvider } from '@/lib/types';
 import { ChevronLeft, Plus, Check, Trash2, Play, Star, Calendar } from 'lucide-react';
 import { clsx } from 'clsx';
 
-export default function DetailsPage() {
-  const { type, id } = useParams() as { type: 'movie' | 'tv'; id: string };
+export default function DetailsView() {
+  const searchParams = useSearchParams();
+  const type = searchParams.get('type') as 'movie' | 'tv';
+  const id = searchParams.get('id');
   const router = useRouter();
   const { apiKey, watchlist, watched, toggleWatchlist, toggleWatched } = useAppContext();
   
@@ -19,7 +21,7 @@ export default function DetailsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (apiKey) {
+    if (apiKey && id && type) {
       setLoading(true);
       Promise.all([
         getMediaDetails(parseInt(id), type, apiKey),
@@ -31,6 +33,9 @@ export default function DetailsPage() {
         })
         .catch((err) => setError(err.message))
         .finally(() => setLoading(false));
+    } else if (!apiKey) {
+       // Wait for apiKey if needed, but if id/type missing, error
+       if (id && type) setLoading(false); 
     }
   }, [id, type, apiKey]);
 

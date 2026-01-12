@@ -1,20 +1,57 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { MediaCard } from '@/components/MediaCard';
-import { CheckCircle, Trophy, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
+import { CheckCircle, Trophy, Sparkles, ArrowLeft, Loader2, CalendarClock } from 'lucide-react';
 import Link from 'next/link';
 import { FilterTabs, FilterType } from '@/components/FilterTabs';
-import { getRecommendations } from '@/lib/tmdb';
+import { getRecommendations, getMediaDetails } from '@/lib/tmdb';
 import { Media } from '@/lib/types';
+import { clsx } from 'clsx';
 
 export default function WatchedPage() {
   const { watched, watchlist, apiKey } = useAppContext();
   const [filter, setFilter] = useState<FilterType>('all');
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [recommendations, setRecommendations] = useState<Media[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
+  
+  const [upcomingEpisodes, setUpcomingEpisodes] = useState<Media[]>([]);
+  const [upcomingLoading, setUpcomingLoading] = useState(false);
+
+  // Fetch upcoming episodes for watched TV shows
+  useEffect(() => {
+    const fetchUpcoming = async () => {
+      if (!apiKey || watched.length === 0) return;
+      
+      const tvShows = watched.filter(item => item.media_type === 'tv');
+      if (tvShows.length === 0) return;
+      
+      setUpcomingLoading(true);
+      try {
+        const promises = tvShows.map(show => getMediaDetails(show.id, 'tv', apiKey));
+        const results = await Promise.all(promises);
+        
+        const withUpcoming = results
+          .filter(show => show.next_episode_to_air)
+          .sort((a, b) => {
+             const dateA = new Date(a.next_episode_to_air!.air_date).getTime();
+             const dateB = new Date(b.next_episode_to_air!.air_date).getTime();
+             return dateA - dateB;
+          });
+
+        setUpcomingEpisodes(withUpcoming);
+      } catch (e) {
+        console.error("Failed to fetch upcoming episodes", e);
+      } finally {
+        setUpcomingLoading(false);
+      }
+    };
+
+    fetchUpcoming();
+  }, [watched, apiKey]);
+
 
   const filteredList = watched.filter(item => {
     if (filter === 'all') return true;
@@ -24,12 +61,10 @@ export default function WatchedPage() {
   const fetchRecommendations = async () => {
     if (!apiKey || watched.length === 0) return;
     
-    setLoading(true);
+    setRecommendationsLoading(true);
     setShowRecommendations(true);
     
     try {
-      // Pick up to 3 random items from watched history to base recommendations on
-      // Prefer items that match the current filter if set
       const candidates = filteredList.length > 0 ? filteredList : watched;
       const shuffled = [...candidates].sort(() => 0.5 - Math.random());
       const selected = shuffled.slice(0, 3);
@@ -37,7 +72,6 @@ export default function WatchedPage() {
       const promises = selected.map(item => getRecommendations(item.id, item.media_type, apiKey));
       const results = await Promise.all(promises);
       
-      // Flatten and deduplicate
       const allRecs = results.flat();
       const uniqueRecs = allRecs.filter((media, index, self) => 
         index === self.findIndex((m) => (
@@ -45,15 +79,13 @@ export default function WatchedPage() {
         ))
       );
 
-      // Filter out items already watched or in watchlist
       const newRecs = uniqueRecs.filter(rec => {
-        const type = rec.media_type || 'movie'; // Default assumption if missing
+        const type = rec.media_type || 'movie';
         const isWatched = watched.some(w => w.id === rec.id && w.media_type === type);
         const isWatchlist = watchlist.some(w => w.id === rec.id && w.media_type === type);
         return !isWatched && !isWatchlist;
       });
       
-      // Ensure media_type is present (API sometimes omits it for known endpoints)
       const sanitizedRecs = newRecs.map(r => ({
         ...r,
         media_type: r.media_type || 'movie'
@@ -63,57 +95,67 @@ export default function WatchedPage() {
     } catch (error) {
       console.error("Failed to fetch recommendations", error);
     } finally {
-      setLoading(false);
+      setRecommendationsLoading(false);
     }
   };
 
   return (
     <div className="p-4">
-      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          {showRecommendations ? (
-            <Sparkles className="text-amber-500" size={24} />
-          ) : (
-            <CheckCircle className="text-green-600 dark:text-green-500" size={24} />
+      {/* Header Area */}
+      <header className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-8">
+        <div className="flex items-center justify-between md:justify-start w-full md:w-auto">
+          <div className="flex items-center gap-2">
+            {showRecommendations ? (
+              <Sparkles className="text-amber-500" size={24} />
+            ) : (
+              <CheckCircle className="text-green-600 dark:text-green-500" size={24} />
+            )}
+            <h1 className="text-2xl font-black italic tracking-tighter uppercase text-gray-900 dark:text-white">
+              {showRecommendations ? 'For You' : 'Watched'}
+            </h1>
+          </div>
+
+          {showRecommendations && (
+             <button 
+              onClick={() => setShowRecommendations(false)}
+              className="md:hidden text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+            >
+              <ArrowLeft size={14} /> Back
+            </button>
           )}
-          <h1 className="text-2xl font-black italic tracking-tighter uppercase text-gray-900 dark:text-white">
-            {showRecommendations ? 'For You' : 'Watched'}
-          </h1>
         </div>
         
-        {!showRecommendations && (
-           <div className="w-full md:w-auto">
-             <FilterTabs currentFilter={filter} onFilterChange={setFilter} />
-           </div>
-        )}
-      </header>
-
-      {/* Recommendations Button / Back Button */}
-      {watched.length > 0 && (
-        <div className="mb-8">
+        <div className="flex flex-col items-stretch md:items-end gap-3 w-full md:w-auto">
           {showRecommendations ? (
             <button 
               onClick={() => setShowRecommendations(false)}
-              className="flex items-center gap-2 text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+              className="hidden md:flex text-sm font-bold text-gray-500 dark:text-gray-400 items-center gap-2 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
             >
               <ArrowLeft size={16} /> Back to History
             </button>
           ) : (
-            <button
-              onClick={fetchRecommendations}
-              className="w-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors border border-indigo-100 dark:border-indigo-900/30"
-            >
-              <Sparkles size={18} />
-              Get Recommendations
-            </button>
+            <>
+              <div className="flex justify-center md:justify-end w-full">
+                <FilterTabs currentFilter={filter} onFilterChange={setFilter} />
+              </div>
+              {watched.length > 0 && (
+                <button
+                  onClick={fetchRecommendations}
+                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center justify-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 px-4 py-2 rounded-xl border border-indigo-100 dark:border-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors md:self-end"
+                >
+                  <Sparkles size={14} />
+                  Recommend
+                </button>
+              )}
+            </>
           )}
         </div>
-      )}
+      </header>
 
       {showRecommendations ? (
         // Recommendations View
         <>
-          {loading ? (
+          {recommendationsLoading ? (
              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 animate-pulse">
                {[...Array(10)].map((_, i) => (
                  <div key={i} className="aspect-[2/3] bg-gray-100 dark:bg-gray-800 rounded-xl" />
@@ -134,6 +176,24 @@ export default function WatchedPage() {
       ) : (
         // Watched List View
         <>
+           {/* Upcoming Episodes Section */}
+          {upcomingEpisodes.length > 0 && (
+            <section className="mb-10">
+              <div className="flex items-center gap-2 mb-4">
+                <CalendarClock className="text-indigo-600 dark:text-indigo-400" size={20} />
+                <h2 className="text-lg font-bold uppercase tracking-tight text-gray-900 dark:text-white">Upcoming Episodes</h2>
+              </div>
+              
+              <div className="flex overflow-x-auto pb-4 gap-4 -mx-4 px-4 snap-x hide-scrollbar">
+                {upcomingEpisodes.map((item) => (
+                  <div key={item.id} className="w-[160px] flex-shrink-0 snap-center">
+                    <MediaCard media={item} showActions={false} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {watched.length === 0 ? (
             <div className="text-center py-20 px-6">
               <div className="bg-gray-100 dark:bg-gray-800 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">

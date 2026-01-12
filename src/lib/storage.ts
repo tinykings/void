@@ -6,6 +6,8 @@ const defaultState: UserState = {
   apiKey: '',
   watchlist: [],
   watched: [],
+  githubToken: '',
+  gistId: '',
 };
 
 export const loadState = (): UserState => {

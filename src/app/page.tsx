@@ -107,7 +107,7 @@ export default function HomePage() {
             {isSearching ? `Search Results` : `Trending This Week`}
           </h1>
         </div>
-        <div className="w-full md:w-auto">
+        <div className="w-full md:w-auto mb-6 md:mb-0">
           <FilterTabs currentFilter={filter} onFilterChange={setFilter} />
         </div>
       </header>

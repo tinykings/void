@@ -23,7 +23,7 @@ export default function WatchlistPage() {
           <List className="text-indigo-600 dark:text-indigo-400" size={24} />
           <h1 className="text-2xl font-black italic tracking-tighter uppercase text-gray-900 dark:text-white">My Watchlist</h1>
         </div>
-        <div className="w-full md:w-auto">
+        <div className="w-full md:w-auto mb-6 md:mb-0">
           <FilterTabs currentFilter={filter} onFilterChange={setFilter} />
         </div>
       </header>

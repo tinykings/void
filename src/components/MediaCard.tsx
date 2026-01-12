@@ -57,7 +57,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({ media, showActions = true 
 
   return (
     <div className="relative group bg-white dark:bg-gray-900 rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-full transition-colors duration-300">
-      <Link href={`/details/${media.media_type}/${media.id}`} className="block relative aspect-[2/3] bg-gray-200 dark:bg-gray-800 overflow-hidden shrink-0">
+      <Link href={`/details?type=${media.media_type}&id=${media.id}`} className="block relative aspect-[2/3] bg-gray-200 dark:bg-gray-800 overflow-hidden shrink-0">
         {media.poster_path ? (
           <img
             src={getImageUrl(media.poster_path)}
@@ -100,6 +100,14 @@ export const MediaCard: React.FC<MediaCardProps> = ({ media, showActions = true 
           <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium uppercase tracking-tighter">
             {media.media_type === 'movie' ? 'Movie' : 'TV'} • {year}
           </p>
+          {media.next_episode_to_air && (
+            <p className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 mt-1 flex items-center gap-1">
+              Next: {new Date(media.next_episode_to_air.air_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+              <span className="opacity-75 font-normal">
+                (S{media.next_episode_to_air.season_number}E{media.next_episode_to_air.episode_number})
+              </span>
+            </p>
+          )}
         </div>
 
         {/* Streaming Providers */}

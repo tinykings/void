@@ -10,6 +10,14 @@ export interface Media {
   vote_average: number;
   popularity: number;
   media_type: 'movie' | 'tv';
+  next_episode_to_air?: {
+    air_date: string;
+    episode_number: number;
+    season_number: number;
+    name: string;
+    overview: string;
+    still_path: string | null;
+  } | null;
 }
 
 export interface WatchProvider {
@@ -35,4 +43,6 @@ export interface UserState {
   apiKey: string;
   watchlist: Media[];
   watched: Media[];
+  githubToken?: string;
+  gistId?: string;
 }
