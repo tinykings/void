@@ -9,63 +9,35 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-
   title: "Void - Track your movies & TV",
-
   description: "Mobile-first movie and TV show watchlist tracker",
-
   manifest: "/manifest.json",
-
-  appleWebApp: {
-
-    capable: true,
-
-    statusBarStyle: "default",
-
-    title: "Void",
-
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
   },
-
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Void",
+  },
 };
-
-
 
 export const viewport = {
-
   width: "device-width",
-
   initialScale: 1,
-
   maximumScale: 1,
-
   userScalable: false,
-
   themeColor: "#4f46e5",
-
 };
 
-
-
 export default function RootLayout({
-
   children,
-
 }: Readonly<{
-
   children: React.ReactNode;
-
 }>) {
-
   return (
-
     <html lang="en" suppressHydrationWarning>
-
-      <head>
-
-        <link rel="apple-touch-icon" href="/favicon.ico" />
-
-      </head>
-
       <body className={`${inter.className} bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen pb-20 transition-colors duration-300`}>
 
         <ThemeProvider
