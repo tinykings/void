@@ -158,10 +158,10 @@ export default function DetailsView() {
                   href={`https://www.vidangel.com/search?q=${encodeURIComponent(media.title || media.name || '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 min-w-[140px] py-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 bg-amber-500 text-white shadow-lg shadow-amber-200 dark:shadow-none hover:bg-amber-600"
+                  className="flex-1 min-w-[200px] py-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 bg-amber-500 text-white shadow-lg shadow-amber-200 dark:shadow-none hover:bg-amber-600"
                 >
                   <ShieldCheck size={20} />
-                  VidAngel
+                  Edited version available
                 </a>
               )}
             </div>

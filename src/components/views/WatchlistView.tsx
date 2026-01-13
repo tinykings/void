@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { MediaCard } from '@/components/MediaCard';
-import { List, Play, CalendarClock } from 'lucide-react';
+import { List, Play, CalendarClock, ChevronDown, ChevronUp } from 'lucide-react';
 import { FilterTabs, FilterType } from '@/components/FilterTabs';
 import { SortControl } from '@/components/SortControl';
 import { SortOption, sortMedia } from '@/lib/sort';
@@ -21,6 +21,7 @@ export const WatchlistView = ({ onBrowse }: WatchlistViewProps) => {
   
   const [upcomingEpisodes, setUpcomingEpisodes] = useState<Media[]>([]);
   const [upcomingLoading, setUpcomingLoading] = useState(false);
+  const [isUpcomingExpanded, setIsUpcomingExpanded] = useState(true);
 
   // Fetch upcoming episodes for both watched and watchlist TV shows
   useEffect(() => {
@@ -84,44 +85,57 @@ export const WatchlistView = ({ onBrowse }: WatchlistViewProps) => {
       {/* Upcoming Episodes Section */}
       {(upcomingLoading || upcomingEpisodes.length > 0) && (
         <section className="mb-10">
-          <div className="flex items-center gap-2 mb-4">
-            <CalendarClock className="text-indigo-600 dark:text-indigo-400" size={20} />
-            <h2 className="text-lg font-bold uppercase tracking-tight text-gray-900 dark:text-white">Upcoming Episodes</h2>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <CalendarClock className="text-indigo-600 dark:text-indigo-400" size={20} />
+              <h2 className="text-lg font-bold uppercase tracking-tight text-gray-900 dark:text-white">Upcoming Episodes</h2>
+            </div>
+            <button 
+              onClick={() => setIsUpcomingExpanded(!isUpcomingExpanded)}
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400"
+              aria-label={isUpcomingExpanded ? "Collapse" : "Expand"}
+            >
+              {isUpcomingExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            </button>
           </div>
           
-          {upcomingLoading ? (
-            <div className="space-y-2 animate-pulse">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800/50 rounded-xl w-full" />
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-1 bg-gray-50 dark:bg-gray-900/40 p-1.5 rounded-2xl border border-gray-100 dark:border-gray-800/60">
-              {upcomingEpisodes.map((show) => (
-                <div key={show.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 px-4 py-3 rounded-xl hover:bg-white dark:hover:bg-gray-800/50 transition-colors group">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="font-bold text-gray-900 dark:text-white truncate">{show.name}</span>
-                        <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded-md flex-shrink-0">
-                          S{show.next_episode_to_air?.season_number}E{show.next_episode_to_air?.episode_number}
-                        </span>
+          {isUpcomingExpanded && (
+            <>
+              {upcomingLoading ? (
+                <div className="space-y-2 animate-pulse">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800/50 rounded-xl w-full" />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-1 bg-gray-50 dark:bg-gray-900/40 p-1.5 rounded-2xl border border-gray-100 dark:border-gray-800/60">
+                  {upcomingEpisodes.map((show) => (
+                    <div key={show.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 px-4 py-3 rounded-xl hover:bg-white dark:hover:bg-gray-800/50 transition-colors group">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="font-bold text-gray-900 dark:text-white truncate">{show.name}</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded-md flex-shrink-0">
+                              S{show.next_episode_to_air?.season_number}E{show.next_episode_to_air?.episode_number}
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400 truncate font-medium">
+                            {show.next_episode_to_air?.name}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 truncate font-medium">
-                        {show.next_episode_to_air?.name}
+                      <div className="text-xs font-bold text-gray-400 dark:text-gray-500 whitespace-nowrap sm:text-right">
+                        {new Date(show.next_episode_to_air!.air_date).toLocaleDateString(undefined, { 
+                          weekday: 'short',
+                          month: 'short', 
+                          day: 'numeric'
+                        })}
                       </div>
                     </div>
-                  </div>
-                  <div className="text-xs font-bold text-gray-400 dark:text-gray-500 whitespace-nowrap sm:text-right">
-                    {new Date(show.next_episode_to_air!.air_date).toLocaleDateString(undefined, { 
-                      weekday: 'short',
-                      month: 'short', 
-                      day: 'numeric'
-                    })}
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </section>
       )}

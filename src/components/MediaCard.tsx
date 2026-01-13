@@ -5,7 +5,7 @@ import { Media, WatchProvider } from '@/lib/types';
 import { getImageUrl, getWatchProviders, getContentRating } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { useAppContext } from '@/context/AppContext';
-import { Plus, Check, Trash2, Play, ShieldCheck } from 'lucide-react';
+import { Plus, Check, Trash2, Play } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
 
@@ -105,8 +105,8 @@ export const MediaCard: React.FC<MediaCardProps> = ({ media, showActions = true 
 
         {vidAngelAvailable && (
            <div className="absolute top-2 left-2 z-10">
-             <div className="bg-amber-500 text-white p-1 rounded-full shadow-lg border border-white/30" title="Available on VidAngel">
-               <ShieldCheck size={14} strokeWidth={2.5} />
+             <div className="bg-amber-500 text-white text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded shadow-lg border border-white/30" title="Available on VidAngel">
+               Edited
              </div>
            </div>
         )}
