@@ -124,7 +124,7 @@ export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
             }}
             className="shrink-0 transition-opacity hover:opacity-80"
           >
-            <img src="/logo.png" alt="Void" className="h-16 md:h-24 w-auto object-contain dark:opacity-75" />
+            <img src="/void/logo.png" alt="Void" className="h-16 md:h-24 w-auto object-contain dark:opacity-75" />
           </button>
           <div className="relative flex-1 w-full">
             <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />

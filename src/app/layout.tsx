@@ -11,10 +11,10 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Void - Track your movies & TV",
   description: "Mobile-first movie and TV show watchlist tracker",
-  manifest: "/manifest.json",
+  manifest: "/void/manifest.json",
   icons: {
-    icon: "/logo.png",
-    apple: "/logo.png",
+    icon: "/void/logo.png",
+    apple: "/void/logo.png",
   },
   appleWebApp: {
     capable: true,
@@ -78,15 +78,15 @@ export default function RootLayout({
 
             __html: `
 
-              if ('serviceWorker' in navigator) {
+                            if ('serviceWorker' in navigator) {
 
-                window.addEventListener('load', function() {
+                              window.addEventListener('load', function() {
 
-                  navigator.serviceWorker.register('/sw.js');
+                                navigator.serviceWorker.register('/void/sw.js');
 
-                });
+                              });
 
-              }
+                            }
 
             `,
 
