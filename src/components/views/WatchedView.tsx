@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { MediaCard } from '@/components/MediaCard';
-import { CheckCircle, Trophy, Sparkles, ArrowLeft, CalendarClock } from 'lucide-react';
+import { CheckCircle, Trophy, Sparkles, ArrowLeft } from 'lucide-react';
 import { FilterTabs, FilterType } from '@/components/FilterTabs';
 import { SortControl } from '@/components/SortControl';
 import { SortOption, sortMedia } from '@/lib/sort';
-import { getRecommendations, getMediaDetails } from '@/lib/tmdb';
+import { getRecommendations } from '@/lib/tmdb';
 import { Media } from '@/lib/types';
 
 interface WatchedViewProps {
@@ -23,42 +23,6 @@ export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
   const [recommendations, setRecommendations] = useState<Media[]>([]);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   
-  const [upcomingEpisodes, setUpcomingEpisodes] = useState<Media[]>([]);
-  const [upcomingLoading, setUpcomingLoading] = useState(false);
-
-  // Fetch upcoming episodes for watched TV shows
-  useEffect(() => {
-    const fetchUpcoming = async () => {
-      if (!apiKey || watched.length === 0) return;
-      
-      const tvShows = watched.filter(item => item.media_type === 'tv');
-      if (tvShows.length === 0) return;
-      
-      setUpcomingLoading(true);
-      try {
-        const promises = tvShows.map(show => getMediaDetails(show.id, 'tv', apiKey));
-        const results = await Promise.all(promises);
-        
-        const withUpcoming = results
-          .filter(show => show.next_episode_to_air)
-          .sort((a, b) => {
-             const dateA = new Date(a.next_episode_to_air!.air_date).getTime();
-             const dateB = new Date(b.next_episode_to_air!.air_date).getTime();
-             return dateA - dateB;
-          });
-
-        setUpcomingEpisodes(withUpcoming);
-      } catch (e) {
-        console.error("Failed to fetch upcoming episodes", e);
-      } finally {
-        setUpcomingLoading(false);
-      }
-    };
-
-    fetchUpcoming();
-  }, [watched, apiKey]);
-
-
   const filteredList = watched.filter(item => {
     if (filter === 'all') return true;
     return item.media_type === filter;
@@ -187,21 +151,6 @@ export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
       ) : (
         // Watched List View
         <>
-           {/* Upcoming Episodes Section */}
-          {upcomingEpisodes.length > 0 && (
-            <section className="mb-10">
-              <div className="flex items-center gap-2 mb-4">
-                <CalendarClock className="text-indigo-600 dark:text-indigo-400" size={20} />
-                <h2 className="text-lg font-bold uppercase tracking-tight text-gray-900 dark:text-white">Upcoming Episodes</h2>
-              </div>
-              
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                          {upcomingEpisodes.map((item) => (
-                            <MediaCard key={item.id} media={item} showActions={false} />
-                          ))}
-                        </div>            </section>
-          )}
-
           {watched.length === 0 ? (
             <div className="text-center py-20 px-6">
               <div className="bg-gray-100 dark:bg-gray-800 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
