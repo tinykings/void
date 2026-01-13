@@ -1,6 +1,6 @@
 import { Media } from './types';
 
-const FILENAME = 'couch_data.json';
+const FILENAME = 'void_data.json';
 
 export const fetchGistData = async (token: string, gistId: string) => {
   const response = await fetch(`https://api.github.com/gists/${gistId}`, {

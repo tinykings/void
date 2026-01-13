@@ -76,7 +76,7 @@ export default function HomePage() {
         <div className="bg-indigo-50 dark:bg-indigo-900/20 p-6 rounded-full mb-6">
           <Settings size={48} className="text-indigo-600 dark:text-indigo-400" />
         </div>
-        <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Welcome to Couch</h1>
+        <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Welcome to Void</h1>
         <p className="text-gray-600 dark:text-gray-400 mb-8">
           To get started and browse movies, please add your TMDB API key in settings.
         </p>

@@ -1,6 +1,6 @@
 {
-  "name": "Couch",
-  "short_name": "Couch",
+  "name": "Void",
+  "short_name": "Void",
   "description": "Mobile-first movie and TV show watchlist tracker",
   "start_url": "/",
   "display": "standalone",

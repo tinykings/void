@@ -1,6 +1,6 @@
 import { Media, UserState } from './types';
 
-const STORAGE_KEY = 'couch_user_state';
+const STORAGE_KEY = 'void_user_state';
 
 const defaultState: UserState = {
   apiKey: '',

@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
 
-  title: "Couch - Track your movies & TV",
+  title: "Void - Track your movies & TV",
 
   description: "Mobile-first movie and TV show watchlist tracker",
 
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 
     statusBarStyle: "default",
 
-    title: "Couch",
+    title: "Void",
 
   },
 
