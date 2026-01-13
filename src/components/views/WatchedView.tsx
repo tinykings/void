@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { MediaCard } from '@/components/MediaCard';
 import { CheckCircle, Trophy, Sparkles, ArrowLeft } from 'lucide-react';
@@ -23,12 +23,39 @@ export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
   const [recommendations, setRecommendations] = useState<Media[]>([]);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   
+  const [visibleCount, setVisibleCount] = useState(20);
+  const observerTarget = useRef<HTMLDivElement>(null);
+
   const filteredList = watched.filter(item => {
     if (filter === 'all') return true;
     return item.media_type === filter;
   });
 
   const sortedList = sortMedia(filteredList, sort);
+  const visibleList = sortedList.slice(0, visibleCount);
+
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [filter, sort, watched]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => prev + 20);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [observerTarget.current]); // Depend on ref current if possible, or just empty dep with cleanup
+
+
 
   const fetchRecommendations = async () => {
     if (!apiKey || watched.length === 0) return;
@@ -178,9 +205,14 @@ export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
                     <h2 className="text-lg font-bold uppercase tracking-tight text-gray-900 dark:text-white">Watch History</h2>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {sortedList.map((item) => (
+                    {visibleList.map((item) => (
                       <MediaCard key={`${item.media_type}-${item.id}`} media={item} />
                     ))}
+                    {visibleList.length < sortedList.length && (
+                        <div ref={observerTarget} className="col-span-full h-10 w-full flex items-center justify-center p-4">
+                          <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                        </div>
+                    )}
                   </div>
                 </>
               )}

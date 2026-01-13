@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { MediaCard } from '@/components/MediaCard';
 import { List, Play, CalendarClock, ChevronDown, ChevronUp } from 'lucide-react';
@@ -22,6 +22,38 @@ export const WatchlistView = ({ onBrowse }: WatchlistViewProps) => {
   const [upcomingEpisodes, setUpcomingEpisodes] = useState<Media[]>([]);
   const [upcomingLoading, setUpcomingLoading] = useState(false);
   const [isUpcomingExpanded, setIsUpcomingExpanded] = useState(true);
+
+  const [visibleCount, setVisibleCount] = useState(20);
+  const observerTarget = useRef<HTMLDivElement>(null);
+
+  const filteredList = watchlist.filter(item => {
+    if (filter === 'all') return true;
+    return item.media_type === filter;
+  });
+
+  const sortedList = sortMedia(filteredList, sort);
+  const visibleList = sortedList.slice(0, visibleCount);
+
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [filter, sort, watchlist]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => prev + 20);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [sortedList.length]); // Re-attach if list length changes significantly, though target ref is stable
 
   // Fetch upcoming episodes for both watched and watchlist TV shows
   useEffect(() => {
@@ -60,12 +92,7 @@ export const WatchlistView = ({ onBrowse }: WatchlistViewProps) => {
     fetchUpcoming();
   }, [watched, watchlist, apiKey]);
 
-  const filteredList = watchlist.filter(item => {
-    if (filter === 'all') return true;
-    return item.media_type === filter;
-  });
 
-  const sortedList = sortMedia(filteredList, sort);
 
   return (
     <div>
@@ -161,9 +188,14 @@ export const WatchlistView = ({ onBrowse }: WatchlistViewProps) => {
              </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {sortedList.map((item) => (
+              {visibleList.map((item) => (
                 <MediaCard key={`${item.media_type}-${item.id}`} media={item} />
               ))}
+              {visibleList.length < sortedList.length && (
+                <div ref={observerTarget} className="col-span-full h-10 w-full flex items-center justify-center p-4">
+                  <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
             </div>
           )}
         </>
