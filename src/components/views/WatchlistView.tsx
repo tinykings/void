@@ -76,9 +76,6 @@ export const WatchlistView = ({ onBrowse }: WatchlistViewProps) => {
         </div>
         <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto items-stretch md:items-center mb-6 md:mb-0">
           <FilterTabs currentFilter={filter} onFilterChange={setFilter} />
-          <div className="flex justify-end">
-             <SortControl currentSort={sort} onSortChange={setSort} />
-          </div>
         </div>
       </header>
 
@@ -108,28 +105,27 @@ export const WatchlistView = ({ onBrowse }: WatchlistViewProps) => {
                   ))}
                 </div>
               ) : (
-                <div className="space-y-1 bg-gray-50 dark:bg-gray-900/40 p-1.5 rounded-2xl border border-gray-100 dark:border-gray-800/60">
+                <div className="space-y-0.5 bg-gray-50 dark:bg-gray-900/40 p-1 rounded-xl border border-gray-100 dark:border-gray-800/60">
                   {upcomingEpisodes.map((show) => (
-                    <div key={show.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 px-4 py-3 rounded-xl hover:bg-white dark:hover:bg-gray-800/50 transition-colors group">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="font-bold text-gray-900 dark:text-white truncate">{show.name}</span>
-                            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded-md flex-shrink-0">
-                              S{show.next_episode_to_air?.season_number}E{show.next_episode_to_air?.episode_number}
-                            </span>
-                          </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400 truncate font-medium">
-                            {show.next_episode_to_air?.name}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-xs font-bold text-gray-400 dark:text-gray-500 whitespace-nowrap sm:text-right">
+                    <div key={show.id} className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-white dark:hover:bg-gray-800/50 transition-colors group text-sm">
+                      <span className="font-bold text-gray-900 dark:text-white truncate">
+                        {show.name}
+                      </span>
+                      
+                      <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap flex-shrink-0">
                         {new Date(show.next_episode_to_air!.air_date).toLocaleDateString(undefined, { 
-                          weekday: 'short',
                           month: 'short', 
                           day: 'numeric'
                         })}
+                      </span>
+
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span className="flex-shrink-0 text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded-md">
+                           S{show.next_episode_to_air?.season_number}E{show.next_episode_to_air?.episode_number}
+                        </span>
+                        <span className="text-gray-500 dark:text-gray-400 truncate">
+                          {show.next_episode_to_air?.name}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -156,6 +152,9 @@ export const WatchlistView = ({ onBrowse }: WatchlistViewProps) => {
         </div>
       ) : (
         <>
+          <div className="flex justify-end mb-4">
+             <SortControl currentSort={sort} onSortChange={setSort} />
+          </div>
           {sortedList.length === 0 ? (
              <div className="text-center py-20 text-gray-500 dark:text-gray-400">
                <p>No {filter === 'movie' ? 'Movies' : 'Shows'} in your watchlist.</p>
