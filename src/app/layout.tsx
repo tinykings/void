@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import { BottomNav } from "@/components/BottomNav";
@@ -79,17 +80,23 @@ export default function RootLayout({
 
           >
 
-          <AppProvider>
+                    <AppProvider>
 
-            <main className="container mx-auto min-h-screen bg-white dark:bg-gray-950 pb-24 pt-4 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
+                      <main className="container mx-auto min-h-screen bg-white dark:bg-gray-950 pb-24 pt-4 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
 
-              {children}
+                        {children}
 
-            </main>
+                      </main>
 
-            <BottomNav />
+                      <Suspense fallback={null}>
 
-          </AppProvider>
+                        <BottomNav />
+
+                      </Suspense>
+
+                    </AppProvider>
+
+          
 
         </ThemeProvider>
 

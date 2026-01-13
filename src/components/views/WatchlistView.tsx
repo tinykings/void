@@ -4,12 +4,15 @@ import { useState } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { MediaCard } from '@/components/MediaCard';
 import { List, Play } from 'lucide-react';
-import Link from 'next/link';
 import { FilterTabs, FilterType } from '@/components/FilterTabs';
 import { SortControl } from '@/components/SortControl';
 import { SortOption, sortMedia } from '@/lib/sort';
 
-export default function WatchlistPage() {
+interface WatchlistViewProps {
+  onBrowse: () => void;
+}
+
+export const WatchlistView = ({ onBrowse }: WatchlistViewProps) => {
   const { watchlist } = useAppContext();
   const [filter, setFilter] = useState<FilterType>('all');
   const [sort, setSort] = useState<SortOption>('added');
@@ -22,7 +25,7 @@ export default function WatchlistPage() {
   const sortedList = sortMedia(filteredList, sort);
 
   return (
-    <div className="p-4">
+    <div>
       <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div className="flex items-center gap-2">
           <List className="text-indigo-600 dark:text-indigo-400" size={24} />
@@ -42,13 +45,13 @@ export default function WatchlistPage() {
             <Play className="text-gray-300 dark:text-gray-600 ml-1" size={32} />
           </div>
           <h2 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">Empty List</h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-8">You haven't added anything to your watchlist yet.</p>
-          <Link 
-            href="/search"
+          <p className="text-gray-500 dark:text-gray-400 mb-8">You haven&apos;t added anything to your watchlist yet.</p>
+          <button 
+            onClick={onBrowse}
             className="inline-block bg-indigo-600 dark:bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 dark:hover:bg-indigo-500 transition-colors"
           >
             Find something to watch
-          </Link>
+          </button>
         </div>
       ) : (
         <>
@@ -67,4 +70,4 @@ export default function WatchlistPage() {
       )}
     </div>
   );
-}
+};

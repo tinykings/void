@@ -6,7 +6,7 @@ import { Key, Save, ExternalLink, Moon, Github, RefreshCw } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { clsx } from 'clsx';
 
-export default function SettingsPage() {
+export const SettingsView = () => {
   const { apiKey, setApiKey, githubToken, setGithubToken, gistId, setGistId, syncFromGist, isSyncing, vidAngelEnabled, setVidAngelEnabled } = useAppContext();
   
   const [tempApiKey, setTempApiKey] = useState('');
@@ -38,7 +38,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="p-6 max-w-2xl mx-auto pb-24">
+    <div className="max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Settings</h1>
       
       <div className="space-y-6">
@@ -129,8 +129,6 @@ export default function SettingsPage() {
           
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
             Sync your watchlist and history across devices using a GitHub Gist.
-            Create a private Gist with a file named <code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-xs">void_data.json</code> containing <code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded text-xs">{"{}"}</code>.
-            You'll need a Fine-grained Personal Access Token with "Gists" (Read and Write) permission.
           </p>
 
           <div className="space-y-3">
@@ -190,4 +188,4 @@ export default function SettingsPage() {
       </div>
     </div>
   );
-}
+};

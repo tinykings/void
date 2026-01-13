@@ -3,16 +3,18 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { MediaCard } from '@/components/MediaCard';
-import { CheckCircle, Trophy, Sparkles, ArrowLeft, Loader2, CalendarClock } from 'lucide-react';
-import Link from 'next/link';
+import { CheckCircle, Trophy, Sparkles, ArrowLeft, CalendarClock } from 'lucide-react';
 import { FilterTabs, FilterType } from '@/components/FilterTabs';
 import { SortControl } from '@/components/SortControl';
 import { SortOption, sortMedia } from '@/lib/sort';
 import { getRecommendations, getMediaDetails } from '@/lib/tmdb';
 import { Media } from '@/lib/types';
-import { clsx } from 'clsx';
 
-export default function WatchedPage() {
+interface WatchedViewProps {
+  onBrowse: () => void;
+}
+
+export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
   const { watched, watchlist, apiKey } = useAppContext();
   const [filter, setFilter] = useState<FilterType>('all');
   const [sort, setSort] = useState<SortOption>('added');
@@ -106,7 +108,7 @@ export default function WatchedPage() {
   };
 
   return (
-    <div className="p-4">
+    <div>
       {/* Header Area */}
       <header className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-8">
         <div className="flex items-center justify-between md:justify-start w-full md:w-auto">
@@ -207,12 +209,12 @@ export default function WatchedPage() {
               </div>
               <h2 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">No History</h2>
               <p className="text-gray-500 dark:text-gray-400 mb-8">Mark some movies as watched to see them here.</p>
-              <Link 
-                href="/"
+              <button 
+                onClick={onBrowse}
                 className="inline-block bg-green-600 dark:bg-green-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-700 dark:hover:bg-green-500 transition-colors"
               >
                 Browse trending
-              </Link>
+              </button>
             </div>
           ) : (
             <>
@@ -239,4 +241,4 @@ export default function WatchedPage() {
       )}
     </div>
   );
-}
+};
