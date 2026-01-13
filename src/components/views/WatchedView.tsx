@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
 import { MediaCard } from '@/components/MediaCard';
-import { CheckCircle, Trophy, Sparkles, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Trophy, Sparkles, ArrowLeft, Search as SearchIcon, X } from 'lucide-react';
 import { FilterTabs, FilterType } from '@/components/FilterTabs';
 import { SortControl } from '@/components/SortControl';
 import { SortOption, sortMedia } from '@/lib/sort';
@@ -16,7 +16,7 @@ interface WatchedViewProps {
 }
 
 export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
-  const { watched, watchlist, apiKey, recommendations, setRecommendations } = useAppContext();
+  const { watched, watchlist, apiKey, recommendations, setRecommendations, query, setQuery, searchResults, searchLoading } = useAppContext();
   const [filter, setFilter] = useState<FilterType>('all');
   const [sort, setSort] = useState<SortOption>('added');
   
@@ -36,6 +36,13 @@ export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
 
   const sortedList = sortMedia(filteredList, sort);
   const visibleList = sortedList.slice(0, visibleCount);
+
+  const isSearching = query.length > 0;
+  
+  const filteredSearchResults = searchResults.filter(item => {
+    if (filter === 'all') return true;
+    return item.media_type === filter;
+  });
 
   useEffect(() => {
     setVisibleCount(20);
@@ -107,121 +114,182 @@ export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
   }, [showRecommendations, recommendations.length]);
 
   return (
-    <div>
-      {/* Header Area */}
-      <header className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-8">
-        <div className="flex items-center justify-between md:justify-start w-full md:w-auto">
-          <div className="flex items-center gap-2">
-            {showRecommendations ? (
-              <Sparkles className="text-amber-500" size={24} />
-            ) : (
-              <CheckCircle className="text-green-600 dark:text-green-500" size={24} />
+    <div className="max-w-7xl mx-auto">
+      <div className="flex flex-col items-center gap-6 mb-10">
+        <div className="flex flex-col md:flex-row items-center gap-6 w-full max-w-4xl">
+          <img src="/logo.png" alt="Void" className="h-24 w-auto object-contain shrink-0" />
+          <div className="relative flex-1 w-full">
+            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search movies & shows..."
+              className="w-full pl-11 pr-10 py-4 bg-gray-100 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm text-lg font-medium text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+            />
+            {query && (
+              <button 
+                onClick={() => setQuery('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <X size={20} />
+              </button>
             )}
-            <h1 className="text-2xl font-black italic tracking-tighter uppercase text-gray-900 dark:text-white">
-              {showRecommendations ? 'For You' : 'Watched'}
-            </h1>
           </div>
-
-          {showRecommendations && (
-             <button 
-              onClick={() => router.replace('/?tab=watched', { scroll: false })}
-              className="md:hidden text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-            >
-              <ArrowLeft size={14} /> Back
-            </button>
-          )}
         </div>
         
-        <div className="flex flex-col items-stretch md:items-end gap-3 w-full md:w-auto">
-          {showRecommendations ? (
-            <button 
-              onClick={() => router.replace('/?tab=watched', { scroll: false })}
-              className="hidden md:flex text-sm font-bold text-gray-500 dark:text-gray-400 items-center gap-2 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-            >
-              <ArrowLeft size={16} /> Back to History
-            </button>
+        <div className="flex flex-col items-center gap-4 w-full">
+          {isSearching && (
+            <div className="flex items-center gap-2 mb-2">
+               <SearchIcon className="text-indigo-600 dark:text-indigo-400" size={20} />
+               <h1 className="text-xl font-black italic tracking-tighter text-gray-900 dark:text-white uppercase">
+                 Search Results
+               </h1>
+            </div>
+          )}
+          <FilterTabs currentFilter={filter} onFilterChange={setFilter} />
+        </div>
+      </div>
+
+      {isSearching ? (
+        <>
+          {searchLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 animate-pulse">
+              {[...Array(12)].map((_, i) => (
+                <div key={i} className="aspect-[2/3] bg-gray-100 dark:bg-gray-800 rounded-xl" />
+              ))}
+            </div>
           ) : (
             <>
-              <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-end w-full">
-                <FilterTabs currentFilter={filter} onFilterChange={setFilter} />
-                <div className="flex justify-end">
-                  <SortControl currentSort={sort} onSortChange={setSort} />
+              {filteredSearchResults.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                  {filteredSearchResults.map((item) => (
+                    <MediaCard key={`${item.media_type}-${item.id}`} media={item} />
+                  ))}
                 </div>
-              </div>
-              {watched.length > 0 && (
-                <button
-                  onClick={() => router.replace('/?tab=watched&view=recommendations', { scroll: false })}
-                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center justify-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 px-4 py-2 rounded-xl border border-indigo-100 dark:border-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors md:self-end"
-                >
-                  <Sparkles size={14} />
-                  Recommend
-                </button>
+              ) : (
+                <div className="text-center py-20 text-gray-500 dark:text-gray-400">
+                  <p className="font-medium text-lg text-gray-400 dark:text-gray-600">
+                     No results found for &quot;{query}&quot;
+                  </p>
+                </div>
               )}
             </>
           )}
-        </div>
-      </header>
-
-      {showRecommendations ? (
-        // Recommendations View
-        <>
-          {recommendationsLoading ? (
-             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 animate-pulse">
-               {[...Array(10)].map((_, i) => (
-                 <div key={i} className="aspect-[2/3] bg-gray-100 dark:bg-gray-800 rounded-xl" />
-               ))}
-             </div>
-          ) : recommendations.length === 0 ? (
-             <div className="text-center py-20">
-               <p className="text-gray-500 dark:text-gray-400">No recommendations found based on your history.</p>
-             </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {recommendations.map((item) => (
-                <MediaCard key={`${item.media_type}-${item.id}`} media={item} />
-              ))}
-            </div>
-          )}
         </>
       ) : (
-        // Watched List View
         <>
-          {watched.length === 0 ? (
-            <div className="text-center py-20 px-6">
-              <div className="bg-gray-100 dark:bg-gray-800 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Trophy className="text-gray-300 dark:text-gray-600" size={32} />
-              </div>
-              <h2 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">No History</h2>
-              <p className="text-gray-500 dark:text-gray-400 mb-8">Mark some movies as watched to see them here.</p>
-              <button 
-                onClick={onBrowse}
-                className="inline-block bg-green-600 dark:bg-green-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-700 dark:hover:bg-green-500 transition-colors"
-              >
-                Browse trending
-              </button>
+          {/* Watched Header Controls */}
+          <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+            <div className="flex items-center justify-between md:justify-start w-full md:w-auto">
+              {showRecommendations && (
+                <div className="flex items-center gap-2">
+                  <Sparkles className="text-amber-500" size={24} />
+                  <h1 className="text-2xl font-black italic tracking-tighter uppercase text-gray-900 dark:text-white">
+                    For You
+                  </h1>
+                </div>
+              )}
+
+              {showRecommendations && (
+                 <button 
+                  onClick={() => router.replace('/?tab=watched', { scroll: false })}
+                  className="md:hidden text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors ml-4"
+                >
+                  <ArrowLeft size={14} /> Back
+                </button>
+              )}
             </div>
-          ) : (
+            
+            <div className="flex flex-col items-stretch md:items-end gap-3 w-full md:w-auto">
+              {showRecommendations ? (
+                <button 
+                  onClick={() => router.replace('/?tab=watched', { scroll: false })}
+                  className="hidden md:flex text-sm font-bold text-gray-500 dark:text-gray-400 items-center gap-2 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                >
+                  <ArrowLeft size={16} /> Back to History
+                </button>
+              ) : (
+                <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-end w-full">
+                  <div className="flex justify-end">
+                    <SortControl currentSort={sort} onSortChange={setSort} />
+                  </div>
+                  {watched.length > 0 && (
+                    <button
+                      onClick={() => router.replace('/?tab=watched&view=recommendations', { scroll: false })}
+                      className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center justify-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 px-4 py-2 rounded-xl border border-indigo-100 dark:border-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors md:self-end"
+                    >
+                      <Sparkles size={14} />
+                      Recommend
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </header>
+
+          {showRecommendations ? (
+            // Recommendations View
             <>
-              {sortedList.length === 0 ? (
-                 <div className="text-center py-20 text-gray-500 dark:text-gray-400">
-                   <p>No {filter === 'movie' ? 'Movies' : 'Shows'} in your watched history.</p>
+              {recommendationsLoading ? (
+                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 animate-pulse">
+                   {[...Array(10)].map((_, i) => (
+                     <div key={i} className="aspect-[2/3] bg-gray-100 dark:bg-gray-800 rounded-xl" />
+                   ))}
+                 </div>
+              ) : recommendations.length === 0 ? (
+                 <div className="text-center py-20">
+                   <p className="text-gray-500 dark:text-gray-400">No recommendations found based on your history.</p>
                  </div>
               ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {recommendations.map((item) => (
+                    <MediaCard key={`${item.media_type}-${item.id}`} media={item} />
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            // Watched List View
+            <>
+              {watched.length === 0 ? (
+                <div className="text-center py-20 px-6">
+                  <div className="bg-gray-100 dark:bg-gray-800 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Trophy className="text-gray-300 dark:text-gray-600" size={32} />
+                  </div>
+                  <h2 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">No History</h2>
+                  <p className="text-gray-500 dark:text-gray-400 mb-8">Mark some movies as watched to see them here.</p>
+                  <button 
+                    onClick={onBrowse}
+                    className="inline-block bg-green-600 dark:bg-green-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-green-700 dark:hover:bg-green-500 transition-colors"
+                  >
+                    Browse trending
+                  </button>
+                </div>
+              ) : (
                 <>
-                  <div className="flex items-center gap-2 mb-4">
-                    <CheckCircle className="text-indigo-600 dark:text-indigo-400" size={20} />
-                    <h2 className="text-lg font-bold uppercase tracking-tight text-gray-900 dark:text-white">Watch History</h2>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {visibleList.map((item) => (
-                      <MediaCard key={`${item.media_type}-${item.id}`} media={item} />
-                    ))}
-                    {visibleList.length < sortedList.length && (
-                        <div ref={observerTarget} className="col-span-full h-10 w-full flex items-center justify-center p-4">
-                          <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                        </div>
-                    )}
-                  </div>
+                  {sortedList.length === 0 ? (
+                     <div className="text-center py-20 text-gray-500 dark:text-gray-400">
+                       <p>No {filter === 'movie' ? 'Movies' : 'Shows'} in your watched history.</p>
+                     </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 mb-4">
+                        <CheckCircle className="text-indigo-600 dark:text-indigo-400" size={20} />
+                        <h2 className="text-lg font-bold uppercase tracking-tight text-gray-900 dark:text-white">Watch History</h2>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {visibleList.map((item) => (
+                          <MediaCard key={`${item.media_type}-${item.id}`} media={item} />
+                        ))}
+                        {visibleList.length < sortedList.length && (
+                            <div ref={observerTarget} className="col-span-full h-10 w-full flex items-center justify-center p-4">
+                              <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                            </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </>

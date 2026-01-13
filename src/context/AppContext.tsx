@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { Media, UserState } from '@/lib/types';
 import { loadState, saveState, toggleInList as toggleInStorage } from '@/lib/storage';
 import { fetchGistData, updateGistData } from '@/lib/gist';
+import { searchMedia } from '@/lib/tmdb';
 
 interface AppContextType extends UserState {
   setApiKey: (key: string) => void;
@@ -17,6 +18,10 @@ interface AppContextType extends UserState {
   isSyncing: boolean;
   recommendations: Media[];
   setRecommendations: (recs: Media[]) => void;
+  query: string;
+  setQuery: (q: string) => void;
+  searchResults: Media[];
+  searchLoading: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -32,7 +37,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [recommendations, setRecommendations] = useState<Media[]>([]);
+  
+  // Search State
+  const [query, setQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Media[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+
   const initialLoadDone = useRef(false);
+
+  // Debounced Search
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      if (query.length > 2 && state.apiKey) {
+        setSearchLoading(true);
+        searchMedia(query, state.apiKey)
+          .then((results) => {
+            // Sort by popularity at the top
+            const sorted = [...results].sort((a, b) => b.popularity - a.popularity);
+            setSearchResults(sorted);
+          })
+          .catch(console.error)
+          .finally(() => setSearchLoading(false));
+      } else if (query.length === 0) {
+        setSearchResults([]);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounce);
+  }, [query, state.apiKey]);
 
   // Load from local storage on mount
   useEffect(() => {
@@ -132,6 +164,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isSyncing,
         recommendations,
         setRecommendations,
+        query,
+        setQuery,
+        searchResults,
+        searchLoading,
       }}
     >
       {children}

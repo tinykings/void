@@ -82,11 +82,11 @@ export default function RootLayout({
 
                     <AppProvider>
 
-                      <main className="container mx-auto min-h-screen bg-white dark:bg-gray-950 pb-24 pt-4 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
+                                                                                        <main className="container mx-auto min-h-screen bg-white dark:bg-gray-950 pb-24 pt-4 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
 
-                        {children}
+                                                                                          {children}
 
-                      </main>
+                                                                                        </main>
 
                       <Suspense fallback={null}>
 

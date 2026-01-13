@@ -13,16 +13,11 @@ interface HomeViewProps {
 }
 
 export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
-  const { apiKey, isLoaded } = useAppContext();
+  const { apiKey, isLoaded, query, setQuery, searchResults, searchLoading } = useAppContext();
   
   // Trending State
   const [trending, setTrending] = useState<Media[]>([]);
   const [trendingLoading, setTrendingLoading] = useState(false);
-  
-  // Search State
-  const [query, setQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Media[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
   
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
@@ -43,33 +38,6 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
         .finally(() => setTrendingLoading(false));
     }
   }, [apiKey, isLoaded, filter, query]);
-
-  // Debounced Search
-  useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      if (query.length > 2 && apiKey) {
-        setSearchLoading(true);
-        searchMedia(query, apiKey)
-          .then((results) => {
-            // Sort by popularity at the top
-            const sorted = [...results].sort((a, b) => b.popularity - a.popularity);
-            
-            // Apply current filter to search results if not 'all'
-            const filtered = sorted.filter(item => {
-              if (filter === 'all') return true;
-              return item.media_type === filter;
-            });
-            setSearchResults(filtered);
-          })
-          .catch(console.error)
-          .finally(() => setSearchLoading(false));
-      } else if (query.length === 0) {
-        setSearchResults([]);
-      }
-    }, 500);
-
-    return () => clearTimeout(delayDebounce);
-  }, [query, apiKey, filter]);
 
   if (!isLoaded) return null;
 
@@ -94,45 +62,51 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   }
 
   const isSearching = query.length > 0;
-  const displayMedia = isSearching ? searchResults : trending;
+  
+  const filteredSearchResults = searchResults.filter(item => {
+    if (filter === 'all') return true;
+    return item.media_type === filter;
+  });
+
+  const displayMedia = isSearching ? filteredSearchResults : trending;
   const isLoading = isSearching ? searchLoading : trendingLoading;
 
   return (
     <div className="max-w-7xl mx-auto">
-      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-        <div className="flex items-center gap-2">
-          {isSearching ? (
-             <SearchIcon className="text-indigo-600 dark:text-indigo-400" size={24} />
-          ) : (
-            <TrendingUp className="text-indigo-600 dark:text-indigo-400" size={24} />
-          )}
-          <h1 className="text-2xl font-black italic tracking-tighter text-gray-900 dark:text-white uppercase">
-            {isSearching ? `Search Results` : `Trending This Week`}
-          </h1>
+      <div className="flex flex-col items-center gap-6 mb-10">
+        <div className="flex flex-col md:flex-row items-center gap-6 w-full max-w-4xl">
+          <img src="/logo.png" alt="Void" className="h-24 w-auto object-contain shrink-0" />
+          <div className="relative flex-1 w-full">
+            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search movies & shows..."
+              className="w-full pl-11 pr-10 py-4 bg-gray-100 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm text-lg font-medium text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+            />
+            {query && (
+              <button 
+                onClick={() => setQuery('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <X size={20} />
+              </button>
+            )}
+          </div>
         </div>
-        <div className="w-full md:w-auto mb-6 md:mb-0">
+        
+        <div className="flex flex-col items-center gap-4 w-full">
+          {isSearching && (
+            <div className="flex items-center gap-2 mb-2">
+               <SearchIcon className="text-indigo-600 dark:text-indigo-400" size={20} />
+               <h1 className="text-xl font-black italic tracking-tighter text-gray-900 dark:text-white uppercase">
+                 Search Results
+               </h1>
+            </div>
+          )}
           <FilterTabs currentFilter={filter} onFilterChange={setFilter} />
         </div>
-      </header>
-
-      {/* Search Bar - Under Filter Tabs */}
-      <div className="relative mb-8 w-full max-w-md mx-auto">
-        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search movies & shows..."
-          className="w-full pl-11 pr-10 py-3 bg-gray-100 dark:bg-gray-900 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm text-base font-medium text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
-        />
-        {query && (
-          <button 
-            onClick={() => setQuery('')}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-          >
-            <X size={18} />
-          </button>
-        )}
       </div>
 
       {error && !isSearching && (
