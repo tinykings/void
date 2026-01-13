@@ -15,6 +15,8 @@ interface AppContextType extends UserState {
   syncFromGist: () => Promise<void>;
   isLoaded: boolean;
   isSyncing: boolean;
+  recommendations: Media[];
+  setRecommendations: (recs: Media[]) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -29,6 +31,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [recommendations, setRecommendations] = useState<Media[]>([]);
   const initialLoadDone = useRef(false);
 
   // Load from local storage on mount
@@ -127,6 +130,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         syncFromGist,
         isLoaded,
         isSyncing,
+        recommendations,
+        setRecommendations,
       }}
     >
       {children}

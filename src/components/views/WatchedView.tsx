@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
 import { MediaCard } from '@/components/MediaCard';
 import { CheckCircle, Trophy, Sparkles, ArrowLeft } from 'lucide-react';
@@ -15,12 +16,14 @@ interface WatchedViewProps {
 }
 
 export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
-  const { watched, watchlist, apiKey } = useAppContext();
+  const { watched, watchlist, apiKey, recommendations, setRecommendations } = useAppContext();
   const [filter, setFilter] = useState<FilterType>('all');
   const [sort, setSort] = useState<SortOption>('added');
   
-  const [showRecommendations, setShowRecommendations] = useState(false);
-  const [recommendations, setRecommendations] = useState<Media[]>([]);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const showRecommendations = searchParams.get('view') === 'recommendations';
+
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   
   const [visibleCount, setVisibleCount] = useState(20);
@@ -61,7 +64,6 @@ export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
     if (!apiKey || watched.length === 0) return;
     
     setRecommendationsLoading(true);
-    setShowRecommendations(true);
     
     try {
       const candidates = filteredList.length > 0 ? filteredList : watched;
@@ -98,6 +100,12 @@ export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
     }
   };
 
+  useEffect(() => {
+    if (showRecommendations && recommendations.length === 0) {
+      fetchRecommendations();
+    }
+  }, [showRecommendations, recommendations.length]);
+
   return (
     <div>
       {/* Header Area */}
@@ -116,7 +124,7 @@ export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
 
           {showRecommendations && (
              <button 
-              onClick={() => setShowRecommendations(false)}
+              onClick={() => router.replace('/?tab=watched', { scroll: false })}
               className="md:hidden text-xs font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
             >
               <ArrowLeft size={14} /> Back
@@ -127,7 +135,7 @@ export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
         <div className="flex flex-col items-stretch md:items-end gap-3 w-full md:w-auto">
           {showRecommendations ? (
             <button 
-              onClick={() => setShowRecommendations(false)}
+              onClick={() => router.replace('/?tab=watched', { scroll: false })}
               className="hidden md:flex text-sm font-bold text-gray-500 dark:text-gray-400 items-center gap-2 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
             >
               <ArrowLeft size={16} /> Back to History
@@ -142,7 +150,7 @@ export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
               </div>
               {watched.length > 0 && (
                 <button
-                  onClick={fetchRecommendations}
+                  onClick={() => router.replace('/?tab=watched&view=recommendations', { scroll: false })}
                   className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center justify-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 px-4 py-2 rounded-xl border border-indigo-100 dark:border-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors md:self-end"
                 >
                   <Sparkles size={14} />
