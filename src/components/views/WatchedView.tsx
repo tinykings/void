@@ -116,7 +116,7 @@ export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
   return (
     <div className="max-w-7xl mx-auto">
       <div className="flex flex-col items-center gap-6 mb-10">
-        <div className="flex flex-col md:flex-row items-center gap-6 w-full max-w-4xl">
+        <div className="flex flex-col md:flex-row items-center gap-6 w-full">
           <img src="/logo.png" alt="Void" className="h-24 w-auto object-contain shrink-0" />
           <div className="relative flex-1 w-full">
             <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -148,6 +148,15 @@ export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
             </div>
           )}
           <FilterTabs currentFilter={filter} onFilterChange={setFilter} />
+          {!isSearching && !showRecommendations && watched.length > 0 && (
+            <button
+              onClick={() => router.replace('/?tab=watched&view=recommendations', { scroll: false })}
+              className="w-full max-w-md text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center justify-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 px-4 py-2 rounded-xl border border-indigo-100 dark:border-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+            >
+              <Sparkles size={14} />
+              Recommend
+            </button>
+          )}
         </div>
       </div>
 
@@ -210,19 +219,8 @@ export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
                   <ArrowLeft size={16} /> Back to History
                 </button>
               ) : (
-                <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-end w-full">
-                  <div className="flex justify-end">
-                    <SortControl currentSort={sort} onSortChange={setSort} />
-                  </div>
-                  {watched.length > 0 && (
-                    <button
-                      onClick={() => router.replace('/?tab=watched&view=recommendations', { scroll: false })}
-                      className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center justify-center gap-2 bg-indigo-50 dark:bg-indigo-900/30 px-4 py-2 rounded-xl border border-indigo-100 dark:border-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors md:self-end"
-                    >
-                      <Sparkles size={14} />
-                      Recommend
-                    </button>
-                  )}
+                <div className="flex justify-end w-full">
+                  <SortControl currentSort={sort} onSortChange={setSort} />
                 </div>
               )}
             </div>
@@ -273,22 +271,16 @@ export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
                        <p>No {filter === 'movie' ? 'Movies' : 'Shows'} in your watched history.</p>
                      </div>
                   ) : (
-                    <>
-                      <div className="flex items-center gap-2 mb-4">
-                        <CheckCircle className="text-indigo-600 dark:text-indigo-400" size={20} />
-                        <h2 className="text-lg font-bold uppercase tracking-tight text-gray-900 dark:text-white">Watch History</h2>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                        {visibleList.map((item) => (
-                          <MediaCard key={`${item.media_type}-${item.id}`} media={item} />
-                        ))}
-                        {visibleList.length < sortedList.length && (
-                            <div ref={observerTarget} className="col-span-full h-10 w-full flex items-center justify-center p-4">
-                              <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                            </div>
-                        )}
-                      </div>
-                    </>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                      {visibleList.map((item) => (
+                        <MediaCard key={`${item.media_type}-${item.id}`} media={item} />
+                      ))}
+                      {visibleList.length < sortedList.length && (
+                          <div ref={observerTarget} className="col-span-full h-10 w-full flex items-center justify-center p-4">
+                            <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                          </div>
+                      )}
+                    </div>
                   )}
                 </>
               )}

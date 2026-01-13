@@ -74,7 +74,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   return (
     <div className="max-w-7xl mx-auto">
       <div className="flex flex-col items-center gap-6 mb-10">
-        <div className="flex flex-col md:flex-row items-center gap-6 w-full max-w-4xl">
+        <div className="flex flex-col md:flex-row items-center gap-6 w-full">
           <img src="/logo.png" alt="Void" className="h-24 w-auto object-contain shrink-0" />
           <div className="relative flex-1 w-full">
             <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
