@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useAppContext } from '@/context/AppContext';
 import { MediaCard } from '@/components/MediaCard';
 import { List, Play, CalendarClock, ChevronDown, ChevronUp, Search as SearchIcon, X } from 'lucide-react';
@@ -203,7 +204,11 @@ export const WatchlistView = ({ onBrowse }: WatchlistViewProps) => {
                   ) : (
                     <div className="space-y-0.5 bg-gray-50 dark:bg-gray-900/40 p-1 rounded-xl border border-gray-100 dark:border-gray-800/60">
                       {upcomingEpisodes.map((show) => (
-                        <div key={show.id} className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-white dark:hover:bg-gray-800/50 transition-colors group text-sm">
+                        <Link 
+                          key={show.id} 
+                          href={`/details?type=tv&id=${show.id}`}
+                          className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-white dark:hover:bg-gray-800/50 transition-colors group text-sm"
+                        >
                           <span className="font-bold text-gray-900 dark:text-white truncate">
                             {show.name}
                           </span>
@@ -223,7 +228,7 @@ export const WatchlistView = ({ onBrowse }: WatchlistViewProps) => {
                               {show.next_episode_to_air?.name}
                             </span>
                           </div>
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   )}
