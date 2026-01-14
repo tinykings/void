@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { getMediaDetails, getWatchProviders, getImageUrl, getContentRating } from '@/lib/tmdb';
+import { getMediaDetails, getWatchProviders, getImageUrl, getContentRating, getSeasonDetails } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
-import { Media, WatchProvidersResponse, WatchProvider } from '@/lib/types';
-import { ChevronLeft, Plus, Check, Trash2, Play, Star, Calendar, ShieldCheck } from 'lucide-react';
+import { Media, WatchProvidersResponse, WatchProvider, SeasonDetails } from '@/lib/types';
+import { ChevronLeft, Plus, Check, Trash2, Play, Star, Calendar, ShieldCheck, ChevronDown } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export default function DetailsView() {
@@ -22,6 +22,22 @@ export default function DetailsView() {
   const [vidAngelAvailable, setVidAngelAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1);
+  const [seasonDetails, setSeasonDetails] = useState<SeasonDetails | null>(null);
+
+  useEffect(() => {
+    setSelectedSeasonNumber(1);
+    setSeasonDetails(null);
+  }, [id]);
+
+  useEffect(() => {
+    if (media?.media_type === 'tv' && apiKey) {
+       getSeasonDetails(media.id, selectedSeasonNumber, apiKey)
+         .then(setSeasonDetails)
+         .catch(console.error);
+    }
+  }, [media, selectedSeasonNumber, apiKey]);
 
   useEffect(() => {
     if (apiKey && id && type) {
@@ -41,6 +57,14 @@ export default function DetailsView() {
         getContentRating(parseInt(id), type, apiKey)
       ])
         .then(async ([mediaData, providerData, ratingData]) => {
+          if (mediaData.media_type === 'tv' && mediaData.seasons && mediaData.seasons.length > 0) {
+            const regularSeasons = mediaData.seasons.filter(s => s.season_number > 0);
+            const latestSeason = regularSeasons.length > 0 
+              ? regularSeasons[regularSeasons.length - 1].season_number 
+              : mediaData.seasons[mediaData.seasons.length - 1].season_number;
+            setSelectedSeasonNumber(latestSeason);
+          }
+          
           setMedia(mediaData);
           setProviders(providerData);
           setRating(ratingData);
@@ -173,6 +197,59 @@ export default function DetailsView() {
                 {media.overview || 'No overview available.'}
               </p>
             </section>
+
+            {/* Episodes */}
+            {media.media_type === 'tv' && media.seasons && (
+              <section className="mt-8">
+                 <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-bold uppercase tracking-tighter italic text-gray-900 dark:text-white">Episodes</h2>
+                    <div className="relative">
+                      <select 
+                        value={selectedSeasonNumber} 
+                        onChange={(e) => setSelectedSeasonNumber(Number(e.target.value))}
+                        className="appearance-none bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-bold py-2 pl-4 pr-10 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                      >
+                        {media.seasons.map((s) => (
+                           <option key={s.id} value={s.season_number}>{s.name}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                    </div>
+                 </div>
+                 
+                 <div className="space-y-4">
+                   {seasonDetails ? seasonDetails.episodes.map((ep) => (
+                     <div key={ep.id} className="flex gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+                        <div className="w-32 aspect-video rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0 relative">
+                           {ep.still_path ? (
+                             <img src={getImageUrl(ep.still_path)} alt={ep.name} className="w-full h-full object-cover" loading="lazy" />
+                           ) : (
+                             <div className="w-full h-full flex items-center justify-center text-gray-400">
+                               <Play size={24} />
+                             </div>
+                           )}
+                           <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[10px] font-bold px-1 rounded">
+                             S{ep.season_number} E{ep.episode_number}
+                           </div>
+                        </div>
+                        <div className="flex-1 min-w-0 py-1">
+                           <div className="flex items-start justify-between gap-4 mb-1">
+                              <h3 className="font-bold text-gray-900 dark:text-white truncate" title={ep.name}>{ep.name}</h3>
+                              <span className="text-xs font-medium text-gray-500 whitespace-nowrap">
+                                {ep.air_date ? new Date(ep.air_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'TBA'}
+                              </span>
+                           </div>
+                           <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                             {ep.overview || 'No overview available.'}
+                           </p>
+                        </div>
+                     </div>
+                   )) : (
+                     <div className="py-8 text-center text-gray-500 dark:text-gray-400 animate-pulse">Loading episodes...</div>
+                   )}
+                 </div>
+              </section>
+            )}
           </div>
 
           {/* Streaming Providers */}

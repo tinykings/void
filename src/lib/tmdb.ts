@@ -1,4 +1,4 @@
-import { Media, WatchProvidersResponse } from './types';
+import { Media, WatchProvidersResponse, SeasonDetails } from './types';
 
 const BASE_URL = 'https://api.themoviedb.org/3';
 
@@ -60,4 +60,8 @@ export const getWatchProviders = async (id: number, type: 'movie' | 'tv', apiKey
 export const getImageUrl = (path: string | null, size: 'w500' | 'original' = 'w500') => {
   if (!path) return ''; 
   return `https://image.tmdb.org/t/p/${size}${path}`;
+};
+
+export const getSeasonDetails = async (tvId: number, seasonNumber: number, apiKey: string): Promise<SeasonDetails> => {
+  return fetchFromTMDB(`/tv/${tvId}/season/${seasonNumber}`, apiKey);
 };

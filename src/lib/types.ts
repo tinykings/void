@@ -1,3 +1,34 @@
+export interface SeasonSummary {
+  id: number;
+  name: string;
+  season_number: number;
+  episode_count: number;
+  air_date: string | null;
+  poster_path: string | null;
+}
+
+export interface Episode {
+  id: number;
+  name: string;
+  overview: string;
+  vote_average: number;
+  air_date: string;
+  episode_number: number;
+  season_number: number;
+  still_path: string | null;
+}
+
+export interface SeasonDetails {
+  _id: string;
+  air_date: string;
+  name: string;
+  overview: string;
+  id: number;
+  poster_path: string | null;
+  season_number: number;
+  episodes: Episode[];
+}
+
 export interface Media {
   id: number;
   title?: string;
@@ -10,6 +41,7 @@ export interface Media {
   vote_average: number;
   popularity: number;
   media_type: 'movie' | 'tv';
+  seasons?: SeasonSummary[];
   next_episode_to_air?: {
     air_date: string;
     episode_number: number;
