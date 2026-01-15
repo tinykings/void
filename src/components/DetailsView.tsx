@@ -124,7 +124,7 @@ export default function DetailsView() {
       </div>
 
       {/* Content Container */}
-      <div className="max-w-4xl mx-auto px-6 -mt-20 md:-mt-32 relative z-10">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 -mt-20 md:-mt-32 relative z-10">
         <div className="flex flex-col md:flex-row md:items-end gap-6 mb-8">
           {/* Poster */}
           <div className="w-32 md:w-48 aspect-[2/3] rounded-lg overflow-hidden shadow-2xl border-2 border-white dark:border-gray-800 shrink-0 bg-gray-200 dark:bg-gray-800">
@@ -219,8 +219,8 @@ export default function DetailsView() {
                  
                  <div className="space-y-4">
                    {seasonDetails ? seasonDetails.episodes.map((ep) => (
-                     <div key={ep.id} className="flex gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
-                        <div className="w-32 aspect-video rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0 relative">
+                     <div key={ep.id} className="flex gap-3 p-3 sm:p-4 sm:gap-4 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
+                        <div className="w-24 sm:w-32 aspect-video rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0 relative">
                            {ep.still_path ? (
                              <img src={getImageUrl(ep.still_path)} alt={ep.name} className="w-full h-full object-cover" loading="lazy" />
                            ) : (
@@ -228,18 +228,18 @@ export default function DetailsView() {
                                <Play size={24} />
                              </div>
                            )}
-                           <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[10px] font-bold px-1 rounded">
+                           <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] sm:text-[10px] font-bold px-1 rounded">
                              S{ep.season_number} E{ep.episode_number}
                            </div>
                         </div>
-                        <div className="flex-1 min-w-0 py-1">
-                           <div className="flex items-start justify-between gap-4 mb-1">
-                              <h3 className="font-bold text-gray-900 dark:text-white truncate" title={ep.name}>{ep.name}</h3>
-                              <span className="text-xs font-medium text-gray-500 whitespace-nowrap">
+                        <div className="flex-1 min-w-0 py-0.5 sm:py-1">
+                           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-0.5 sm:gap-4 mb-1">
+                              <h3 className="font-bold text-gray-900 dark:text-white truncate text-sm sm:text-base" title={ep.name}>{ep.name}</h3>
+                              <span className="text-[10px] sm:text-xs font-medium text-gray-500 whitespace-nowrap">
                                 {ep.air_date ? new Date(ep.air_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'TBA'}
                               </span>
                            </div>
-                           <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                           <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
                              {ep.overview || 'No overview available.'}
                            </p>
                         </div>
@@ -253,7 +253,7 @@ export default function DetailsView() {
           </div>
 
           {/* Streaming Providers */}
-          <section className="bg-gray-50 dark:bg-gray-900 p-6 rounded-2xl h-fit border border-gray-100 dark:border-gray-800">
+          <section className="bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 rounded-2xl h-fit border border-gray-100 dark:border-gray-800">
             <h2 className="text-lg font-bold mb-4 uppercase tracking-tighter italic flex items-center gap-2 text-gray-900 dark:text-white">
               <Play size={18} className="text-indigo-600 dark:text-indigo-400" /> Where to watch
             </h2>
