@@ -1,4 +1,4 @@
-export const checkVidAngelAvailability = async (title: string, tmdbId: number, type: 'movie' | 'tv'): Promise<boolean> => {
+export const checkVidAngelAvailability = async (title: string, tmdbId: number): Promise<boolean> => {
   if (!title || !tmdbId) return false;
   
   try {

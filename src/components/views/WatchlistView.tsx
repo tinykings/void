@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useAppContext } from '@/context/AppContext';
 import { MediaCard } from '@/components/MediaCard';
-import { List, Play, CalendarClock, ChevronDown, ChevronUp, Search as SearchIcon, X } from 'lucide-react';
+import { Play, CalendarClock, ChevronDown, ChevronUp, Search as SearchIcon, X } from 'lucide-react';
 import { FilterTabs, FilterType } from '@/components/FilterTabs';
 import { SortControl } from '@/components/SortControl';
 import { SortOption, sortMedia } from '@/lib/sort';
@@ -61,7 +61,8 @@ export const WatchlistView = ({ onBrowse }: WatchlistViewProps) => {
     }
 
     return () => observer.disconnect();
-  }, [sortedList.length]); // Re-attach if list length changes significantly, though target ref is stable
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [observerTarget]); 
 
   // Fetch upcoming episodes for both watched and watchlist TV shows
   useEffect(() => {

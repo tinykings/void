@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useAppContext } from '@/context/AppContext';
-import { getTrending, searchMedia } from '@/lib/tmdb';
+import { getTrending } from '@/lib/tmdb';
 import { Media } from '@/lib/types';
 import { MediaCard } from '@/components/MediaCard';
 import { FilterTabs, FilterType } from '@/components/FilterTabs';
-import { TrendingUp, AlertCircle, Settings, Search as SearchIcon, X } from 'lucide-react';
+import { AlertCircle, Settings, Search as SearchIcon, X } from 'lucide-react';
 
 interface HomeViewProps {
   onGoToSettings: () => void;
@@ -25,6 +25,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   // Fetch Trending
   useEffect(() => {
     if (isLoaded && apiKey && !query) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTrendingLoading(true);
       getTrending(apiKey, filter)
         .then((items) => {

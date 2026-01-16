@@ -52,6 +52,71 @@ export interface Media {
   } | null;
 }
 
+export interface TmdbResult {
+  id: number;
+  media_type: 'movie' | 'tv';
+  title?: string;
+  name?: string;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  overview: string;
+  release_date?: string;
+  first_air_date?: string;
+  vote_average: number;
+  popularity: number;
+}
+
+export interface ReleaseDate {
+  certification: string;
+  iso_639_1: string;
+  note: string;
+  release_date: string;
+  type: number;
+}
+
+export interface ReleaseDatesResult {
+  iso_3166_1: string;
+  release_dates: ReleaseDate[];
+}
+
+export interface ReleaseDatesResponse {
+  id: number;
+  results: ReleaseDatesResult[];
+}
+
+export interface ContentRating {
+  iso_3166_1: string;
+  rating: string;
+}
+
+export interface ContentRatingsResponse {
+  id: number;
+  results: ContentRating[];
+}
+
+export interface ExternalPlayerOption {
+  id: string;
+  name: string;
+  tvUrlTemplate: string;
+  movieUrlTemplate: string;
+}
+
+export const externalPlayerOptions: ExternalPlayerOption[] = [
+  {
+    id: 'cineby.gd',
+    name: 'Cineby.gd',
+    tvUrlTemplate: 'https://www.cineby.gd/tv/{TMDBID}/{season_num}/{episode_num}?play=true',
+    movieUrlTemplate: 'https://www.cineby.gd/movie/{TMDBID}?play=true',
+  },
+  {
+    id: 'bitcine.app',
+    name: 'Bitcine.app',
+    tvUrlTemplate: 'https://www.bitcine.app/tv/{TMDBID}/{season_num}/{episode_num}?play=true',
+    movieUrlTemplate: 'https://www.bitcine.app/movie/{TMDBID}?play=true',
+  },
+  // Add other external player options here in the future
+];
+
 export interface WatchProvider {
   provider_id: number;
   provider_name: string;
@@ -78,4 +143,6 @@ export interface UserState {
   githubToken?: string;
   gistId?: string;
   vidAngelEnabled?: boolean;
+  externalPlayerEnabled?: boolean;
+  selectedExternalPlayerId?: string | null;
 }

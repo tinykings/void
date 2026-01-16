@@ -6,7 +6,7 @@ import { useAppContext } from '@/context/AppContext';
 import { getMediaDetails, getWatchProviders, getImageUrl, getContentRating, getSeasonDetails } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { Media, WatchProvidersResponse, WatchProvider, SeasonDetails } from '@/lib/types';
-import { ChevronLeft, Plus, Check, Trash2, Play, Star, Calendar, ShieldCheck, ChevronDown } from 'lucide-react';
+import { ChevronLeft, Plus, Check, Trash2, Play, Star, Calendar, ShieldCheck, ChevronDown, Skull } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export default function DetailsView() {
@@ -14,8 +14,17 @@ export default function DetailsView() {
   const type = searchParams.get('type') as 'movie' | 'tv';
   const id = searchParams.get('id');
   const router = useRouter();
-  const { apiKey, watchlist, watched, toggleWatchlist, toggleWatched, vidAngelEnabled } = useAppContext();
-  
+  const { 
+    apiKey, 
+    watchlist, 
+    watched, 
+    toggleWatchlist, 
+    toggleWatched, 
+    vidAngelEnabled,
+    externalPlayerEnabled,
+    selectedExternalPlayer,
+  } = useAppContext();
+
   const [media, setMedia] = useState<Media | null>(null);
   const [rating, setRating] = useState<string | null>(null);
   const [providers, setProviders] = useState<WatchProvidersResponse | null>(null);
@@ -27,7 +36,9 @@ export default function DetailsView() {
   const [seasonDetails, setSeasonDetails] = useState<SeasonDetails | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedSeasonNumber(1);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSeasonDetails(null);
   }, [id]);
 
@@ -41,12 +52,13 @@ export default function DetailsView() {
 
   useEffect(() => {
     if (apiKey && id && type) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(true);
-      
+
       const checkVA = async (currentRating: string | null, title: string) => {
         if (!vidAngelEnabled || !currentRating) return false;
         if ((type === 'movie' && currentRating === 'R') || (type === 'tv' && currentRating === 'TV-MA')) {
-           return checkVidAngelAvailability(title, parseInt(id!), type);
+           return checkVidAngelAvailability(title, parseInt(id!));
         }
         return false;
       };
@@ -64,11 +76,11 @@ export default function DetailsView() {
               : mediaData.seasons[mediaData.seasons.length - 1].season_number;
             setSelectedSeasonNumber(latestSeason);
           }
-          
+
           setMedia(mediaData);
           setProviders(providerData);
           setRating(ratingData);
-          
+
           const vaResult = await checkVA(ratingData, mediaData.title || mediaData.name || '');
           setVidAngelAvailable(vaResult);
         })
@@ -100,20 +112,35 @@ export default function DetailsView() {
   const userRegion = 'US'; // Default to US for now
   const localProviders = providers?.results?.[userRegion];
 
+  // Helper to construct external player URL
+  const getExternalPlayerUrl = (mediaType: 'movie' | 'tv', mediaId: number, seasonNum?: number, episodeNum?: number) => {
+    if (!externalPlayerEnabled || !selectedExternalPlayer) return '';
+    let url = '';
+    if (mediaType === 'movie' && selectedExternalPlayer.movieUrlTemplate) {
+      url = selectedExternalPlayer.movieUrlTemplate.replace('{TMDBID}', mediaId.toString());
+    } else if (mediaType === 'tv' && selectedExternalPlayer.tvUrlTemplate && seasonNum !== undefined && episodeNum !== undefined) {
+      url = selectedExternalPlayer.tvUrlTemplate
+        .replace('{TMDBID}', mediaId.toString())
+        .replace('{season_num}', seasonNum.toString())
+        .replace('{episode_num}', episodeNum.toString());
+    }
+    return url;
+  };
+
   return (
     <div className="relative pb-10">
       {/* Backdrop */}
       <div className="relative h-[40vh] md:h-[50vh] w-full">
-        <button 
+        <button
           onClick={() => router.back()}
           className="absolute top-4 left-4 z-20 bg-black/40 text-white p-2 rounded-full backdrop-blur-md hover:bg-black/60 transition-colors"
         >
           <ChevronLeft size={24} />
         </button>
-        
+
         {media.backdrop_path ? (
-          <img 
-            src={getImageUrl(media.backdrop_path, 'original')} 
+          <img
+            src={getImageUrl(media.backdrop_path, 'original')}
             alt={title}
             className="w-full h-full object-cover"
           />
@@ -132,7 +159,7 @@ export default function DetailsView() {
               <img src={getImageUrl(media.poster_path)} alt={title} className="w-full h-full object-cover" />
             )}
           </div>
-          
+
           {/* Title & Metadata */}
           <div className="pb-2 flex-1">
             <h1 className="text-2xl md:text-4xl font-black leading-tight mb-2 text-gray-900 dark:text-white">{title}</h1>
@@ -155,21 +182,21 @@ export default function DetailsView() {
                 onClick={() => toggleWatchlist(media)}
                 className={clsx(
                   "flex-1 min-w-[140px] py-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95",
-                  inWatchlist 
-                    ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300" 
+                  inWatchlist
+                    ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300"
                     : "bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500"
                 )}
               >
                 {inWatchlist ? <Trash2 size={20} /> : <Plus size={20} />}
                 {inWatchlist ? 'In List' : 'Watchlist'}
               </button>
-              
+
               <button
                 onClick={() => toggleWatched(media)}
                 className={clsx(
                   "flex-1 min-w-[140px] py-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 border-2",
-                  inWatched 
-                    ? "bg-green-100 dark:bg-green-900/30 border-green-100 dark:border-green-900/30 text-green-700 dark:text-green-300" 
+                  inWatched
+                    ? "bg-green-100 dark:bg-green-900/30 border-green-100 dark:border-green-900/30 text-green-700 dark:text-green-300"
                     : "bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                 )}
               >
@@ -188,6 +215,19 @@ export default function DetailsView() {
                   Edited version available
                 </a>
               )}
+
+              {/* Movie External Player Button */}
+              {externalPlayerEnabled && selectedExternalPlayer && media.media_type === 'movie' && (
+                <a
+                  href={getExternalPlayerUrl('movie', media.id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 min-w-[140px] py-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 bg-rose-600 text-white shadow-lg shadow-rose-200 dark:shadow-none hover:bg-rose-700 dark:bg-rose-500"
+                >
+                  <Skull size={20} />
+                  Play Movie
+                </a>
+              )}
             </div>
 
             {/* Overview */}
@@ -204,8 +244,8 @@ export default function DetailsView() {
                  <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-bold uppercase tracking-tighter italic text-gray-900 dark:text-white">Episodes</h2>
                     <div className="relative">
-                      <select 
-                        value={selectedSeasonNumber} 
+                      <select
+                        value={selectedSeasonNumber}
                         onChange={(e) => setSelectedSeasonNumber(Number(e.target.value))}
                         className="appearance-none bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-bold py-2 pl-4 pr-10 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                       >
@@ -216,7 +256,7 @@ export default function DetailsView() {
                       <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                     </div>
                  </div>
-                 
+
                  <div className="space-y-4">
                    {seasonDetails ? seasonDetails.episodes.map((ep) => (
                      <div key={ep.id} className="flex gap-3 p-3 sm:p-4 sm:gap-4 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
@@ -243,6 +283,18 @@ export default function DetailsView() {
                              {ep.overview || 'No overview available.'}
                            </p>
                         </div>
+                        {/* Episode External Player Link */}
+                        {externalPlayerEnabled && selectedExternalPlayer && (
+                          <a
+                            href={getExternalPlayerUrl('tv', media.id, ep.season_number, ep.episode_number)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={`Play S${ep.season_number} E${ep.episode_number} on ${selectedExternalPlayer.name}`}
+                            className="shrink-0 p-2 self-center text-gray-400 hover:text-rose-600 transition-colors"
+                          >
+                            <Skull size={20} />
+                          </a>
+                        )}
                      </div>
                    )) : (
                      <div className="py-8 text-center text-gray-500 dark:text-gray-400 animate-pulse">Loading episodes...</div>
@@ -257,7 +309,7 @@ export default function DetailsView() {
             <h2 className="text-lg font-bold mb-4 uppercase tracking-tighter italic flex items-center gap-2 text-gray-900 dark:text-white">
               <Play size={18} className="text-indigo-600 dark:text-indigo-400" /> Where to watch
             </h2>
-            
+
             {!localProviders || (!localProviders.flatrate && !localProviders.rent && !localProviders.buy) ? (
               <div className="text-gray-500 dark:text-gray-400 text-sm">
                 No streaming information available for your region.
@@ -274,7 +326,7 @@ export default function DetailsView() {
                     </div>
                   </div>
                 )}
-                
+
                 {(localProviders.rent || localProviders.buy) && (
                   <div>
                     <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-3 tracking-widest">Rent / Buy</h3>
@@ -311,3 +363,4 @@ const ProviderIcon = ({ provider }: { provider: WatchProvider }) => (
     </span>
   </div>
 );
+

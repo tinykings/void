@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
 import { MediaCard } from '@/components/MediaCard';
-import { CheckCircle, Trophy, Sparkles, ArrowLeft, Search as SearchIcon, X } from 'lucide-react';
+import { Trophy, Sparkles, ArrowLeft, Search as SearchIcon, X } from 'lucide-react';
 import { FilterTabs, FilterType } from '@/components/FilterTabs';
 import { SortControl } from '@/components/SortControl';
 import { SortOption, sortMedia } from '@/lib/sort';
@@ -63,55 +63,55 @@ export const WatchedView = ({ onBrowse }: WatchedViewProps) => {
     }
 
     return () => observer.disconnect();
-  }, [observerTarget.current]); // Depend on ref current if possible, or just empty dep with cleanup
-
-
-
-  const fetchRecommendations = async () => {
-    if (!apiKey || watched.length === 0) return;
-    
-    setRecommendationsLoading(true);
-    
-    try {
-      const candidates = filteredList.length > 0 ? filteredList : watched;
-      const shuffled = [...candidates].sort(() => 0.5 - Math.random());
-      const selected = shuffled.slice(0, 3);
-
-      const promises = selected.map(item => getRecommendations(item.id, item.media_type, apiKey));
-      const results = await Promise.all(promises);
-      
-      const allRecs = results.flat();
-      const uniqueRecs = allRecs.filter((media, index, self) => 
-        index === self.findIndex((m) => (
-          m.id === media.id && (m.media_type || selected[0].media_type) === (media.media_type || selected[0].media_type)
-        ))
-      );
-
-      const newRecs = uniqueRecs.filter(rec => {
-        const type = rec.media_type || 'movie';
-        const isWatched = watched.some(w => w.id === rec.id && w.media_type === type);
-        const isWatchlist = watchlist.some(w => w.id === rec.id && w.media_type === type);
-        return !isWatched && !isWatchlist;
-      });
-      
-      const sanitizedRecs = newRecs.map(r => ({
-        ...r,
-        media_type: r.media_type || 'movie'
-      })) as Media[];
-
-      setRecommendations(sanitizedRecs);
-    } catch (error) {
-      console.error("Failed to fetch recommendations", error);
-    } finally {
-      setRecommendationsLoading(false);
-    }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [observerTarget]); 
 
   useEffect(() => {
+    const fetchRecommendations = async () => {
+      if (!apiKey || watched.length === 0) return;
+      
+      setRecommendationsLoading(true);
+      
+      try {
+        const candidates = filteredList.length > 0 ? filteredList : watched;
+        const shuffled = [...candidates].sort(() => 0.5 - Math.random());
+        const selected = shuffled.slice(0, 3);
+
+        const promises = selected.map(item => getRecommendations(item.id, item.media_type, apiKey));
+        const results = await Promise.all(promises);
+        
+        const allRecs = results.flat();
+        const uniqueRecs = allRecs.filter((media, index, self) => 
+          index === self.findIndex((m) => (
+            m.id === media.id && (m.media_type || selected[0].media_type) === (media.media_type || selected[0].media_type)
+          ))
+        );
+
+        const newRecs = uniqueRecs.filter(rec => {
+          const type = rec.media_type || 'movie';
+          const isWatched = watched.some(w => w.id === rec.id && w.media_type === type);
+          const isWatchlist = watchlist.some(w => w.id === rec.id && w.media_type === type);
+          return !isWatched && !isWatchlist;
+        });
+        
+        const sanitizedRecs = newRecs.map(r => ({
+          ...r,
+          media_type: r.media_type || 'movie'
+        })) as Media[];
+
+        setRecommendations(sanitizedRecs);
+      } catch (error) {
+        console.error("Failed to fetch recommendations", error);
+      } finally {
+        setRecommendationsLoading(false);
+      }
+    };
+    
     if (showRecommendations && recommendations.length === 0) {
       fetchRecommendations();
     }
-  }, [showRecommendations, recommendations.length]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showRecommendations, recommendations.length, apiKey, watched, watchlist, filteredList]);
 
   return (
     <div className="max-w-7xl mx-auto">

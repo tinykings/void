@@ -34,7 +34,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({ media, showActions = true 
         const title = media.title || media.name;
 
         if ((isMovie && currentRating === 'R') || (isTV && currentRating === 'TV-MA')) {
-           return checkVidAngelAvailability(title || '', media.id, media.media_type);
+           return checkVidAngelAvailability(title || '', media.id);
         }
         return false;
       };

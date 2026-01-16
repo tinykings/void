@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { Media, UserState } from '@/lib/types';
+import { Media, UserState, ExternalPlayerOption, externalPlayerOptions } from '@/lib/types';
 import { loadState, saveState, toggleInList as toggleInStorage } from '@/lib/storage';
 import { fetchGistData, updateGistData } from '@/lib/gist';
 import { searchMedia } from '@/lib/tmdb';
@@ -22,6 +22,12 @@ interface AppContextType extends UserState {
   setQuery: (q: string) => void;
   searchResults: Media[];
   searchLoading: boolean;
+
+  // New external player settings
+  externalPlayerEnabled: boolean;
+  selectedExternalPlayer: ExternalPlayerOption | null;
+  toggleExternalPlayerEnabled: () => void;
+  setSelectedExternalPlayerId: (id: string | null) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -33,11 +39,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     watched: [],
     githubToken: '',
     gistId: '',
+    vidAngelEnabled: false,
+    externalPlayerEnabled: false,
+    selectedExternalPlayerId: null,
   });
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [recommendations, setRecommendations] = useState<Media[]>([]);
-  
+
   // Search State
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Media[]>([]);
@@ -71,12 +80,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const loaded = loadState();
     setState(loaded);
     setIsLoaded(true);
-    
+
     // Attempt initial sync if credentials exist
     if (loaded.githubToken && loaded.gistId && !initialLoadDone.current) {
       initialLoadDone.current = true;
-      // We call this inside a timeout to ensure state is settled? Not strictly necessary but safe.
-      // Actually, we can just call it directly.
       syncFromGistInternal(loaded.githubToken, loaded.gistId);
     }
   }, []);
@@ -110,22 +117,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const setApiKey = (apiKey: string) => {
     setState((prev) => ({ ...prev, apiKey }));
-    saveState({ apiKey });
+    saveState({ ...state, apiKey });
   };
 
   const setGithubToken = (githubToken: string) => {
     setState((prev) => ({ ...prev, githubToken }));
-    saveState({ githubToken });
+    saveState({ ...state, githubToken });
   };
 
   const setGistId = (gistId: string) => {
     setState((prev) => ({ ...prev, gistId }));
-    saveState({ gistId });
+    saveState({ ...state, gistId });
   };
 
   const setVidAngelEnabled = (vidAngelEnabled: boolean) => {
     setState((prev) => ({ ...prev, vidAngelEnabled }));
-    saveState({ vidAngelEnabled });
+    saveState({ ...state, vidAngelEnabled });
+  };
+
+  // New external player functions
+  const toggleExternalPlayerEnabled = () => {
+    setState((prev) => {
+      const newEnabledState = !prev.externalPlayerEnabled;
+      const newState = { ...prev, externalPlayerEnabled: newEnabledState };
+      if (!newEnabledState) {
+        newState.selectedExternalPlayerId = null; // Disable player selection if feature is off
+      }
+      saveState(newState);
+      return newState;
+    });
+  };
+
+  const setSelectedExternalPlayerId = (id: string | null) => {
+    setState((prev) => {
+      const newState = { ...prev, selectedExternalPlayerId: id };
+      saveState(newState);
+      return newState;
+    });
   };
 
   const pushToGist = async (watchlist: Media[], watched: Media[]) => {
@@ -149,6 +177,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     pushToGist(newState.watchlist, newState.watched);
   };
 
+  // Derive selectedExternalPlayer from selectedExternalPlayerId
+  const selectedExternalPlayer = state.selectedExternalPlayerId
+    ? externalPlayerOptions.find(opt => opt.id === state.selectedExternalPlayerId) || null
+    : null;
+
   return (
     <AppContext.Provider
       value={{
@@ -168,6 +201,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setQuery,
         searchResults,
         searchLoading,
+        // New values
+        externalPlayerEnabled: state.externalPlayerEnabled || false,
+        selectedExternalPlayer,
+        toggleExternalPlayerEnabled,
+        setSelectedExternalPlayerId,
       }}
     >
       {children}
