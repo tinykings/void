@@ -56,7 +56,7 @@ export const getMediaVideos = async (id: number, type: 'movie' | 'tv', apiKey: s
   return fetchFromTMDB(`/${type}/${id}/videos`, apiKey);
 };
 
-export const getImageUrl = (path: string | null, size: 'w500' | 'original' = 'w500') => {
+export const getImageUrl = (path: string | null, size: 'w185' | 'w342' | 'w500' | 'w780' | 'original' = 'w342') => {
   if (!path) return ''; 
   return `https://image.tmdb.org/t/p/${size}${path}`;
 };

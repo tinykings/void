@@ -149,16 +149,16 @@ export default function DetailsView() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 relative z-10">
         <button
           onClick={() => router.push('/')}
-          className="mb-4 inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-800 transition-colors"
+          className="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-gray-600 dark:text-gray-300 font-bold shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-all active:scale-95"
         >
           <ChevronLeft size={20} />
-          <span className="font-medium">Back</span>
+          <span>Back</span>
         </button>
         
         <div className="flex flex-col md:flex-row md:items-start gap-6 mb-8">
           <div className="w-32 md:w-48 aspect-[2/3] rounded-lg overflow-hidden shadow-2xl border-2 border-white dark:border-gray-800 shrink-0 bg-gray-200 dark:bg-gray-800 mb-2 mx-auto md:mx-0">
             {media.poster_path && (
-              <img src={getImageUrl(media.poster_path)} alt={title} className="w-full h-full object-cover" />
+              <img src={getImageUrl(media.poster_path, 'w500')} alt={title} className="w-full h-full object-cover" />
             )}
           </div>
 
@@ -338,6 +338,6 @@ export default function DetailsView() {
 
 const ProviderIcon = ({ provider }: { provider: WatchProvider }) => (
   <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
-    <img src={getImageUrl(provider.logo_path)} alt={provider.provider_name} className="w-full h-full object-cover" />
+    <img src={getImageUrl(provider.logo_path, 'w185')} alt={provider.provider_name} className="w-full h-full object-cover" />
   </div>
 );
