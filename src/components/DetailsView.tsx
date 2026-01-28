@@ -135,16 +135,16 @@ export default function DetailsView() {
           <span className="font-medium">Back</span>
         </button>
         
-        <div className="flex items-start gap-6 mb-8">
-          <div className="w-32 md:w-48 aspect-[2/3] rounded-lg overflow-hidden shadow-2xl border-2 border-white dark:border-gray-800 shrink-0 bg-gray-200 dark:bg-gray-800 mb-2">
+        <div className="flex flex-col md:flex-row md:items-start gap-6 mb-8">
+          <div className="w-32 md:w-48 aspect-[2/3] rounded-lg overflow-hidden shadow-2xl border-2 border-white dark:border-gray-800 shrink-0 bg-gray-200 dark:bg-gray-800 mb-2 mx-auto md:mx-0">
             {media.poster_path && (
               <img src={getImageUrl(media.poster_path)} alt={title} className="w-full h-full object-cover" />
             )}
           </div>
 
-          <div className="flex-1">
-            <h1 className="text-2xl md:text-4xl font-black leading-tight mb-2 text-gray-900 dark:text-white">{title}</h1>
-            <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl md:text-4xl font-black leading-tight mb-2 text-gray-900 dark:text-white text-center md:text-left">{title}</h1>
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-xs md:text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               <span className="flex items-center gap-1"><Calendar size={14} /> {year}</span>
               <span className="flex items-center gap-1"><Star size={14} className="text-yellow-500 fill-yellow-500" /> {media.vote_average.toFixed(1)}</span>
               <span className="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded uppercase">{media.media_type}</span>
@@ -154,7 +154,7 @@ export default function DetailsView() {
             </div>
 
             <div className="flex flex-col gap-3 mt-6">
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 <button
                   onClick={() => toggleWatchlist(media)}
                   className={clsx(
@@ -215,21 +215,18 @@ export default function DetailsView() {
 
         <section className="mt-8">
           <h2 className="text-lg font-bold mb-2 uppercase tracking-tighter italic text-gray-900 dark:text-white">Overview</h2>
-          <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">
+          <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg mb-4">
             {media.overview || 'No overview available.'}
           </p>
-        </section>
-
-        {localProviders?.flatrate && localProviders.flatrate.length > 0 && (
-          <section className="mt-8">
-            <h2 className="text-lg font-bold mb-4 uppercase tracking-tighter italic text-gray-900 dark:text-white">Watch</h2>
+          
+          {localProviders?.flatrate && localProviders.flatrate.length > 0 && (
             <div className="flex flex-wrap gap-3">
               {localProviders.flatrate.map((p) => (
                 <ProviderIcon key={p.provider_id} provider={p} />
               ))}
             </div>
-          </section>
-        )}
+          )}
+        </section>
 
         {media.media_type === 'tv' && media.seasons && (
           <section className="mt-8">
@@ -299,12 +296,7 @@ export default function DetailsView() {
 }
 
 const ProviderIcon = ({ provider }: { provider: WatchProvider }) => (
-  <div className="flex flex-col items-center gap-1 w-14 group">
-    <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 group-hover:scale-110 transition-transform">
-      <img src={getImageUrl(provider.logo_path)} alt={provider.provider_name} className="w-full h-full object-cover" />
-    </div>
-    <span className="text-[8px] font-bold text-center leading-tight truncate w-full text-gray-500 dark:text-gray-400 uppercase group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
-      {provider.provider_name}
-    </span>
+  <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 hover:scale-110 transition-transform shrink-0">
+    <img src={getImageUrl(provider.logo_path)} alt={provider.provider_name} className="w-full h-full object-cover" />
   </div>
 );

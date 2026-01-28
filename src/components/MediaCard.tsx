@@ -26,8 +26,8 @@ export const MediaCard: React.FC<MediaCardProps> = ({ media, showActions = true 
     let isMounted = true;
     if (apiKey) {
       // Create a promise for VidAngel check that we can conditionally execute
-      const checkVA = async (currentRating: string | null) => {
-        if (!vidAngelEnabled || !currentRating) return false;
+      const checkVA = async (currentRating: string | null): Promise<string | null> => {
+        if (!vidAngelEnabled || !currentRating) return null;
         
         const isMovie = media.media_type === 'movie';
         const isTV = media.media_type === 'tv';
@@ -36,7 +36,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({ media, showActions = true 
         if ((isMovie && currentRating === 'R') || (isTV && currentRating === 'TV-MA')) {
            return checkVidAngelAvailability(title || '', media.id);
         }
-        return false;
+        return null;
       };
 
       Promise.all([
@@ -48,7 +48,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({ media, showActions = true 
           
           // Check VidAngel availability based on the fetched rating
           const vaResult = await checkVA(ratingData);
-          setVidAngelAvailable(vaResult);
+          setVidAngelAvailable(!!vaResult);
 
           const usProviders = providerData.results?.['US'];
           const allProviders = [
