@@ -1,6 +1,4 @@
-import { Media } from './types';
-
-export type SortOption = 'added' | 'title' | 'release' | 'upcoming';
+import { Media, SortOption } from './types';
 
 export const sortMedia = (list: Media[], sort: SortOption): Media[] => {
   const sorted = [...list];

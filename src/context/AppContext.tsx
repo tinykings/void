@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { Media, UserState, ExternalPlayerOption, externalPlayerOptions } from '@/lib/types';
+import { Media, UserState, ExternalPlayerOption, externalPlayerOptions, SortOption, FilterType } from '@/lib/types';
 import { loadState, saveState, toggleInList as toggleInStorage } from '@/lib/storage';
 import { fetchGistData, updateGistData } from '@/lib/gist';
 import { searchMedia, getMediaDetails } from '@/lib/tmdb';
@@ -26,9 +26,11 @@ interface AppContextType extends UserState {
   selectedExternalPlayer: ExternalPlayerOption | null;
   toggleExternalPlayerEnabled: () => void;
   setSelectedExternalPlayerId: (id: string | null) => void;
-  setFilter: (filter: 'movie' | 'tv') => void;
-  setSort: (sort: string) => void;
+  setFilter: (filter: FilterType) => void;
+  setSort: (sort: SortOption) => void;
   setShowWatched: (show: boolean) => void;
+  isSearchFocused: boolean;
+  setIsSearchFocused: (focused: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -46,6 +48,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     filter: 'movie',
     sort: 'added',
     showWatched: false,
+    isSearchFocused: false,
   });
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -159,7 +162,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  const setFilter = (filter: 'movie' | 'tv') => {
+  const setFilter = (filter: FilterType) => {
     setState((prev) => {
       const newState = { ...prev, filter };
       saveState(newState);
@@ -167,7 +170,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  const setSort = (sort: string) => {
+  const setSort = (sort: SortOption) => {
     setState((prev) => {
       const newState = { ...prev, sort };
       saveState(newState);
@@ -178,6 +181,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const setShowWatched = (showWatched: boolean) => {
     setState((prev) => {
       const newState = { ...prev, showWatched };
+      saveState(newState);
+      return newState;
+    });
+  };
+
+  const setIsSearchFocused = (isSearchFocused: boolean) => {
+    setState((prev) => {
+      const newState = { ...prev, isSearchFocused };
       saveState(newState);
       return newState;
     });
@@ -301,6 +312,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setFilter,
         setSort,
         setShowWatched,
+        isSearchFocused: state.isSearchFocused || false,
+        setIsSearchFocused,
       }}
     >
       {children}

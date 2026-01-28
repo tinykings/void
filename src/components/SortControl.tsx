@@ -1,7 +1,6 @@
-'use client';
-
+import React from 'react';
 import { ArrowUpDown } from 'lucide-react';
-import { SortOption } from '@/lib/sort';
+import { SortOption } from '@/lib/types';
 
 interface SortControlProps {
   currentSort: SortOption;

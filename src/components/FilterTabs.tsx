@@ -3,8 +3,7 @@
 import React from 'react';
 import { clsx } from 'clsx';
 import { Film, Tv } from 'lucide-react';
-
-export type FilterType = 'movie' | 'tv';
+import { FilterType } from '@/lib/types';
 
 interface FilterTabsProps {
   currentFilter: FilterType;

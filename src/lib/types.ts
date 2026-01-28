@@ -153,6 +153,10 @@ export interface WatchProvidersResponse {
 
 export type ListType = 'watchlist' | 'watched';
 
+export type FilterType = 'movie' | 'tv';
+
+export type SortOption = 'added' | 'title' | 'release' | 'upcoming';
+
 export interface UserState {
   apiKey: string;
   watchlist: Media[];
@@ -162,7 +166,8 @@ export interface UserState {
   vidAngelEnabled?: boolean;
   externalPlayerEnabled?: boolean;
   selectedExternalPlayerId?: string | null;
-  filter?: 'movie' | 'tv';
-  sort?: string;
+  filter?: FilterType;
+  sort?: SortOption;
   showWatched?: boolean;
+  isSearchFocused?: boolean;
 }

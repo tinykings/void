@@ -3,11 +3,11 @@
 import { useEffect, useState, useMemo, useTransition } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { getTrending } from '@/lib/tmdb';
-import { Media } from '@/lib/types';
+import { Media, FilterType, SortOption } from '@/lib/types';
 import { MediaCard } from '@/components/MediaCard';
-import { FilterTabs, FilterType } from '@/components/FilterTabs';
+import { FilterTabs } from '@/components/FilterTabs';
 import { SortControl } from '@/components/SortControl';
-import { SortOption, sortMedia } from '@/lib/sort';
+import { sortMedia } from '@/lib/sort';
 import { AlertCircle, Settings, Search as SearchIcon, X, Eye, ArrowLeft } from 'lucide-react';
 
 interface HomeViewProps {
@@ -29,14 +29,15 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     sort,
     setSort,
     showWatched,
-    setShowWatched
+    setShowWatched,
+    isSearchFocused,
+    setIsSearchFocused
   } = useAppContext();
   
   // Trending State
   const [trending, setTrending] = useState<Media[]>([]);
   const [trendingLoading, setTrendingLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   
   const [error, setError] = useState<string | null>(null);
 
@@ -82,10 +83,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     }
 
     // Filter library by type
-    combined = combined.filter(m => m.media_type === filter);
+    combined = combined.filter(m => m.media_type === (filter || 'movie'));
 
     // Sort
-    return sortMedia(combined, sort);
+    return sortMedia(combined, (sort || 'added'));
   }, [watchlist, watched, filter, sort, showWatched]);
 
   if (!isLoaded) return null;
@@ -172,7 +173,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
           <div className="flex flex-col items-center md:flex-row md:justify-between gap-4 w-full">
             <div className="flex items-center gap-4 overflow-x-auto pb-2 md:pb-0 no-scrollbar w-full md:w-auto">
               <FilterTabs 
-                currentFilter={filter as FilterType} 
+                currentFilter={filter || 'movie'} 
                 onFilterChange={(f) => startTransition(() => {
                   setFilter(f);
                   if (f === 'movie' && sort === 'upcoming') {
@@ -184,7 +185,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
             
             <div className="flex items-center gap-2 w-full md:w-auto justify-center md:justify-end">
               <SortControl 
-                currentSort={sort as SortOption} 
+                currentSort={sort || 'added'} 
                 onSortChange={(s) => startTransition(() => setSort(s))} 
                 hideUpcoming={filter === 'movie'}
               />
@@ -212,9 +213,12 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               {isSearching ? `Results for "${query}"` : 'Popular Right Now'}
             </h1>
           </div>
-          {showTrending && (
+          {(showTrending || isSearching) && (
             <button 
-              onClick={() => startTransition(() => setIsSearchFocused(false))}
+              onClick={() => startTransition(() => {
+                setQuery('');
+                setIsSearchFocused(false);
+              })}
               className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-900 border-2 border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all shadow-md active:scale-95 uppercase tracking-wider text-sm whitespace-nowrap"
             >
               <ArrowLeft size={18} />
