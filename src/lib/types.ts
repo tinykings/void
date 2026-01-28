@@ -101,6 +101,7 @@ export interface ExternalPlayerOption {
   name: string;
   tvUrlTemplate: string;
   movieUrlTemplate: string;
+  seriesUrlTemplate?: string;
 }
 
 export const externalPlayerOptions: ExternalPlayerOption[] = [
@@ -115,6 +116,27 @@ export const externalPlayerOptions: ExternalPlayerOption[] = [
     name: 'Bitcine.app',
     tvUrlTemplate: 'https://www.bitcine.app/tv/{TMDBID}/{season_num}/{episode_num}?play=true',
     movieUrlTemplate: 'https://www.bitcine.app/movie/{TMDBID}?play=true',
+  },
+  {
+    id: 'fmovies.gd',
+    name: 'Fmovies.gd',
+    tvUrlTemplate: 'https://www.fmovies.gd/watch/tv/{TMDBID}/{season_num}/{episode_num}#?play=true',
+    movieUrlTemplate: 'https://www.fmovies.gd/watch/movie/{TMDBID}?play=true',
+    seriesUrlTemplate: 'https://www.fmovies.gd/tv/{TMDBID}',
+  },
+  {
+    id: 'xprime.today',
+    name: 'XPrime',
+    tvUrlTemplate: 'https://xprime.today/watch/{TMDBID}/{season_num}/{episode_num}',
+    movieUrlTemplate: 'https://xprime.today/watch/{TMDBID}',
+    seriesUrlTemplate: 'https://xprime.today/title/t{TMDBID}',
+  },
+  {
+    id: 'rivestream.org',
+    name: 'RiveStream',
+    tvUrlTemplate: 'https://rivestream.org/watch?type=tv&id={TMDBID}&season={season_num}&episode={episode_num}',
+    movieUrlTemplate: 'https://rivestream.org/watch?type=movie&id={TMDBID}',
+    seriesUrlTemplate: 'https://rivestream.org/detail?type=tv&id={TMDBID}',
   },
   // Add other external player options here in the future
 ];
