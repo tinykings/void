@@ -8,7 +8,7 @@ import { MediaCard } from '@/components/MediaCard';
 import { FilterTabs, FilterType } from '@/components/FilterTabs';
 import { SortControl } from '@/components/SortControl';
 import { SortOption, sortMedia } from '@/lib/sort';
-import { AlertCircle, Settings, Search as SearchIcon, X, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { AlertCircle, Settings, Search as SearchIcon, X, Eye, ArrowLeft } from 'lucide-react';
 
 interface HomeViewProps {
   onGoToSettings: () => void;
@@ -237,8 +237,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
             <div className="text-center py-20 text-gray-500 dark:text-gray-400">
               {isSearching ? (
                 <p className="font-medium text-lg text-gray-400 dark:text-gray-600">
-                   No results found for &quot;{query}&quot;
-                   {filter !== 'all' && ` in ${filter === 'movie' ? 'Movies' : 'Shows'}`}
+                   No results found for &quot;{query}&quot; in {filter === 'movie' ? 'Movies' : 'Shows'}
                 </p>
               ) : showTrending ? (
                 <p>No trending content found.</p>
