@@ -163,12 +163,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleWatchlist = (media: Media) => {
+    const inWatchlist = state.watchlist.some((m) => m.id === media.id && m.media_type === media.media_type);
+    
+    if (inWatchlist) {
+      if (!window.confirm(`Remove "${media.title || media.name}" from your watchlist?`)) {
+        return;
+      }
+    }
+
     const newState = toggleInStorage(media, 'watchlist');
     setState(newState);
     pushToGist(newState.watchlist, newState.watched);
   };
 
   const toggleWatched = async (media: Media) => {
+    const inWatched = state.watched.some((m) => m.id === media.id && m.media_type === media.media_type);
+    const action = inWatched ? 'Remove from history' : 'Mark as watched';
+    
+    if (!window.confirm(`${action} "${media.title || media.name}"?`)) {
+      return;
+    }
+
     const mediaToSave = { ...media };
     
     // If it's a TV show and we don't have the next episode info, fetch it
