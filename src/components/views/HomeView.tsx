@@ -1,44 +1,80 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useTransition } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { getTrending } from '@/lib/tmdb';
 import { Media } from '@/lib/types';
 import { MediaCard } from '@/components/MediaCard';
 import { FilterTabs, FilterType } from '@/components/FilterTabs';
-import { AlertCircle, Settings, Search as SearchIcon, X } from 'lucide-react';
+import { SortControl } from '@/components/SortControl';
+import { SortOption, sortMedia } from '@/lib/sort';
+import { AlertCircle, Settings, Search as SearchIcon, X, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
 interface HomeViewProps {
   onGoToSettings: () => void;
 }
 
 export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
-  const { apiKey, isLoaded, query, setQuery, searchResults, searchLoading } = useAppContext();
+  const { apiKey, isLoaded, query, setQuery, searchResults, searchLoading, watchlist, watched } = useAppContext();
   
   // Trending State
   const [trending, setTrending] = useState<Media[]>([]);
   const [trendingLoading, setTrendingLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterType>('all');
+  const [filter, setFilter] = useState<FilterType>('movie');
+  const [sort, setSort] = useState<SortOption>('added');
+  const [showWatched, setShowWatched] = useState(false);
 
-  // Fetch Trending
+  // Fetch Trending when search is focused
   useEffect(() => {
-    if (isLoaded && apiKey && !query) {
+    if (isLoaded && apiKey && isSearchFocused && trending.length === 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setTrendingLoading(true);
-      getTrending(apiKey, filter)
+      getTrending(apiKey, 'all')
         .then((items) => {
           const processed = items.map(item => ({
             ...item,
-            media_type: item.media_type || (filter === 'movie' ? 'movie' : filter === 'tv' ? 'tv' : 'movie')
+            media_type: item.media_type || 'movie'
           })) as Media[];
           setTrending(processed);
         })
         .catch((err) => setError(err.message))
         .finally(() => setTrendingLoading(false));
     }
-  }, [apiKey, isLoaded, filter, query]);
+  }, [apiKey, isLoaded, isSearchFocused, trending.length]);
+
+  // Combine and process library media
+  const libraryMedia = useMemo(() => {
+    let combined: Media[] = [];
+    
+    if (showWatched) {
+      // History view: Show items in 'watched' that are NOT TV shows with a next episode scheduled
+      combined = watched.filter(m => {
+        if (m.media_type === 'tv' && m.next_episode_to_air) return false;
+        return true;
+      });
+    } else {
+      // Watchlist view: Show items in 'watchlist' + items in 'watched' that HAVE a next episode scheduled
+      combined = [...watchlist];
+      watched.forEach(m => {
+        if (m.media_type === 'tv' && m.next_episode_to_air) {
+          // Avoid duplicates if it happens to be in both
+          if (!watchlist.some(w => w.id === m.id && w.media_type === 'tv')) {
+            combined.push(m);
+          }
+        }
+      });
+    }
+
+    // Filter library by type
+    combined = combined.filter(m => m.media_type === filter);
+
+    // Sort
+    return sortMedia(combined, sort);
+  }, [watchlist, watched, filter, sort, showWatched]);
 
   if (!isLoaded) return null;
 
@@ -63,60 +99,112 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   }
 
   const isSearching = query.length > 0;
-  
-  const filteredSearchResults = searchResults.filter(item => {
-    if (filter === 'all') return true;
-    return item.media_type === filter;
-  });
+  const showTrending = isSearchFocused && !isSearching;
+  const showLibrary = !isSearching && !showTrending;
 
-  const displayMedia = isSearching ? filteredSearchResults : trending;
-  const isLoading = isSearching ? searchLoading : trendingLoading;
+  const displayMedia = isSearching 
+    ? searchResults 
+    : (showTrending ? trending : libraryMedia);
+    
+  const isLoading = isSearching ? searchLoading : (showTrending ? trendingLoading : isPending);
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="flex flex-col items-center gap-6 mb-10">
+    <div className="max-w-7xl mx-auto px-4 pb-24">
+      <div className="flex flex-col items-center gap-6 mb-8 pt-4">
         <div className="flex flex-row items-center gap-4 md:gap-6 w-full">
           <button 
             onClick={() => {
-              setQuery('');
+              startTransition(() => {
+                setQuery('');
+                setIsSearchFocused(false);
+              });
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className="shrink-0 transition-opacity hover:opacity-80"
           >
-            <img src="/void/logo.png" alt="Void" className="h-16 md:h-24 w-auto object-contain dark:opacity-75" />
+            <img src="/void/logo.png" alt="Void" className="h-12 md:h-16 w-auto object-contain dark:opacity-75" />
           </button>
           <div className="relative flex-1 w-full">
             <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
               value={query}
+              onFocus={() => startTransition(() => setIsSearchFocused(true))}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search movies & shows..."
-              className="w-full pl-11 pr-10 py-4 bg-gray-100 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm text-lg font-medium text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+              className="w-full pl-11 pr-10 py-3 bg-gray-100 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm text-lg font-medium text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
             />
-            {query && (
+            {(query || isSearchFocused) && (
               <button 
-                onClick={() => setQuery('')}
+                onClick={() => {
+                  startTransition(() => {
+                    setQuery('');
+                    setIsSearchFocused(false);
+                  });
+                }}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
               >
                 <X size={20} />
               </button>
             )}
           </div>
+          <button 
+            onClick={onGoToSettings}
+            className="p-3 bg-gray-100 dark:bg-gray-900 rounded-2xl text-gray-500 hover:text-indigo-600 transition-colors"
+          >
+            <Settings size={20} />
+          </button>
         </div>
         
-        <div className="flex flex-col items-center gap-4 w-full">
-          {isSearching && (
-            <div className="flex items-center gap-2 mb-2">
-               <SearchIcon className="text-indigo-600 dark:text-indigo-400" size={20} />
-               <h1 className="text-xl font-black italic tracking-tighter text-gray-900 dark:text-white uppercase">
-                 Search Results
-               </h1>
+        {showLibrary && (
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 w-full">
+            <div className="flex items-center gap-4 overflow-x-auto pb-2 md:pb-0 no-scrollbar w-full md:w-auto">
+              <FilterTabs 
+                currentFilter={filter} 
+                onFilterChange={(f) => startTransition(() => setFilter(f))} 
+              />
             </div>
-          )}
-          <FilterTabs currentFilter={filter} onFilterChange={setFilter} />
-        </div>
+            
+            <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+              <SortControl 
+                currentSort={sort} 
+                onSortChange={(s) => startTransition(() => setSort(s))} 
+              />
+              <button
+                onClick={() => startTransition(() => setShowWatched(!showWatched))}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
+                  showWatched 
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' 
+                    : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
+                }`}
+              >
+                {showWatched && <Eye size={14} />}
+                {showWatched ? 'HISTORY' : 'WATCHLIST'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {(isSearching || showTrending) && (
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
+          <div className="flex items-center gap-2">
+            {isSearching ? <SearchIcon className="text-indigo-600 dark:text-indigo-400" size={20} /> : <div className="w-2 h-6 bg-indigo-600 rounded-full" />}
+            <h1 className="text-xl font-black italic tracking-tighter text-gray-900 dark:text-white uppercase">
+              {isSearching ? `Results for "${query}"` : 'Popular Right Now'}
+            </h1>
+          </div>
+          {showTrending && (
+            <button 
+              onClick={() => startTransition(() => setIsSearchFocused(false))}
+              className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-900 border-2 border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all shadow-md active:scale-95 uppercase tracking-wider text-sm whitespace-nowrap"
+            >
+              <ArrowLeft size={18} />
+              Return to Library
+            </button>
+          )}
+        </div>
+      )}
 
       {error && !isSearching && (
         <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-xl flex items-start gap-3 mb-6 border border-red-100 dark:border-red-900/30">
@@ -146,8 +234,21 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                    No results found for &quot;{query}&quot;
                    {filter !== 'all' && ` in ${filter === 'movie' ? 'Movies' : 'Shows'}`}
                 </p>
-              ) : (
+              ) : showTrending ? (
                 <p>No trending content found.</p>
+              ) : (
+                <div className="flex flex-col items-center gap-4">
+                  <p className="text-lg font-medium">Your list is empty</p>
+                  <p className="text-sm text-gray-400 max-w-xs mx-auto">
+                    Search for movies and shows to add them to your watchlist.
+                  </p>
+                  <button 
+                    onClick={() => setIsSearchFocused(true)}
+                    className="mt-4 text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider text-xs border-b-2 border-indigo-600/20 pb-1"
+                  >
+                    Browse Popular
+                  </button>
+                </div>
               )}
             </div>
           )}

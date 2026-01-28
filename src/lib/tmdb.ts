@@ -43,11 +43,6 @@ export const getContentRating = async (id: number, type: 'movie' | 'tv', apiKey:
   }
 };
 
-export const getRecommendations = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<Media[]> => {
-  const data = await fetchFromTMDB(`/${type}/${id}/recommendations`, apiKey);
-  return data.results.filter((item: TmdbResult) => item.media_type === 'movie' || item.media_type === 'tv' || (type === 'movie' ? !item.media_type : false));
-};
-
 export const getMediaDetails = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<Media> => {
   const data: Media = await fetchFromTMDB(`/${type}/${id}`, apiKey);
   return { ...data, media_type: type };

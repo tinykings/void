@@ -3,8 +3,6 @@
 import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { HomeView } from '@/components/views/HomeView';
-import { WatchlistView } from '@/components/views/WatchlistView';
-import { WatchedView } from '@/components/views/WatchedView';
 import { SettingsView } from '@/components/views/SettingsView';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
@@ -34,10 +32,6 @@ function MainContent() {
     switch (activeTab) {
       case 'home':
         return <HomeView onGoToSettings={() => setTab('settings')} />;
-      case 'watchlist':
-        return <WatchlistView onBrowse={() => setTab('home')} />;
-      case 'watched':
-        return <WatchedView onBrowse={() => setTab('home')} />;
       case 'settings':
         return <SettingsView />;
       default:
@@ -46,7 +40,7 @@ function MainContent() {
   };
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-hidden min-h-screen">
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}

@@ -4,7 +4,7 @@ import React from 'react';
 import { clsx } from 'clsx';
 import { Film, Tv, LayoutGrid } from 'lucide-react';
 
-export type FilterType = 'all' | 'movie' | 'tv';
+export type FilterType = 'movie' | 'tv';
 
 interface FilterTabsProps {
   currentFilter: FilterType;
@@ -13,7 +13,6 @@ interface FilterTabsProps {
 
 export const FilterTabs: React.FC<FilterTabsProps> = ({ currentFilter, onFilterChange }) => {
   const tabs: { id: FilterType; label: string; icon: React.ElementType }[] = [
-    { id: 'all', label: 'All', icon: LayoutGrid },
     { id: 'movie', label: 'Movies', icon: Film },
     { id: 'tv', label: 'Shows', icon: Tv },
   ];

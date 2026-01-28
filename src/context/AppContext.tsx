@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { Media, UserState, ExternalPlayerOption, externalPlayerOptions } from '@/lib/types';
 import { loadState, saveState, toggleInList as toggleInStorage } from '@/lib/storage';
 import { fetchGistData, updateGistData } from '@/lib/gist';
-import { searchMedia } from '@/lib/tmdb';
+import { searchMedia, getMediaDetails } from '@/lib/tmdb';
 
 interface AppContextType extends UserState {
   setApiKey: (key: string) => void;
@@ -16,8 +16,6 @@ interface AppContextType extends UserState {
   syncFromGist: () => Promise<void>;
   isLoaded: boolean;
   isSyncing: boolean;
-  recommendations: Media[];
-  setRecommendations: (recs: Media[]) => void;
   query: string;
   setQuery: (q: string) => void;
   searchResults: Media[];
@@ -45,7 +43,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [recommendations, setRecommendations] = useState<Media[]>([]);
 
   // Search State
   const [query, setQuery] = useState('');
@@ -171,11 +168,59 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     pushToGist(newState.watchlist, newState.watched);
   };
 
-  const toggleWatched = (media: Media) => {
-    const newState = toggleInStorage(media, 'watched');
+  const toggleWatched = async (media: Media) => {
+    let mediaToSave = { ...media };
+    
+    // If it's a TV show and we don't have the next episode info, fetch it
+    if (media.media_type === 'tv' && state.apiKey) {
+      try {
+        const details = await getMediaDetails(media.id, 'tv', state.apiKey);
+        mediaToSave.next_episode_to_air = details.next_episode_to_air;
+      } catch (error) {
+        console.error("Failed to fetch TV details:", error);
+      }
+    }
+
+    const newState = toggleInStorage(mediaToSave, 'watched');
     setState(newState);
     pushToGist(newState.watchlist, newState.watched);
   };
+
+  // Effect to backfill missing next_episode_to_air for TV shows in watched list
+  useEffect(() => {
+    const backfillTVInfo = async () => {
+      if (!isLoaded || !state.apiKey || isSyncing) return;
+      
+      // We check if any TV show in 'watched' is missing next_episode_to_air 
+      // Note: next_episode_to_air can be null even after fetch if show is ended, 
+      // so we use a flag or just check if we've attempted it. 
+      // For simplicity here, we'll fetch for any TV show that doesn't have the property explicitly defined.
+      const needsUpdate = state.watched.some(m => m.media_type === 'tv' && m.next_episode_to_air === undefined);
+      if (!needsUpdate) return;
+
+      const updatedWatched = await Promise.all(state.watched.map(async (m) => {
+        if (m.media_type === 'tv' && m.next_episode_to_air === undefined) {
+          try {
+            const details = await getMediaDetails(m.id, 'tv', state.apiKey);
+            return { ...m, next_episode_to_air: details.next_episode_to_air || null };
+          } catch (e) {
+            return m;
+          }
+        }
+        return m;
+      }));
+
+      const hasChanged = updatedWatched.some((m, i) => m.next_episode_to_air !== state.watched[i].next_episode_to_air);
+      if (hasChanged) {
+        const newState = { ...state, watched: updatedWatched };
+        setState(newState);
+        saveState(newState);
+        pushToGist(newState.watchlist, newState.watched);
+      }
+    };
+
+    backfillTVInfo();
+  }, [isLoaded, state.apiKey, isSyncing]);
 
   // Derive selectedExternalPlayer from selectedExternalPlayerId
   const selectedExternalPlayer = state.selectedExternalPlayerId
@@ -195,8 +240,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         syncFromGist,
         isLoaded,
         isSyncing,
-        recommendations,
-        setRecommendations,
         query,
         setQuery,
         searchResults,

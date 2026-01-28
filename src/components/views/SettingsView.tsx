@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { Key, Save, ExternalLink, Moon, Github, RefreshCw, Skull } from 'lucide-react';
+import { Key, Save, ExternalLink, Moon, Github, RefreshCw, Skull, ArrowLeft } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { clsx } from 'clsx';
 import { externalPlayerOptions } from '@/lib/types';
 
 export const SettingsView = () => {
+  const router = useRouter();
   const {
     apiKey, setApiKey,
     githubToken, setGithubToken,
@@ -62,8 +64,16 @@ export const SettingsView = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Settings</h1>
+    <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="flex items-center gap-4 mb-8">
+        <button 
+          onClick={() => router.replace('/?tab=home')}
+          className="p-2 -ml-2 text-gray-500 hover:text-indigo-600 transition-colors"
+        >
+          <ArrowLeft size={24} />
+        </button>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
+      </div>
 
       <div className="space-y-6">
         <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
