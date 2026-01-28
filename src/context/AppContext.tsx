@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { Media, UserState, ExternalPlayerOption, externalPlayerOptions, SortOption, FilterType } from '@/lib/types';
 import { loadState, saveState, toggleInList as toggleInStorage } from '@/lib/storage';
 import { fetchGistData, updateGistData } from '@/lib/gist';
-import { searchMedia, getMediaDetails } from '@/lib/tmdb';
+import { getMediaDetails } from '@/lib/tmdb';
 
 interface AppContextType extends UserState {
   setApiKey: (key: string) => void;
@@ -16,10 +16,6 @@ interface AppContextType extends UserState {
   syncFromGist: () => Promise<void>;
   isLoaded: boolean;
   isSyncing: boolean;
-  query: string;
-  setQuery: (q: string) => void;
-  searchResults: Media[];
-  searchLoading: boolean;
 
   // New external player settings
   externalPlayerEnabled: boolean;
@@ -29,6 +25,7 @@ interface AppContextType extends UserState {
   setFilter: (filter: FilterType) => void;
   setSort: (sort: SortOption) => void;
   setShowWatched: (show: boolean) => void;
+  updateMediaMetadata: (id: number, type: 'movie' | 'tv', metadata: Partial<Media>) => void;
   isSearchFocused: boolean;
   setIsSearchFocused: (focused: boolean) => void;
 }
@@ -53,33 +50,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Search State
-  const [query, setQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Media[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-
   const initialLoadDone = useRef(false);
-
-  // Debounced Search
-  useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      if (query.length > 2 && state.apiKey) {
-        setSearchLoading(true);
-        searchMedia(query, state.apiKey)
-          .then((results) => {
-            // Sort by popularity at the top
-            const sorted = [...results].sort((a, b) => b.popularity - a.popularity);
-            setSearchResults(sorted);
-          })
-          .catch(console.error)
-          .finally(() => setSearchLoading(false));
-      } else if (query.length === 0) {
-        setSearchResults([]);
-      }
-    }, 500);
-
-    return () => clearTimeout(delayDebounce);
-  }, [query, state.apiKey]);
 
   // Load from local storage on mount
   useEffect(() => {
@@ -194,6 +165,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  const updateMediaMetadata = (id: number, type: 'movie' | 'tv', metadata: Partial<Media>) => {
+    setState((prev) => {
+      const updateList = (list: Media[]) => 
+        list.map(m => m.id === id && m.media_type === type ? { ...m, ...metadata } : m);
+      
+      const newState = {
+        ...prev,
+        watchlist: updateList(prev.watchlist),
+        watched: updateList(prev.watched)
+      };
+      
+      saveState(newState);
+      return newState;
+    });
+  };
+
   const pushToGist = async (watchlist: Media[], watched: Media[]) => {
     if (!state.githubToken || !state.gistId) return;
     try {
@@ -300,10 +287,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         syncFromGist,
         isLoaded,
         isSyncing,
-        query,
-        setQuery,
-        searchResults,
-        searchLoading,
         // New values
         externalPlayerEnabled: state.externalPlayerEnabled || false,
         selectedExternalPlayer,
@@ -312,6 +295,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setFilter,
         setSort,
         setShowWatched,
+        updateMediaMetadata,
         isSearchFocused: state.isSearchFocused || false,
         setIsSearchFocused,
       }}

@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useMemo, useTransition } from 'react';
 import { useAppContext } from '@/context/AppContext';
-import { getTrending } from '@/lib/tmdb';
+import { getTrending, searchMedia } from '@/lib/tmdb';
+import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { Media, FilterType, SortOption } from '@/lib/types';
 import { MediaCard } from '@/components/MediaCard';
 import { FilterTabs } from '@/components/FilterTabs';
 import { SortControl } from '@/components/SortControl';
 import { sortMedia } from '@/lib/sort';
-import { AlertCircle, Settings, Search as SearchIcon, X, Eye, ArrowLeft } from 'lucide-react';
+import { AlertCircle, Settings, Search as SearchIcon, X, Eye, ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react';
 
 interface HomeViewProps {
   onGoToSettings: () => void;
@@ -18,10 +19,6 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   const { 
     apiKey, 
     isLoaded, 
-    query, 
-    setQuery, 
-    searchResults, 
-    searchLoading, 
     watchlist, 
     watched,
     filter,
@@ -30,8 +27,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     setSort,
     showWatched,
     setShowWatched,
+    updateMediaMetadata,
     isSearchFocused,
-    setIsSearchFocused
+    setIsSearchFocused,
+    vidAngelEnabled
   } = useAppContext();
   
   // Trending State
@@ -39,12 +38,99 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   const [trendingLoading, setTrendingLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
   
+  // Local Search State
+  const [query, setQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Media[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showEditedOnly, setShowEditedOnly] = useState(false);
+  
   const [error, setError] = useState<string | null>(null);
+
+  // Trigger VidAngel checks for trending
+  useEffect(() => {
+    if (trending.length > 0 && vidAngelEnabled) {
+      trending.forEach(m => {
+        if (m.isEdited === undefined) {
+          checkVidAngelAvailability(m.title || m.name || '', m.id)
+            .then(slug => {
+              setTrending(prev => prev.map(item => 
+                (item.id === m.id && item.media_type === m.media_type) ? { ...item, isEdited: !!slug } : item
+              ));
+            });
+        }
+      });
+    }
+  }, [trending, vidAngelEnabled]);
+
+  // Trigger VidAngel checks for search results
+  useEffect(() => {
+    if (searchResults.length > 0 && vidAngelEnabled) {
+      searchResults.forEach(m => {
+        if (m.isEdited === undefined) {
+          checkVidAngelAvailability(m.title || m.name || '', m.id)
+            .then(slug => {
+              setSearchResults(prev => prev.map(item => 
+                (item.id === m.id && item.media_type === m.media_type) ? { ...item, isEdited: !!slug } : item
+              ));
+            });
+        }
+      });
+    }
+  }, [searchResults, vidAngelEnabled]);
+
+  // Trigger VidAngel checks for library when showEditedOnly is active
+
+  // Combine and process library media
+  const baseLibraryMedia = useMemo(() => {
+    let combined: Media[] = [];
+    
+    if (showWatched) {
+      combined = watched.filter(m => {
+        if (m.media_type === 'tv' && m.next_episode_to_air) return false;
+        return true;
+      });
+    } else {
+      combined = [...watchlist];
+      watched.forEach(m => {
+        if (m.media_type === 'tv' && m.next_episode_to_air) {
+          if (!watchlist.some(w => w.id === m.id && w.media_type === 'tv')) {
+            combined.push(m);
+          }
+        }
+      });
+    }
+
+    return combined.filter(m => m.media_type === (filter || 'movie'));
+  }, [watchlist, watched, filter, showWatched]);
+
+  const libraryMedia = useMemo(() => {
+    let filtered = [...baseLibraryMedia];
+
+    if (showEditedOnly) {
+      filtered = filtered.filter(m => m.isEdited === true);
+    }
+
+    return sortMedia(filtered, (sort || 'added'));
+  }, [baseLibraryMedia, sort, showEditedOnly]);
+
+  // Trigger VidAngel checks for library when showEditedOnly is active
+  useEffect(() => {
+    if (showEditedOnly && vidAngelEnabled) {
+      // Check each item that hasn't been checked yet
+      baseLibraryMedia.forEach(m => {
+        if (m.isEdited === undefined) {
+          checkVidAngelAvailability(m.title || m.name || '', m.id)
+            .then(slug => {
+              updateMediaMetadata(m.id, m.media_type, { isEdited: !!slug });
+            });
+        }
+      });
+    }
+  }, [showEditedOnly, baseLibraryMedia, vidAngelEnabled, updateMediaMetadata]);
 
   // Fetch Trending when search is focused
   useEffect(() => {
     if (isLoaded && apiKey && isSearchFocused && trending.length === 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTrendingLoading(true);
       getTrending(apiKey, 'all')
         .then((items) => {
@@ -59,35 +145,29 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     }
   }, [apiKey, isLoaded, isSearchFocused, trending.length]);
 
-  // Combine and process library media
-  const libraryMedia = useMemo(() => {
-    let combined: Media[] = [];
-    
-    if (showWatched) {
-      // History view: Show items in 'watched' that are NOT TV shows with a next episode scheduled
-      combined = watched.filter(m => {
-        if (m.media_type === 'tv' && m.next_episode_to_air) return false;
-        return true;
-      });
-    } else {
-      // Watchlist view: Show items in 'watchlist' + items in 'watched' that HAVE a next episode scheduled
-      combined = [...watchlist];
-      watched.forEach(m => {
-        if (m.media_type === 'tv' && m.next_episode_to_air) {
-          // Avoid duplicates if it happens to be in both
-          if (!watchlist.some(w => w.id === m.id && w.media_type === 'tv')) {
-            combined.push(m);
-          }
-        }
-      });
+  const handleSearch = async (searchQuery: string) => {
+    if (!searchQuery || searchQuery.trim().length < 2 || !apiKey) {
+      setSearchResults([]);
+      return;
     }
 
-    // Filter library by type
-    combined = combined.filter(m => m.media_type === (filter || 'movie'));
+    setSearchLoading(true);
+    try {
+      const results = await searchMedia(searchQuery, apiKey);
+      const sorted = [...results].sort((a, b) => b.popularity - a.popularity);
+      setSearchResults(sorted);
+    } catch (err) {
+      console.error("Search error:", err);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
 
-    // Sort
-    return sortMedia(combined, (sort || 'added'));
-  }, [watchlist, watched, filter, sort, showWatched]);
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch(query);
+    }
+  };
 
   if (!isLoaded) return null;
 
@@ -111,15 +191,15 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     );
   }
 
-  const isSearching = query.length > 0;
-  const showTrending = isSearchFocused && !isSearching;
-  const showLibrary = !isSearching && !showTrending;
+  const isSearching = searchResults.length > 0 || searchLoading || (query.length > 0 && isSearchFocused);
+  const showTrending = isSearchFocused && searchResults.length === 0 && !searchLoading;
+  const showLibrary = !isSearchFocused && query.length === 0;
 
-  const displayMedia = isSearching 
+  const displayMedia = searchResults.length > 0 
     ? searchResults 
     : (showTrending ? trending : libraryMedia);
     
-  const isLoading = isSearching ? searchLoading : (showTrending ? trendingLoading : isPending);
+  const isLoading = searchLoading || (showTrending ? trendingLoading : isPending);
 
   return (
     <div className="max-w-7xl mx-auto px-4 pb-24">
@@ -129,6 +209,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
             onClick={() => {
               startTransition(() => {
                 setQuery('');
+                setSearchResults([]);
                 setIsSearchFocused(false);
               });
               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -144,22 +225,35 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               value={query}
               onFocus={() => startTransition(() => setIsSearchFocused(true))}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search movies & shows..."
-              className="w-full pl-11 pr-10 py-3 bg-gray-100 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm text-lg font-medium text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+              onKeyDown={handleKeyDown}
+              placeholder="Search..."
+              className="w-full pl-11 pr-24 py-3 bg-gray-100 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm text-lg font-medium text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
             />
-            {(query || isSearchFocused) && (
-              <button 
-                onClick={() => {
-                  startTransition(() => {
-                    setQuery('');
-                    setIsSearchFocused(false);
-                  });
-                }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-              >
-                <X size={20} />
-              </button>
-            )}
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+              {query.trim().length >= 2 && (
+                <button 
+                  onClick={() => handleSearch(query)}
+                  className="p-2 bg-indigo-600 text-white rounded-xl shadow-md hover:bg-indigo-700 transition-all active:scale-95"
+                  title="Search"
+                >
+                  <ArrowRight size={18} />
+                </button>
+              )}
+              {(query || isSearchFocused) && (
+                <button 
+                  onClick={() => {
+                    startTransition(() => {
+                      setQuery('');
+                      setSearchResults([]);
+                      setIsSearchFocused(false);
+                    });
+                  }}
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              )}
+            </div>
           </div>
           <button 
             onClick={onGoToSettings}
@@ -184,6 +278,19 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
             </div>
             
             <div className="flex items-center gap-2 w-full md:w-auto justify-center md:justify-end">
+              {vidAngelEnabled && (
+                <button
+                  onClick={() => startTransition(() => setShowEditedOnly(!showEditedOnly))}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
+                    showEditedOnly 
+                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' 
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                  }`}
+                >
+                  <ShieldCheck size={14} className={showEditedOnly ? 'fill-current' : ''} />
+                  EDITED
+                </button>
+              )}
               <SortControl 
                 currentSort={sort || 'added'} 
                 onSortChange={(s) => startTransition(() => setSort(s))} 
@@ -210,13 +317,14 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
           <div className="flex items-center gap-2">
             {isSearching ? <SearchIcon className="text-indigo-600 dark:text-indigo-400" size={20} /> : <div className="w-2 h-6 bg-indigo-600 rounded-full" />}
             <h1 className="text-xl font-black italic tracking-tighter text-gray-900 dark:text-white uppercase">
-              {isSearching ? `Results for "${query}"` : 'Popular Right Now'}
+              {isSearching ? (searchLoading ? 'Searching...' : (searchResults.length > 0 ? `Results for "${query}"` : 'Type and press Enter to search')) : 'Popular Right Now'}
             </h1>
           </div>
           {(showTrending || isSearching) && (
             <button 
               onClick={() => startTransition(() => {
                 setQuery('');
+                setSearchResults([]);
                 setIsSearchFocused(false);
               })}
               className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-900 border-2 border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all shadow-md active:scale-95 uppercase tracking-wider text-sm whitespace-nowrap"
@@ -246,14 +354,18 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
           {displayMedia.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               {displayMedia.map((item) => (
-                <MediaCard key={`${item.media_type}-${item.id}`} media={item} />
+                <MediaCard 
+                  key={`${item.media_type}-${item.id}`} 
+                  media={item} 
+                  showBadge={showEditedOnly || isSearching || showTrending}
+                />
               ))}
             </div>
           ) : (
             <div className="text-center py-20 text-gray-500 dark:text-gray-400">
               {isSearching ? (
                 <p className="font-medium text-lg text-gray-400 dark:text-gray-600">
-                   No results found for &quot;{query}&quot; in {filter === 'movie' ? 'Movies' : 'Shows'}
+                   {searchLoading ? 'Searching...' : `No results found for "${query}"`}
                 </p>
               ) : showTrending ? (
                 <p>No trending content found.</p>

@@ -1,5 +1,11 @@
+const cache = new Map<number, string | null>();
+
 export const checkVidAngelAvailability = async (title: string, tmdbId: number): Promise<string | null> => {
   if (!title || !tmdbId) return null;
+  
+  if (cache.has(tmdbId)) {
+    return cache.get(tmdbId)!;
+  }
   
   try {
     const response = await fetch(`https://api.vidangel.com/api/content/v2/works/?query=${encodeURIComponent(title)}&limit=2`, {
@@ -25,11 +31,13 @@ export const checkVidAngelAvailability = async (title: string, tmdbId: number): 
         ];
 
         if (patterns.some(pattern => posterUrl.includes(pattern))) {
+          cache.set(tmdbId, result.slug);
           return result.slug;
         }
       }
     }
     
+    cache.set(tmdbId, null);
     return null;
   } catch (error) {
     console.error("VidAngel API check failed", error);

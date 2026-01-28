@@ -131,8 +131,10 @@ export default function DetailsView() {
             .replace('{season_num}', seasonNum.toString())
             .replace('{episode_num}', episodeNum.toString());
         }
+      } else if (selectedExternalPlayer.seriesUrlTemplate) {
+        url = selectedExternalPlayer.seriesUrlTemplate.replace('{TMDBID}', mediaId.toString());
       } else if (selectedExternalPlayer.movieUrlTemplate) {
-        // Series level link: formatted like movie but /tv/ and no ?play=true
+        // Series level link fallback: formatted like movie but /tv/ and no ?play=true
         url = selectedExternalPlayer.movieUrlTemplate
           .replace('{TMDBID}', mediaId.toString())
           .replace('/movie/', '/tv/')

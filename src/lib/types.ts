@@ -43,6 +43,7 @@ export interface Media {
   media_type: 'movie' | 'tv';
   status?: string;
   date_added?: string;
+  isEdited?: boolean;
   seasons?: SeasonSummary[];
   next_episode_to_air?: {
     air_date: string;
