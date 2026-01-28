@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { getMediaDetails, getWatchProviders, getImageUrl, getContentRating, getSeasonDetails } from '@/lib/tmdb';
+import { getMediaDetails, getWatchProviders, getImageUrl, getContentRating, getSeasonDetails, getMediaVideos } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
-import { Media, WatchProvidersResponse, WatchProvider, SeasonDetails } from '@/lib/types';
+import { Media, WatchProvidersResponse, WatchProvider, SeasonDetails, Video, SeasonSummary } from '@/lib/types';
 import { ChevronLeft, Plus, Check, Trash2, Play, Star, Calendar, ShieldCheck, ChevronDown, Skull } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -28,6 +28,7 @@ export default function DetailsView() {
   const [media, setMedia] = useState<Media | null>(null);
   const [rating, setRating] = useState<string | null>(null);
   const [providers, setProviders] = useState<WatchProvidersResponse | null>(null);
+  const [videos, setVideos] = useState<Video[]>([]);
   const [vidAngelSlug, setVidAngelSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,11 +64,12 @@ export default function DetailsView() {
       Promise.all([
         getMediaDetails(parseInt(id), type, apiKey),
         getWatchProviders(parseInt(id), type, apiKey),
-        getContentRating(parseInt(id), type, apiKey)
+        getContentRating(parseInt(id), type, apiKey),
+        getMediaVideos(parseInt(id), type, apiKey)
       ])
-        .then(async ([mediaData, providerData, ratingData]) => {
+        .then(async ([mediaData, providerData, ratingData, videoData]) => {
           if (mediaData.media_type === 'tv' && mediaData.seasons && mediaData.seasons.length > 0) {
-            const regularSeasons = mediaData.seasons.filter(s => s.season_number > 0);
+            const regularSeasons = mediaData.seasons.filter((s: SeasonSummary) => s.season_number > 0);
             const latestSeason = regularSeasons.length > 0 
               ? regularSeasons[regularSeasons.length - 1].season_number 
               : mediaData.seasons[mediaData.seasons.length - 1].season_number;
@@ -77,6 +79,12 @@ export default function DetailsView() {
           setMedia(mediaData);
           setProviders(providerData);
           setRating(ratingData);
+          
+          const trailers = videoData.results
+            .filter((v: Video) => v.site === 'YouTube' && v.type === 'Trailer')
+            .sort((a, b) => new Date(a.published_at).getTime() - new Date(b.published_at).getTime())
+            .slice(0, 2);
+          setVideos(trailers);
 
           const slug = await checkVA(ratingData, mediaData.title || mediaData.name || '');
           setVidAngelSlug(slug);
@@ -97,7 +105,7 @@ export default function DetailsView() {
   if (error || !media) return (
     <div className="p-8 text-center">
       <p className="text-red-500 mb-4">{error || 'Media not found'}</p>
-      <button onClick={() => router.back()} className="text-indigo-600 font-bold">Go Back</button>
+      <button onClick={() => router.push('/')} className="text-indigo-600 font-bold">Go Back</button>
     </div>
   );
 
@@ -128,7 +136,7 @@ export default function DetailsView() {
     <div className="pb-4">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 relative z-10">
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push('/')}
           className="mb-4 inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-800 transition-colors"
         >
           <ChevronLeft size={20} />
@@ -290,13 +298,32 @@ export default function DetailsView() {
             </div>
           </section>
         )}
+
+        {videos.length > 0 && (
+          <section className="mt-8">
+            <h2 className="text-lg font-bold mb-4 uppercase tracking-tighter italic text-gray-900 dark:text-white">Trailers</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {videos.map((video) => (
+                <div key={video.id} className="aspect-video rounded-xl overflow-hidden bg-black shadow-lg border border-gray-100 dark:border-gray-800">
+                  <iframe
+                    className="w-full h-full"
+                    src={`https://www.youtube.com/embed/${video.key}`}
+                    title={video.name}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
 }
 
 const ProviderIcon = ({ provider }: { provider: WatchProvider }) => (
-  <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 hover:scale-110 transition-transform shrink-0">
+  <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
     <img src={getImageUrl(provider.logo_path)} alt={provider.provider_name} className="w-full h-full object-cover" />
   </div>
 );

@@ -26,6 +26,9 @@ interface AppContextType extends UserState {
   selectedExternalPlayer: ExternalPlayerOption | null;
   toggleExternalPlayerEnabled: () => void;
   setSelectedExternalPlayerId: (id: string | null) => void;
+  setFilter: (filter: 'movie' | 'tv') => void;
+  setSort: (sort: string) => void;
+  setShowWatched: (show: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -40,6 +43,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     vidAngelEnabled: false,
     externalPlayerEnabled: false,
     selectedExternalPlayerId: null,
+    filter: 'movie',
+    sort: 'added',
+    showWatched: false,
   });
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -148,6 +154,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const setSelectedExternalPlayerId = (id: string | null) => {
     setState((prev) => {
       const newState = { ...prev, selectedExternalPlayerId: id };
+      saveState(newState);
+      return newState;
+    });
+  };
+
+  const setFilter = (filter: 'movie' | 'tv') => {
+    setState((prev) => {
+      const newState = { ...prev, filter };
+      saveState(newState);
+      return newState;
+    });
+  };
+
+  const setSort = (sort: string) => {
+    setState((prev) => {
+      const newState = { ...prev, sort };
+      saveState(newState);
+      return newState;
+    });
+  };
+
+  const setShowWatched = (showWatched: boolean) => {
+    setState((prev) => {
+      const newState = { ...prev, showWatched };
       saveState(newState);
       return newState;
     });
@@ -268,6 +298,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         selectedExternalPlayer,
         toggleExternalPlayerEnabled,
         setSelectedExternalPlayerId,
+        setFilter,
+        setSort,
+        setShowWatched,
       }}
     >
       {children}

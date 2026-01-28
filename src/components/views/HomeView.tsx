@@ -15,7 +15,22 @@ interface HomeViewProps {
 }
 
 export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
-  const { apiKey, isLoaded, query, setQuery, searchResults, searchLoading, watchlist, watched } = useAppContext();
+  const { 
+    apiKey, 
+    isLoaded, 
+    query, 
+    setQuery, 
+    searchResults, 
+    searchLoading, 
+    watchlist, 
+    watched,
+    filter,
+    setFilter,
+    sort,
+    setSort,
+    showWatched,
+    setShowWatched
+  } = useAppContext();
   
   // Trending State
   const [trending, setTrending] = useState<Media[]>([]);
@@ -24,9 +39,6 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterType>('movie');
-  const [sort, setSort] = useState<SortOption>('added');
-  const [showWatched, setShowWatched] = useState(false);
 
   // Fetch Trending when search is focused
   useEffect(() => {
@@ -160,7 +172,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
           <div className="flex flex-col items-center md:flex-row md:justify-between gap-4 w-full">
             <div className="flex items-center gap-4 overflow-x-auto pb-2 md:pb-0 no-scrollbar w-full md:w-auto">
               <FilterTabs 
-                currentFilter={filter} 
+                currentFilter={filter as FilterType} 
                 onFilterChange={(f) => startTransition(() => {
                   setFilter(f);
                   if (f === 'movie' && sort === 'upcoming') {
@@ -172,7 +184,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
             
             <div className="flex items-center gap-2 w-full md:w-auto justify-center md:justify-end">
               <SortControl 
-                currentSort={sort} 
+                currentSort={sort as SortOption} 
                 onSortChange={(s) => startTransition(() => setSort(s))} 
                 hideUpcoming={filter === 'movie'}
               />

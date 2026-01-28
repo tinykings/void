@@ -119,6 +119,21 @@ export const externalPlayerOptions: ExternalPlayerOption[] = [
   // Add other external player options here in the future
 ];
 
+export interface Video {
+  id: string;
+  key: string;
+  name: string;
+  site: string;
+  type: string;
+  official: boolean;
+  published_at: string;
+}
+
+export interface VideosResponse {
+  id: number;
+  results: Video[];
+}
+
 export interface WatchProvider {
   provider_id: number;
   provider_name: string;
@@ -147,4 +162,7 @@ export interface UserState {
   vidAngelEnabled?: boolean;
   externalPlayerEnabled?: boolean;
   selectedExternalPlayerId?: string | null;
+  filter?: 'movie' | 'tv';
+  sort?: string;
+  showWatched?: boolean;
 }
