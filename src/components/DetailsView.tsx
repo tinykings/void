@@ -123,11 +123,21 @@ export default function DetailsView() {
     let url = '';
     if (mediaType === 'movie' && selectedExternalPlayer.movieUrlTemplate) {
       url = selectedExternalPlayer.movieUrlTemplate.replace('{TMDBID}', mediaId.toString());
-    } else if (mediaType === 'tv' && selectedExternalPlayer.tvUrlTemplate && seasonNum !== undefined && episodeNum !== undefined) {
-      url = selectedExternalPlayer.tvUrlTemplate
-        .replace('{TMDBID}', mediaId.toString())
-        .replace('{season_num}', seasonNum.toString())
-        .replace('{episode_num}', episodeNum.toString());
+    } else if (mediaType === 'tv') {
+      if (seasonNum !== undefined && episodeNum !== undefined) {
+        if (selectedExternalPlayer.tvUrlTemplate) {
+          url = selectedExternalPlayer.tvUrlTemplate
+            .replace('{TMDBID}', mediaId.toString())
+            .replace('{season_num}', seasonNum.toString())
+            .replace('{episode_num}', episodeNum.toString());
+        }
+      } else if (selectedExternalPlayer.movieUrlTemplate) {
+        // Series level link: formatted like movie but /tv/ and no ?play=true
+        url = selectedExternalPlayer.movieUrlTemplate
+          .replace('{TMDBID}', mediaId.toString())
+          .replace('/movie/', '/tv/')
+          .replace('?play=true', '');
+      }
     }
     return url;
   };
@@ -190,11 +200,11 @@ export default function DetailsView() {
                 </button>
               </div>
 
-              {(externalPlayerEnabled && selectedExternalPlayer && media.media_type === 'movie') || vidAngelAvailable ? (
+              {(externalPlayerEnabled && selectedExternalPlayer) || vidAngelAvailable ? (
                 <div className="flex gap-3">
-                  {externalPlayerEnabled && selectedExternalPlayer && media.media_type === 'movie' && (
+                  {externalPlayerEnabled && selectedExternalPlayer && (
                     <a
-                      href={getExternalPlayerUrl('movie', media.id)}
+                      href={getExternalPlayerUrl(media.media_type, media.id)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm bg-rose-600 text-white shadow-lg shadow-rose-200 dark:shadow-none hover:bg-rose-700 dark:bg-rose-500"
@@ -257,7 +267,7 @@ export default function DetailsView() {
             <div className="space-y-4">
               {seasonDetails ? seasonDetails.episodes.map((ep) => (
                 <div key={ep.id} className="flex gap-3 p-3 sm:p-4 sm:gap-4 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
-                  <div className="w-24 sm:w-32 aspect-video rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0 relative">
+                  <div className="w-24 sm:w-32 aspect-video rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0 relative group">
                     {ep.still_path ? (
                       <img src={getImageUrl(ep.still_path)} alt={ep.name} className="w-full h-full object-cover" loading="lazy" />
                     ) : (
@@ -265,7 +275,20 @@ export default function DetailsView() {
                         <Play size={24} />
                       </div>
                     )}
-                    <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] sm:text-[10px] font-bold px-1 rounded">
+                    
+                    {externalPlayerEnabled && selectedExternalPlayer && (
+                      <a
+                        href={getExternalPlayerUrl('tv', media.id, ep.season_number, ep.episode_number)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`Play S${ep.season_number} E${ep.episode_number} on ${selectedExternalPlayer.name}`}
+                        className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors"
+                      >
+                        <Play size={24} className="text-white/80 group-hover:text-white fill-current" />
+                      </a>
+                    )}
+
+                    <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] sm:text-[10px] font-bold px-1 rounded pointer-events-none">
                       S{ep.season_number} E{ep.episode_number}
                     </div>
                   </div>
@@ -280,17 +303,6 @@ export default function DetailsView() {
                       {ep.overview || 'No overview available.'}
                     </p>
                   </div>
-                  {externalPlayerEnabled && selectedExternalPlayer && (
-                    <a
-                      href={getExternalPlayerUrl('tv', media.id, ep.season_number, ep.episode_number)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title={`Play S${ep.season_number} E${ep.episode_number} on ${selectedExternalPlayer.name}`}
-                      className="shrink-0 p-2 self-center text-gray-400 hover:text-rose-600 transition-colors"
-                    >
-                      <Skull size={20} />
-                    </a>
-                  )}
                 </div>
               )) : (
                 <div className="py-8 text-center text-gray-500 dark:text-gray-400 animate-pulse">Loading episodes...</div>

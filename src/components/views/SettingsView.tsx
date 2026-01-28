@@ -55,12 +55,17 @@ export const SettingsView = () => {
     }
     setSelectedExternalPlayerId(tempSelectedExternalPlayerId);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-
+    
     // Trigger a sync if credentials are present
     if (tempGithubToken && tempGistId) {
       syncFromGist();
     }
+
+    // Automatically go home after a short delay to show the "Saved" state
+    setTimeout(() => {
+      setSaved(false);
+      router.push('/');
+    }, 1000);
   };
 
   return (
