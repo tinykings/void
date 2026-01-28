@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { Key, Save, ExternalLink, Moon, Github, RefreshCw, Skull, ArrowLeft } from 'lucide-react';
+import { Key, Save, ExternalLink, Moon, Github, RefreshCw, ArrowLeft, ShieldCheck, Play } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { clsx } from 'clsx';
 import { externalPlayerOptions } from '@/lib/types';
@@ -113,9 +113,7 @@ export const SettingsView = () => {
 
         <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2 mb-4">
-            <div className="bg-indigo-600 rounded-full p-1">
-              <span className="text-white font-bold text-xs px-1">VA</span>
-            </div>
+            <ShieldCheck className="text-indigo-600 dark:text-indigo-400" size={20} />
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Content Filters</h2>
           </div>
 
@@ -158,7 +156,7 @@ export const SettingsView = () => {
         {/* New External Player Section */}
         <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2 mb-4">
-            <Skull className="text-indigo-600 dark:text-indigo-400" size={20} />
+            <Play className="text-indigo-600 dark:text-indigo-400" size={20} />
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">External Player</h2>
           </div>
 
