@@ -42,6 +42,7 @@ export interface Media {
   popularity: number;
   media_type: 'movie' | 'tv';
   status?: string;
+  date_added?: string;
   seasons?: SeasonSummary[];
   next_episode_to_air?: {
     air_date: string;

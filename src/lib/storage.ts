@@ -38,7 +38,7 @@ export const toggleInList = (media: Media, listType: 'watchlist' | 'watched') =>
   if (exists) {
     state[listType] = list.filter((m) => !(m.id === media.id && m.media_type === media.media_type));
   } else {
-    state[listType] = [...list, media];
+    state[listType] = [...list, { ...media, date_added: new Date().toISOString() }];
     // If adding to watched, maybe remove from watchlist?
     if (listType === 'watched') {
       state.watchlist = state.watchlist.filter((m) => !(m.id === media.id && m.media_type === media.media_type));

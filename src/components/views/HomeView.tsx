@@ -161,7 +161,12 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
             <div className="flex items-center gap-4 overflow-x-auto pb-2 md:pb-0 no-scrollbar w-full md:w-auto">
               <FilterTabs 
                 currentFilter={filter} 
-                onFilterChange={(f) => startTransition(() => setFilter(f))} 
+                onFilterChange={(f) => startTransition(() => {
+                  setFilter(f);
+                  if (f === 'movie' && sort === 'upcoming') {
+                    setSort('added');
+                  }
+                })} 
               />
             </div>
             
@@ -169,6 +174,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               <SortControl 
                 currentSort={sort} 
                 onSortChange={(s) => startTransition(() => setSort(s))} 
+                hideUpcoming={filter === 'movie'}
               />
               <button
                 onClick={() => startTransition(() => setShowWatched(!showWatched))}

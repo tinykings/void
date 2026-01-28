@@ -6,9 +6,10 @@ import { SortOption } from '@/lib/sort';
 interface SortControlProps {
   currentSort: SortOption;
   onSortChange: (sort: SortOption) => void;
+  hideUpcoming?: boolean;
 }
 
-export const SortControl = ({ currentSort, onSortChange }: SortControlProps) => {
+export const SortControl = ({ currentSort, onSortChange, hideUpcoming }: SortControlProps) => {
   return (
     <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-900 rounded-lg px-3 py-2">
       <ArrowUpDown size={14} className="text-gray-400" />
@@ -19,6 +20,7 @@ export const SortControl = ({ currentSort, onSortChange }: SortControlProps) => 
         style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
       >
         <option value="added">Recently Added</option>
+        {!hideUpcoming && <option value="upcoming">Upcoming Episodes</option>}
         <option value="title">Title</option>
         <option value="release">Release Date</option>
       </select>
