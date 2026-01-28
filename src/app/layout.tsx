@@ -44,7 +44,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
           <AppProvider>
-            <main className="container mx-auto min-h-screen bg-white dark:bg-gray-950 pb-12 pt-4 px-4 sm:px-6 lg:px-8 transition-colors duration-300">
+            <main className="container mx-auto min-h-screen bg-white dark:bg-gray-950 pb-12 pt-4 px-2 sm:px-3 lg:px-4 transition-colors duration-300">
               {children}
             </main>
           </AppProvider>

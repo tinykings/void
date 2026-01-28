@@ -157,7 +157,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
         </div>
         
         {showLibrary && (
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 w-full">
+          <div className="flex flex-col items-center md:flex-row md:justify-between gap-4 w-full">
             <div className="flex items-center gap-4 overflow-x-auto pb-2 md:pb-0 no-scrollbar w-full md:w-auto">
               <FilterTabs 
                 currentFilter={filter} 
@@ -170,7 +170,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               />
             </div>
             
-            <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+            <div className="flex items-center gap-2 w-full md:w-auto justify-center md:justify-end">
               <SortControl 
                 currentSort={sort} 
                 onSortChange={(s) => startTransition(() => setSort(s))} 
