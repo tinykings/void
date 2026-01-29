@@ -6,8 +6,10 @@ import { useAppContext } from '@/context/AppContext';
 import { getMediaDetails, getWatchProviders, getImageUrl, getContentRating, getSeasonDetails, getMediaVideos } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { Media, WatchProvidersResponse, WatchProvider, SeasonDetails, Video, SeasonSummary } from '@/lib/types';
-import { ChevronLeft, Plus, Check, Trash2, Play, Star, Calendar, ShieldCheck, ChevronDown, Skull } from 'lucide-react';
+import { ChevronLeft, Plus, Check, Trash2, Play, Star, Calendar, ShieldCheck, ChevronDown } from 'lucide-react';
 import { clsx } from 'clsx';
+import { toast } from 'sonner';
+import { ConfirmationModal } from '@/components/ConfirmationModal';
 
 export default function DetailsView() {
   const searchParams = useSearchParams();
@@ -35,6 +37,21 @@ export default function DetailsView() {
 
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1);
   const [seasonDetails, setSeasonDetails] = useState<SeasonDetails | null>(null);
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type: 'danger' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'info'
+  });
 
   useEffect(() => {
     setSelectedSeasonNumber(1);
@@ -118,6 +135,42 @@ export default function DetailsView() {
   const userRegion = 'US'; 
   const localProviders = providers?.results?.[userRegion];
 
+  const handleWatchlistToggle = () => {
+    if (inWatchlist) {
+      setModalConfig({
+        isOpen: true,
+        title: 'Remove from List',
+        message: `Are you sure you want to remove "${title}" from your watchlist?`,
+        type: 'danger',
+        onConfirm: () => {
+          toggleWatchlist(media);
+          toast.success('Removed from watchlist');
+        }
+      });
+    } else {
+      toggleWatchlist(media);
+      toast.success('Added to watchlist');
+    }
+  };
+
+  const handleWatchedToggle = () => {
+    if (inWatched) {
+      setModalConfig({
+        isOpen: true,
+        title: 'Remove from History',
+        message: `Remove "${title}" from your history?`,
+        type: 'danger',
+        onConfirm: () => {
+          toggleWatched(media);
+          toast.success('Removed from history');
+        }
+      });
+    } else {
+      toggleWatched(media);
+      toast.success('Marked as watched');
+    }
+  };
+
   const getExternalPlayerUrl = (mediaType: 'movie' | 'tv', mediaId: number, seasonNum?: number, episodeNum?: number) => {
     if (!externalPlayerEnabled || !selectedExternalPlayer) return '';
     let url = '';
@@ -197,7 +250,7 @@ export default function DetailsView() {
             <div className="flex flex-col gap-3 mt-6">
               <div className="flex flex-wrap gap-3">
                 <button
-                  onClick={() => toggleWatchlist(media)}
+                  onClick={handleWatchlistToggle}
                   className={clsx(
                     "flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm",
                     inWatchlist
@@ -210,7 +263,7 @@ export default function DetailsView() {
                 </button>
 
                 <button
-                  onClick={() => toggleWatched(media)}
+                  onClick={handleWatchedToggle}
                   className={clsx(
                     "flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm border-2",
                     inWatched
@@ -261,7 +314,7 @@ export default function DetailsView() {
           </p>
           
           {localProviders?.flatrate && localProviders.flatrate.length > 0 && (
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3 justify-center md:justify-start">
               {localProviders.flatrate.map((p) => (
                 <ProviderIcon key={p.provider_id} provider={p} />
               ))}
@@ -353,6 +406,16 @@ export default function DetailsView() {
           </section>
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={modalConfig.isOpen}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
+        onConfirm={modalConfig.onConfirm}
+        confirmText="Remove"
+      />
     </div>
   );
 }

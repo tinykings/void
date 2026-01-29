@@ -251,8 +251,6 @@ export const useStore = create<StoreState>()(
           const { apiKey, tmdbSessionId, tmdbAccountId, watchlist } = get();
           const inWatchlist = watchlist.some((m) => m.id === media.id && m.media_type === media.media_type);
           
-          if (inWatchlist && !window.confirm(`Remove "${media.title || media.name}" from your watchlist?`)) return;
-
           const newWatchlist = inWatchlist
             ? watchlist.filter((m) => !(m.id === media.id && m.media_type === media.media_type))
             : [...watchlist, { ...media, date_added: new Date().toISOString() }];
@@ -270,8 +268,6 @@ export const useStore = create<StoreState>()(
           const { apiKey, tmdbSessionId, tmdbAccountId, watched, watchlist } = get();
           const inWatched = watched.some((m) => m.id === media.id && m.media_type === media.media_type);
           
-          if (inWatched && !rating && !window.confirm(`Remove "${media.title || media.name}" from history?`)) return;
-
           if (inWatched && !rating) {
             set({ watched: watched.filter((m) => !(m.id === media.id && m.media_type === media.media_type)) });
             if (apiKey && tmdbSessionId && tmdbAccountId) {

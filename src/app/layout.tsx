@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -48,6 +49,7 @@ export default function RootLayout({
             <main className="container mx-auto min-h-screen bg-white dark:bg-gray-950 pb-12 pt-4 px-2 sm:px-3 lg:px-4 transition-colors duration-300">
               {children}
             </main>
+            <Toaster position="bottom-center" theme="dark" closeButton />
           </AppProvider>
         </ThemeProvider>
         <script

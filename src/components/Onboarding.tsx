@@ -1,10 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { Key, User, ShieldCheck, Play, ArrowRight, Check, ExternalLink } from 'lucide-react';
 import { externalPlayerOptions } from '@/lib/types';
 import { clsx } from 'clsx';
+import { toast } from 'sonner';
+
+// Re-using icon names but they might be imported from lucide-react in actual code
+import { 
+  Key as KeyIcon, 
+  User as UserIcon, 
+  ShieldCheck as ShieldIcon, 
+  Play as PlayIcon,
+  ArrowRight as ArrowIcon,
+  Check as CheckIcon,
+  ExternalLink as LinkIcon
+} from 'lucide-react';
 
 export const Onboarding = () => {
   const { 
@@ -19,8 +31,20 @@ export const Onboarding = () => {
   const [step, setStep] = useState(1);
   const [tempApiKey, setTempApiKey] = useState(apiKey);
 
+  // Notify when account is connected during onboarding
+  useEffect(() => {
+    if (tmdbSessionId && step === 2) {
+      toast.success('Account connected successfully!');
+    }
+  }, [tmdbSessionId, step]);
+
   const nextStep = () => setStep(s => s + 1);
   const prevStep = () => setStep(s => s - 1);
+
+  const handleFinish = () => {
+    setOnboardingCompleted(true);
+    toast.success('Welcome to Void!');
+  };
 
   const renderStep = () => {
     switch (step) {
@@ -28,9 +52,9 @@ export const Onboarding = () => {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="w-16 h-16 bg-indigo-600/20 rounded-2xl flex items-center justify-center mx-auto mb-8">
-              <Key className="text-indigo-400" size={32} />
+              <KeyIcon className="text-indigo-400" size={32} />
             </div>
-            <h2 className="text-2xl font-black text-center uppercase italic italic tracking-tighter">TMDB API Key</h2>
+            <h2 className="text-2xl font-black text-center uppercase italic tracking-tighter">TMDB API Key</h2>
             <p className="text-gray-400 text-center text-sm leading-relaxed">
               To browse and track your movies, you need a free API key from The Movie Database.
             </p>
@@ -40,7 +64,7 @@ export const Onboarding = () => {
                 value={tempApiKey}
                 onChange={(e) => setTempApiKey(e.target.value)}
                 placeholder="Paste your API key here..."
-                className="w-full p-4 rounded-xl bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-gray-600"
+                className="w-full p-4 rounded-xl bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-gray-400"
               />
               <a
                 href="https://developer.themoviedb.org/reference/intro/getting-started"
@@ -48,18 +72,19 @@ export const Onboarding = () => {
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 text-xs font-bold text-indigo-400 hover:underline"
               >
-                Don't have a key? Get one here <ExternalLink size={12} />
+                Don't have a key? Get one here <LinkIcon size={12} />
               </a>
             </div>
             <button
               onClick={() => {
                 setApiKey(tempApiKey);
+                toast.success('API Key saved');
                 nextStep();
               }}
               disabled={!tempApiKey}
               className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-black rounded-xl transition-all flex items-center justify-center gap-2 uppercase tracking-widest shadow-lg shadow-indigo-900/20"
             >
-              Continue <ArrowRight size={18} />
+              Continue <ArrowIcon size={18} />
             </button>
           </div>
         );
@@ -68,7 +93,7 @@ export const Onboarding = () => {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="w-16 h-16 bg-indigo-600/20 rounded-2xl flex items-center justify-center mx-auto mb-8">
-              <User className="text-indigo-400" size={32} />
+              <UserIcon className="text-indigo-400" size={32} />
             </div>
             <h2 className="text-2xl font-black text-center uppercase italic tracking-tighter">Connect Account</h2>
             <p className="text-gray-400 text-center text-sm leading-relaxed">
@@ -83,7 +108,7 @@ export const Onboarding = () => {
               </button>
             ) : (
               <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-xl flex items-center gap-3 justify-center text-green-400 font-bold">
-                <Check size={20} /> Account Connected
+                <CheckIcon size={20} /> Account Connected
               </div>
             )}
             <div className="flex gap-3">
@@ -102,14 +127,18 @@ export const Onboarding = () => {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="w-16 h-16 bg-amber-500/20 rounded-2xl flex items-center justify-center mx-auto mb-8">
-              <ShieldCheck className="text-amber-400" size={32} />
+              <ShieldIcon className="text-amber-400" size={32} />
             </div>
             <h2 className="text-2xl font-black text-center uppercase italic tracking-tighter">Content Filters</h2>
             <p className="text-gray-400 text-center text-sm leading-relaxed">
               Would you like to see if edited versions are available on VidAngel for mature content?
             </p>
             <button
-              onClick={() => setVidAngelEnabled(!vidAngelEnabled)}
+              onClick={() => {
+                const newState = !vidAngelEnabled;
+                setVidAngelEnabled(newState);
+                toast.info(newState ? 'VidAngel integration enabled' : 'VidAngel integration disabled');
+              }}
               className={clsx(
                 "w-full py-4 rounded-xl font-black transition-all flex items-center justify-center gap-3 uppercase tracking-widest border-2",
                 vidAngelEnabled 
@@ -117,7 +146,7 @@ export const Onboarding = () => {
                   : "bg-transparent border-gray-700 text-gray-400 hover:border-gray-600"
               )}
             >
-              {vidAngelEnabled ? <Check size={20} /> : null}
+              {vidAngelEnabled ? <CheckIcon size={20} /> : null}
               {vidAngelEnabled ? 'Enabled' : 'Enable VidAngel'}
             </button>
             <div className="flex gap-3 pt-4">
@@ -136,7 +165,7 @@ export const Onboarding = () => {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="w-16 h-16 bg-rose-600/20 rounded-2xl flex items-center justify-center mx-auto mb-8">
-              <Play className="text-rose-400" size={32} />
+              <PlayIcon className="text-rose-400" size={32} />
             </div>
             <h2 className="text-2xl font-black text-center uppercase italic tracking-tighter">External Player</h2>
             <p className="text-gray-400 text-center text-sm leading-relaxed">
@@ -145,7 +174,10 @@ export const Onboarding = () => {
             
             <div className="space-y-3">
               <button
-                onClick={toggleExternalPlayerEnabled}
+                onClick={() => {
+                  toggleExternalPlayerEnabled();
+                  // Note: toggleExternalPlayerEnabled logic handles selecting first provider if none selected
+                }}
                 className={clsx(
                   "w-full py-4 rounded-xl font-black transition-all flex items-center justify-center gap-3 uppercase tracking-widest border-2",
                   externalPlayerEnabled 
@@ -153,14 +185,18 @@ export const Onboarding = () => {
                     : "bg-transparent border-gray-700 text-gray-400 hover:border-gray-600"
                 )}
               >
-                {externalPlayerEnabled ? <Check size={20} /> : null}
+                {externalPlayerEnabled ? <CheckIcon size={20} /> : null}
                 {externalPlayerEnabled ? 'Enabled' : 'Enable Player Links'}
               </button>
 
               {externalPlayerEnabled && (
                 <select
                   value={selectedExternalPlayer?.id || ''}
-                  onChange={(e) => setSelectedExternalPlayerId(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedExternalPlayerId(e.target.value);
+                    const name = externalPlayerOptions.find(o => o.id === e.target.value)?.name;
+                    toast.info(`Player set to ${name}`);
+                  }}
                   className="w-full p-4 rounded-xl bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-rose-500 outline-none transition-all font-bold text-sm"
                 >
                   <option value="" disabled>Select a provider</option>
@@ -174,7 +210,7 @@ export const Onboarding = () => {
             <div className="flex gap-3 pt-4">
               <button onClick={prevStep} className="flex-1 py-4 text-gray-500 font-bold uppercase tracking-widest text-xs">Back</button>
               <button 
-                onClick={() => setOnboardingCompleted(true)} 
+                onClick={handleFinish} 
                 className="flex-[2] py-4 bg-green-600 hover:bg-green-500 text-white font-black rounded-xl transition-all uppercase tracking-widest shadow-lg shadow-green-900/20"
               >
                 Finish Setup
