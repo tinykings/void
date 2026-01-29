@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useTransition, useCallback, useRef } from 'react';
+import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getTrending, searchMedia } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
@@ -10,7 +11,8 @@ import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
 import { FilterTabs } from '@/components/FilterTabs';
 import { SortControl } from '@/components/SortControl';
 import { sortMedia } from '@/lib/sort';
-import { AlertCircle, Settings, Search as SearchIcon, X, Eye, ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react';
+import { AlertCircle, Settings, Search as SearchIcon, X, Eye, ArrowLeft, ArrowRight, ShieldCheck, RefreshCcw } from 'lucide-react';
+import { clsx } from 'clsx';
 
 interface HomeViewProps {
   onGoToSettings: () => void;
@@ -34,9 +36,29 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     editedStatusMap,
     isSearchFocused,
     setIsSearchFocused,
-    vidAngelEnabled
+    vidAngelEnabled,
+    syncFromTMDB
   } = useAppContext();
   
+  // Pull to Refresh State
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const pullDistance = useMotionValue(0);
+  const rotate = useTransform(pullDistance, [0, 80], [0, 360]);
+  const scale = useTransform(pullDistance, [0, 80], [0.5, 1.2]);
+  const opacity = useTransform(pullDistance, [0, 40], [0, 1]);
+
+  const handleDragEnd = async () => {
+    if (pullDistance.get() >= 80) {
+      setIsRefreshing(true);
+      try {
+        await syncFromTMDB(true);
+      } finally {
+        setIsRefreshing(false);
+      }
+    }
+    pullDistance.set(0);
+  };
+
   // Trending State
   const [trending, setTrending] = useState<Media[]>([]);
   const [trendingLoading, setTrendingLoading] = useState(false);
@@ -194,7 +216,30 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   const isLoading = searchLoading || (showTrending ? trendingLoading : isPending);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 pb-24">
+    <motion.div 
+      className="max-w-7xl mx-auto px-4 pb-24 relative"
+      drag="y"
+      dragConstraints={{ top: 0, bottom: 0 }}
+      dragElastic={0.2}
+      onDrag={(e, info) => {
+        // Only allow pulling down if at the top of the page
+        if (window.scrollY === 0) {
+          pullDistance.set(info.offset.y);
+        }
+      }}
+      onDragEnd={handleDragEnd}
+      style={{ y: isRefreshing ? 60 : 0 }}
+    >
+      {/* Pull indicator */}
+      <motion.div 
+        style={{ rotate, scale, opacity, y: -50 }}
+        className="absolute top-0 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
+      >
+        <div className="bg-indigo-600 p-2 rounded-full shadow-lg border border-white/10">
+          <RefreshCcw size={20} className={clsx("text-white", isRefreshing && "animate-spin")} />
+        </div>
+      </motion.div>
+
       <div className="flex flex-col items-center gap-6 mb-8 pt-4">
         <div className="flex flex-row items-center gap-4 md:gap-6 w-full">
           <button 
@@ -405,6 +450,6 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
           )}
         </>
       )}
-    </div>
+    </motion.div>
   );
 };
