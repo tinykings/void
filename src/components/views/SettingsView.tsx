@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { Key, Save, ExternalLink, Moon, Github, RefreshCw, ArrowLeft, ShieldCheck, Play } from 'lucide-react';
+import { Key, Save, ExternalLink, Moon, RefreshCw, ArrowLeft, ShieldCheck, Play, User, LogOut } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { clsx } from 'clsx';
 import { externalPlayerOptions } from '@/lib/types';
@@ -12,17 +12,15 @@ export const SettingsView = () => {
   const router = useRouter();
   const {
     apiKey, setApiKey,
-    githubToken, setGithubToken,
-    gistId, setGistId,
-    syncFromGist, isSyncing,
+    syncFromTMDB, isSyncing,
+    loginWithTMDB, logoutTMDB,
+    tmdbSessionId, tmdbAccountId,
     vidAngelEnabled, setVidAngelEnabled,
     externalPlayerEnabled, toggleExternalPlayerEnabled,
     selectedExternalPlayer, setSelectedExternalPlayerId,
   } = useAppContext();
 
   const [tempApiKey, setTempApiKey] = useState('');
-  const [tempGithubToken, setTempGithubToken] = useState('');
-  const [tempGistId, setTempGistId] = useState('');
   const [tempVidAngelEnabled, setTempVidAngelEnabled] = useState(false);
   const [tempExternalPlayerEnabled, setTempExternalPlayerEnabled] = useState(false);
   const [tempSelectedExternalPlayerId, setTempSelectedExternalPlayerId] = useState<string | null>(null);
@@ -33,21 +31,15 @@ export const SettingsView = () => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTempApiKey(apiKey);
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTempGithubToken(githubToken || '');
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTempGistId(gistId || '');
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTempVidAngelEnabled(vidAngelEnabled || false);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTempExternalPlayerEnabled(externalPlayerEnabled || false);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTempSelectedExternalPlayerId(selectedExternalPlayer?.id || null);
-  }, [apiKey, githubToken, gistId, vidAngelEnabled, externalPlayerEnabled, selectedExternalPlayer]);
+  }, [apiKey, vidAngelEnabled, externalPlayerEnabled, selectedExternalPlayer]);
 
   const handleSave = () => {
     setApiKey(tempApiKey);
-    setGithubToken(tempGithubToken);
-    setGistId(tempGistId);
     setVidAngelEnabled(tempVidAngelEnabled);
     // Only call toggle if the value has actually changed
     if (tempExternalPlayerEnabled !== externalPlayerEnabled) {
@@ -56,11 +48,6 @@ export const SettingsView = () => {
     setSelectedExternalPlayerId(tempSelectedExternalPlayerId);
     setSaved(true);
     
-    // Trigger a sync if credentials are present
-    if (tempGithubToken && tempGistId) {
-      syncFromGist();
-    }
-
     // Automatically go home after a short delay to show the "Saved" state
     setTimeout(() => {
       setSaved(false);
@@ -213,50 +200,53 @@ export const SettingsView = () => {
 
         <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2 mb-4">
-            <Github className="text-indigo-600 dark:text-indigo-400" size={20} />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">GitHub Sync</h2>
+            <User className="text-indigo-600 dark:text-indigo-400" size={20} />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">TMDB Synchronization</h2>
           </div>
 
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Sync your watchlist and history across devices using a GitHub Gist.
+            Sync your watchlist and history (using ratings) directly with your TMDB account.
           </p>
 
-          <div className="space-y-3">
-            <div>
-               <label className="text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-1 block">GitHub Token</label>
-               <input
-                type="password"
-                value={tempGithubToken}
-                onChange={(e) => setTempGithubToken(e.target.value)}
-                placeholder="ghp_..."
-                className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
-              />
-            </div>
-            <div>
-               <label className="text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-1 block">Gist ID</label>
-               <input
-                type="text"
-                value={tempGistId}
-                onChange={(e) => setTempGistId(e.target.value)}
-                placeholder="e.g. 8f3..."
-                className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
-              />
-            </div>
-          </div>
-
-          {githubToken && gistId && (
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800 flex justify-between items-center">
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {isSyncing ? 'Syncing...' : 'Sync Configured'}
-              </span>
-              <button
-                onClick={() => syncFromGist()}
-                disabled={isSyncing}
-                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline disabled:opacity-50"
-              >
-                <RefreshCw size={12} className={clsx(isSyncing && "animate-spin")} />
-                Force Pull
-              </button>
+          {!tmdbSessionId ? (
+            <button
+              onClick={loginWithTMDB}
+              disabled={!tempApiKey}
+              className="w-full py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors disabled:opacity-50"
+            >
+              Login with TMDB
+            </button>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold">
+                    {tmdbAccountId?.toString().slice(0, 1)}
+                  </div>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">Account ID: {tmdbAccountId}</span>
+                </div>
+                <button
+                  onClick={logoutTMDB}
+                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  title="Logout"
+                >
+                  <LogOut size={18} />
+                </button>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {isSyncing ? 'Syncing...' : 'Connected to TMDB'}
+                </span>
+                <button
+                  onClick={syncFromTMDB}
+                  disabled={isSyncing}
+                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline disabled:opacity-50"
+                >
+                  <RefreshCw size={12} className={clsx(isSyncing && "animate-spin")} />
+                  Sync Now
+                </button>
+              </div>
             </div>
           )}
         </section>

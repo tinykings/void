@@ -3,19 +3,20 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { Media, UserState, ExternalPlayerOption, externalPlayerOptions, SortOption, FilterType } from '@/lib/types';
 import { loadState, saveState, toggleInList as toggleInStorage } from '@/lib/storage';
-import { fetchGistData, updateGistData } from '@/lib/gist';
-import { getMediaDetails } from '@/lib/tmdb';
+import { getMediaDetails, createRequestToken, createSession, getAccountDetails, getAccountLists, toggleWatchlistStatus, rateMedia, deleteRating } from '@/lib/tmdb';
 
 interface AppContextType extends UserState {
   setApiKey: (key: string) => void;
-  setGithubToken: (token: string) => void;
-  setGistId: (id: string) => void;
   setVidAngelEnabled: (enabled: boolean) => void;
   toggleWatchlist: (media: Media) => void;
-  toggleWatched: (media: Media) => void;
-  syncFromGist: () => Promise<void>;
+  toggleWatched: (media: Media, rating?: number) => void;
   isLoaded: boolean;
   isSyncing: boolean;
+
+  // TMDB Auth
+  loginWithTMDB: () => Promise<void>;
+  logoutTMDB: () => void;
+  syncFromTMDB: () => Promise<void>;
 
   // New external player settings
   externalPlayerEnabled: boolean;
@@ -37,8 +38,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     apiKey: '',
     watchlist: [],
     watched: [],
-    githubToken: '',
-    gistId: '',
     vidAngelEnabled: false,
     externalPlayerEnabled: false,
     selectedExternalPlayerId: null,
@@ -52,59 +51,119 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const initialLoadDone = useRef(false);
 
+  // Handle TMDB Auth Callback
+  useEffect(() => {
+    const handleAuthCallback = async () => {
+      const searchParams = new URLSearchParams(window.location.search);
+      const approved = searchParams.get('approved');
+      const requestToken = searchParams.get('request_token');
+      const savedToken = localStorage.getItem('tmdb_request_token');
+
+      if (approved === 'true' && requestToken && requestToken === savedToken && state.apiKey) {
+        setIsSyncing(true);
+        try {
+          const sessionId = await createSession(state.apiKey, requestToken);
+          const account = await getAccountDetails(state.apiKey, sessionId);
+          
+          const newState = {
+            ...state,
+            tmdbSessionId: sessionId,
+            tmdbAccountId: account.id
+          };
+          
+          setState(newState);
+          saveState(newState);
+          
+          // Clean up URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+          localStorage.removeItem('tmdb_request_token');
+          
+          // Initial sync
+          await syncFromTMDBInternal(state.apiKey, sessionId, account.id);
+        } catch (error) {
+          console.error("TMDB Auth Error:", error);
+        } finally {
+          setIsSyncing(false);
+        }
+      }
+    };
+
+    if (typeof window !== 'undefined' && !initialLoadDone.current) {
+      handleAuthCallback();
+    }
+  }, [state.apiKey]);
+
   // Load from local storage on mount
   useEffect(() => {
     const loaded = loadState();
     setState(loaded);
     setIsLoaded(true);
 
-    // Attempt initial sync if credentials exist
-    if (loaded.githubToken && loaded.gistId && !initialLoadDone.current) {
+    if (loaded.tmdbSessionId && loaded.tmdbAccountId && loaded.apiKey && !initialLoadDone.current) {
       initialLoadDone.current = true;
-      syncFromGistInternal(loaded.githubToken, loaded.gistId);
+      syncFromTMDBInternal(loaded.apiKey, loaded.tmdbSessionId, loaded.tmdbAccountId);
     }
   }, []);
 
-  const syncFromGistInternal = async (token: string, gistId: string) => {
-    if (!token || !gistId) return;
+  const syncFromTMDBInternal = async (apiKey: string, sessionId: string, accountId: number) => {
     setIsSyncing(true);
     try {
-      const data = await fetchGistData(token, gistId);
-      if (data && (Array.isArray(data.watchlist) || Array.isArray(data.watched))) {
-        setState(prev => {
-          const newState = {
-            ...prev,
-            watchlist: data.watchlist || prev.watchlist,
-            watched: data.watched || prev.watched
-          };
-          saveState(newState);
-          return newState;
-        });
-      }
+      const [wlMovies, wlTv, ratedMovies, ratedTv] = await Promise.all([
+        getAccountLists(apiKey, sessionId, accountId, 'movies', 'watchlist'),
+        getAccountLists(apiKey, sessionId, accountId, 'tv', 'watchlist'),
+        getAccountLists(apiKey, sessionId, accountId, 'movies', 'rated'),
+        getAccountLists(apiKey, sessionId, accountId, 'tv', 'rated'),
+      ]);
+
+      setState(prev => {
+        const newState = {
+          ...prev,
+          watchlist: [...wlMovies, ...wlTv],
+          watched: [...ratedMovies, ...ratedTv]
+        };
+        saveState(newState);
+        return newState;
+      });
     } catch (error) {
-      console.error("Gist Sync Error:", error);
+      console.error("TMDB Sync Error:", error);
     } finally {
       setIsSyncing(false);
     }
   };
 
-  const syncFromGist = async () => {
-    await syncFromGistInternal(state.githubToken || '', state.gistId || '');
+  const loginWithTMDB = async () => {
+    if (!state.apiKey) return;
+    try {
+      const token = await createRequestToken(state.apiKey);
+      localStorage.setItem('tmdb_request_token', token);
+      const redirectUrl = `${window.location.origin}${window.location.pathname}`;
+      window.location.href = `https://www.themoviedb.org/authenticate/${token}?redirect_to=${encodeURIComponent(redirectUrl)}`;
+    } catch (error) {
+      console.error("Failed to start TMDB login:", error);
+    }
+  };
+
+  const logoutTMDB = () => {
+    const newState = {
+      ...state,
+      tmdbSessionId: undefined,
+      tmdbAccountId: undefined,
+      watchlist: [],
+      watched: []
+    };
+    setState(newState);
+    saveState(newState);
+  };
+
+  const syncFromTMDB = async () => {
+    if (state.apiKey && state.tmdbSessionId && state.tmdbAccountId) {
+      await syncFromTMDBInternal(state.apiKey, state.tmdbSessionId, state.tmdbAccountId);
+    }
   };
 
   const setApiKey = (apiKey: string) => {
     setState((prev) => ({ ...prev, apiKey }));
     saveState({ ...state, apiKey });
-  };
-
-  const setGithubToken = (githubToken: string) => {
-    setState((prev) => ({ ...prev, githubToken }));
-    saveState({ ...state, githubToken });
-  };
-
-  const setGistId = (gistId: string) => {
-    setState((prev) => ({ ...prev, gistId }));
-    saveState({ ...state, gistId });
   };
 
   const setVidAngelEnabled = (vidAngelEnabled: boolean) => {
@@ -181,16 +240,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  const pushToGist = async (watchlist: Media[], watched: Media[]) => {
-    if (!state.githubToken || !state.gistId) return;
-    try {
-      await updateGistData(state.githubToken, state.gistId, { watchlist, watched });
-    } catch (error) {
-      console.error("Failed to push to Gist", error);
-    }
-  };
-
-  const toggleWatchlist = (media: Media) => {
+  const toggleWatchlist = async (media: Media) => {
     const inWatchlist = state.watchlist.some((m) => m.id === media.id && m.media_type === media.media_type);
     
     if (inWatchlist) {
@@ -199,41 +249,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
+    // Local update
     const newState = toggleInStorage(media, 'watchlist');
     setState(newState);
-    pushToGist(newState.watchlist, newState.watched);
+
+    // Sync with TMDB if logged in
+    if (state.apiKey && state.tmdbSessionId && state.tmdbAccountId) {
+      try {
+        await toggleWatchlistStatus(
+          state.apiKey, 
+          state.tmdbSessionId, 
+          state.tmdbAccountId, 
+          media.id, 
+          media.media_type, 
+          !inWatchlist
+        );
+      } catch (error) {
+        console.error("Failed to sync watchlist with TMDB:", error);
+      }
+    }
   };
 
-  const toggleWatched = async (media: Media) => {
+  const toggleWatched = async (media: Media, rating?: number) => {
     const inWatched = state.watched.some((m) => m.id === media.id && m.media_type === media.media_type);
-    const action = inWatched ? 'Remove from history' : 'Mark as watched';
     
-    if (!window.confirm(`${action} "${media.title || media.name}"?`)) {
-      return;
-    }
-
-    const mediaToSave = { ...media };
-    
-    // If it's a TV show and we don't have the next episode info, fetch it
-    if (media.media_type === 'tv' && state.apiKey) {
-      try {
-        const details = await getMediaDetails(media.id, 'tv', state.apiKey);
-        mediaToSave.next_episode_to_air = details.next_episode_to_air;
-      } catch (error) {
-        console.error("Failed to fetch TV details:", error);
+    if (inWatched && !rating) {
+      if (!window.confirm(`Remove "${media.title || media.name}" from history?`)) {
+        return;
       }
     }
 
-    const newState = toggleInStorage(mediaToSave, 'watched');
+    // Local update
+    const newState = toggleInStorage(media, 'watched');
     setState(newState);
-    pushToGist(newState.watchlist, newState.watched);
-  };
 
-  // Keep pushToGist stable for useEffect
-  const pushToGistRef = useRef(pushToGist);
-  useEffect(() => {
-    pushToGistRef.current = pushToGist;
-  }, [pushToGist]);
+    // Sync with TMDB if logged in
+    if (state.apiKey && state.tmdbSessionId && state.tmdbAccountId) {
+      try {
+        if (inWatched && !rating) {
+          await deleteRating(state.apiKey, state.tmdbSessionId, media.id, media.media_type);
+        } else {
+          // Use provided rating or default to 1 star (2/10 on TMDB)
+          await rateMedia(state.apiKey, state.tmdbSessionId, media.id, media.media_type, rating || 1);
+        }
+      } catch (error) {
+        console.error("Failed to sync rating with TMDB:", error);
+      }
+    }
+  };
 
   // Effect to backfill missing next_episode_to_air for TV shows in watched list
   useEffect(() => {
@@ -260,7 +323,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setState(prev => {
           const newState = { ...prev, watched: updatedWatched };
           saveState(newState);
-          pushToGistRef.current(newState.watchlist, newState.watched);
           return newState;
         });
       }
@@ -279,12 +341,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       value={{
         ...state,
         setApiKey,
-        setGithubToken,
-        setGistId,
         setVidAngelEnabled,
         toggleWatchlist,
         toggleWatched,
-        syncFromGist,
+        syncFromTMDB,
+        loginWithTMDB,
+        logoutTMDB,
         isLoaded,
         isSyncing,
         // New values

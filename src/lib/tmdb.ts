@@ -64,3 +64,64 @@ export const getImageUrl = (path: string | null, size: 'w185' | 'w342' | 'w500' 
 export const getSeasonDetails = async (tvId: number, seasonNumber: number, apiKey: string): Promise<SeasonDetails> => {
   return fetchFromTMDB(`/tv/${tvId}/season/${seasonNumber}`, apiKey);
 };
+
+// --- Auth & Account ---
+
+export const createRequestToken = async (apiKey: string) => {
+  const data = await fetchFromTMDB('/authentication/token/new', apiKey);
+  return data.request_token;
+};
+
+export const createSession = async (apiKey: string, requestToken: string) => {
+  const response = await fetch(`${BASE_URL}/authentication/session/new?api_key=${apiKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ request_token: requestToken }),
+  });
+  const data = await response.json();
+  return data.session_id;
+};
+
+export const getAccountDetails = async (apiKey: string, sessionId: string) => {
+  return fetchFromTMDB('/account', apiKey, { session_id: sessionId });
+};
+
+export const getAccountLists = async (apiKey: string, sessionId: string, accountId: number, type: 'movies' | 'tv', list: 'watchlist' | 'rated') => {
+  const endpoint = `/account/${accountId}/${list}/${type}`;
+  const data = await fetchFromTMDB(endpoint, apiKey, { session_id: sessionId, sort_by: 'created_at.desc' });
+  return data.results.map((item: any) => ({
+    ...item,
+    media_type: type === 'movies' ? 'movie' : 'tv'
+  }));
+};
+
+export const toggleWatchlistStatus = async (apiKey: string, sessionId: string, accountId: number, mediaId: number, mediaType: 'movie' | 'tv', watchlist: boolean) => {
+  const response = await fetch(`${BASE_URL}/account/${accountId}/watchlist?api_key=${apiKey}&session_id=${sessionId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      media_type: mediaType,
+      media_id: mediaId,
+      watchlist: watchlist
+    }),
+  });
+  return response.json();
+};
+
+export const rateMedia = async (apiKey: string, sessionId: string, mediaId: number, mediaType: 'movie' | 'tv', rating: number) => {
+  // TMDB rating is 0.5 to 10. We receive 1-5, so we multiply by 2.
+  const response = await fetch(`${BASE_URL}/${mediaType}/${mediaId}/rating?api_key=${apiKey}&session_id=${sessionId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value: rating * 2 }),
+  });
+  return response.json();
+};
+
+export const deleteRating = async (apiKey: string, sessionId: string, mediaId: number, mediaType: 'movie' | 'tv') => {
+  const response = await fetch(`${BASE_URL}/${mediaType}/${mediaId}/rating?api_key=${apiKey}&session_id=${sessionId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  return response.json();
+};

@@ -5,7 +5,7 @@ import { Media } from '@/lib/types';
 import { getImageUrl } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { useAppContext } from '@/context/AppContext';
-import { Plus, Check, Trash2 } from 'lucide-react';
+import { Plus, Check, Trash2, Star } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
 
@@ -18,6 +18,8 @@ interface MediaCardProps {
 export const MediaCard: React.FC<MediaCardProps> = ({ media, showActions = true, showBadge = false }) => {
   const { watchlist, watched, toggleWatchlist, toggleWatched } = useAppContext();
   
+  const [isEdited, setIsEdited] = useState<boolean>(media.isEdited || false);
+
   const inWatchlist = watchlist.some((m) => m.id === media.id && m.media_type === media.media_type);
   const inWatched = watched.some((m) => m.id === media.id && m.media_type === media.media_type);
 

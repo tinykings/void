@@ -6,8 +6,8 @@ const defaultState: UserState = {
   apiKey: '',
   watchlist: [],
   watched: [],
-  githubToken: '',
-  gistId: '',
+  tmdbSessionId: '',
+  tmdbAccountId: undefined,
   vidAngelEnabled: false,
 };
 

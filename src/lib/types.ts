@@ -184,8 +184,8 @@ export interface UserState {
   apiKey: string;
   watchlist: Media[];
   watched: Media[];
-  githubToken?: string;
-  gistId?: string;
+  tmdbSessionId?: string;
+  tmdbAccountId?: number;
   vidAngelEnabled?: boolean;
   externalPlayerEnabled?: boolean;
   selectedExternalPlayerId?: string | null;
