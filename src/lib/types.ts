@@ -195,5 +195,6 @@ export interface UserState {
   showWatched?: boolean;
   showEditedOnly?: boolean;
   isSearchFocused?: boolean;
+  onboardingCompleted?: boolean;
   editedStatusMap: Record<string, boolean>;
 }

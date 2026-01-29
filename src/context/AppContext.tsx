@@ -29,6 +29,8 @@ interface AppContextType extends UserState {
   setShowEditedOnly: (show: boolean) => void;
   updateMediaMetadata: (id: number, type: 'movie' | 'tv', metadata: Partial<Media>) => void;
   setMediaEditedStatus: (id: number, type: 'movie' | 'tv', isEdited: boolean) => void;
+  onboardingCompleted: boolean;
+  setOnboardingCompleted: (completed: boolean) => void;
   isSearchFocused: boolean;
   setIsSearchFocused: (focused: boolean) => void;
 }
@@ -149,6 +151,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setShowEditedOnly: store.setShowEditedOnly,
     updateMediaMetadata: store.updateMediaMetadata,
     setMediaEditedStatus: store.setMediaEditedStatus,
+    onboardingCompleted: store.onboardingCompleted || false,
+    setOnboardingCompleted: store.setOnboardingCompleted,
     setIsSearchFocused: store.setIsSearchFocused,
   };
 

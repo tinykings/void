@@ -35,6 +35,7 @@ interface StoreState extends UserState {
   setShowWatched: (show: boolean) => void;
   setShowEditedOnly: (show: boolean) => void;
   setIsSearchFocused: (focused: boolean) => void;
+  setOnboardingCompleted: (completed: boolean) => void;
   
   setMediaEditedStatus: (id: number, type: 'movie' | 'tv', isEdited: boolean) => void;
   updateMediaMetadata: (id: number, type: 'movie' | 'tv', metadata: Partial<Media>) => void;
@@ -115,6 +116,7 @@ export const useStore = create<StoreState>()(
         showWatched: false,
         showEditedOnly: false,
         isSearchFocused: false,
+        onboardingCompleted: false,
         editedStatusMap: {},
         isLoaded: false,
         isSyncing: false,
@@ -146,6 +148,8 @@ export const useStore = create<StoreState>()(
         setShowEditedOnly: (showEditedOnly) => set({ showEditedOnly }),
         
         setIsSearchFocused: (isSearchFocused) => set({ isSearchFocused }),
+
+        setOnboardingCompleted: (onboardingCompleted) => set({ onboardingCompleted }),
 
         setMediaEditedStatus: (id, type, isEdited) => set((state) => {
           const key = `${type}-${id}`;

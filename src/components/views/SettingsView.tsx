@@ -17,6 +17,7 @@ export const SettingsView = () => {
     vidAngelEnabled, setVidAngelEnabled,
     externalPlayerEnabled, toggleExternalPlayerEnabled,
     selectedExternalPlayer, setSelectedExternalPlayerId,
+    setOnboardingCompleted
   } = useAppContext();
 
   const [tempApiKey, setTempApiKey] = useState('');
@@ -244,10 +245,17 @@ export const SettingsView = () => {
 
         <button
           onClick={handleSave}
-          className="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-indigo-700 active:scale-95 transition-all dark:bg-indigo-600 dark:hover:bg-indigo-500 shadow-lg shadow-indigo-200 dark:shadow-none"
+          className="w-full bg-indigo-600 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-indigo-700 active:scale-95 transition-all dark:bg-indigo-600 dark:hover:bg-indigo-500 shadow-lg shadow-indigo-900/20 uppercase tracking-widest"
         >
           <Save size={20} />
           {saved ? 'Saved Settings!' : 'Save All Settings'}
+        </button>
+
+        <button
+          onClick={() => setOnboardingCompleted(false)}
+          className="w-full py-4 text-xs font-bold text-gray-500 hover:text-indigo-400 transition-colors uppercase tracking-[0.2em]"
+        >
+          Open Setup Guide
         </button>
 
         <section className="text-center pt-4">
