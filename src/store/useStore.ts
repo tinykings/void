@@ -3,6 +3,7 @@ import { persist, StateStorage, createJSONStorage } from 'zustand/middleware';
 import { get, set, del } from 'idb-keyval';
 import { Media, UserState, FilterType, SortOption } from '@/lib/types';
 import { getMediaDetails, createRequestToken, createSession, getAccountDetails, getAccountLists, toggleWatchlistStatus, rateMedia, deleteRating } from '@/lib/tmdb';
+import { toast } from 'sonner';
 
 // Custom storage object for IndexedDB
 const storage: StateStorage = {
@@ -96,8 +97,13 @@ export const useStore = create<StoreState>()(
             watched: [...ratedMovies, ...ratedTv]
           });
           lastSyncTime.current = Date.now();
-        } catch (error) {
+        } catch (error: any) {
           console.error("TMDB Sync Error:", error);
+          if (error.message?.includes('401')) {
+            const { logoutTMDB } = get();
+            logoutTMDB();
+            toast.error('TMDB Session Expired. Please login again in settings.');
+          }
         } finally {
           set({ isSyncing: false });
         }

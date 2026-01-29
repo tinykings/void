@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
-import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "sonner";
 import { OfflineGuard } from "@/components/OfflineGuard";
 
@@ -37,24 +36,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark">
       <body className={`${inter.className} bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-300`}>
-        <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            forcedTheme="dark"
-            enableSystem={false}
-            disableTransitionOnChange
-          >
-          <AppProvider>
-            <OfflineGuard>
-              <main className="container mx-auto min-h-screen bg-white dark:bg-gray-950 pb-12 pt-4 px-2 sm:px-3 lg:px-4 transition-colors duration-300">
-                {children}
-              </main>
-            </OfflineGuard>
-            <Toaster position="bottom-center" theme="dark" closeButton />
-          </AppProvider>
-        </ThemeProvider>
+        <AppProvider>
+          <OfflineGuard>
+            <main className="container mx-auto min-h-screen bg-white dark:bg-gray-950 pb-12 pt-4 px-2 sm:px-3 lg:px-4 transition-colors duration-300">
+              {children}
+            </main>
+          </OfflineGuard>
+          <Toaster position="bottom-center" theme="dark" closeButton />
+        </AppProvider>
         <script
           dangerouslySetInnerHTML={{
             __html: `
