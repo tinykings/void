@@ -70,6 +70,59 @@ export const SettingsView = () => {
       <div className="space-y-6">
         <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2 mb-4">
+            <User className="text-indigo-600 dark:text-indigo-400" size={20} />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">TMDB Synchronization</h2>
+          </div>
+
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Sync your watchlist and history (using ratings) directly with your TMDB account.
+          </p>
+
+          {!tmdbSessionId ? (
+            <button
+              onClick={loginWithTMDB}
+              disabled={!tempApiKey}
+              className="w-full py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors disabled:opacity-50"
+            >
+              Login with TMDB
+            </button>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold">
+                    {tmdbAccountId?.toString().slice(0, 1)}
+                  </div>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">Account ID: {tmdbAccountId}</span>
+                </div>
+                <button
+                  onClick={logoutTMDB}
+                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  title="Logout"
+                >
+                  <LogOut size={18} />
+                </button>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {isSyncing ? 'Syncing...' : 'Connected to TMDB'}
+                </span>
+                <button
+                  onClick={syncFromTMDB}
+                  disabled={isSyncing}
+                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline disabled:opacity-50"
+                >
+                  <RefreshCw size={12} className={clsx(isSyncing && "animate-spin")} />
+                  Sync Now
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-2 mb-4">
             <Moon className="text-indigo-600 dark:text-indigo-400" size={20} />
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Appearance</h2>
           </div>
@@ -198,59 +251,6 @@ export const SettingsView = () => {
           )}
         </section>
 
-        <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2 mb-4">
-            <User className="text-indigo-600 dark:text-indigo-400" size={20} />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">TMDB Synchronization</h2>
-          </div>
-
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Sync your watchlist and history (using ratings) directly with your TMDB account.
-          </p>
-
-          {!tmdbSessionId ? (
-            <button
-              onClick={loginWithTMDB}
-              disabled={!tempApiKey}
-              className="w-full py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors disabled:opacity-50"
-            >
-              Login with TMDB
-            </button>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold">
-                    {tmdbAccountId?.toString().slice(0, 1)}
-                  </div>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">Account ID: {tmdbAccountId}</span>
-                </div>
-                <button
-                  onClick={logoutTMDB}
-                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                  title="Logout"
-                >
-                  <LogOut size={18} />
-                </button>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {isSyncing ? 'Syncing...' : 'Connected to TMDB'}
-                </span>
-                <button
-                  onClick={syncFromTMDB}
-                  disabled={isSyncing}
-                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline disabled:opacity-50"
-                >
-                  <RefreshCw size={12} className={clsx(isSyncing && "animate-spin")} />
-                  Sync Now
-                </button>
-              </div>
-            </div>
-          )}
-        </section>
-
         <button
           onClick={handleSave}
           className="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-indigo-700 active:scale-95 transition-all dark:bg-indigo-600 dark:hover:bg-indigo-500 shadow-lg shadow-indigo-200 dark:shadow-none"
@@ -269,4 +269,3 @@ export const SettingsView = () => {
     </div>
   );
 };
-

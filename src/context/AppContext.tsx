@@ -54,62 +54,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isSyncing, setIsSyncing] = useState(false);
 
   const initialLoadDone = useRef(false);
+  const lastSyncTime = useRef<number>(0);
 
-  // Handle TMDB Auth Callback
-  useEffect(() => {
-    const handleAuthCallback = async () => {
-      const searchParams = new URLSearchParams(window.location.search);
-      const approved = searchParams.get('approved');
-      const requestToken = searchParams.get('request_token');
-      const savedToken = localStorage.getItem('tmdb_request_token');
-
-      if (approved === 'true' && requestToken && requestToken === savedToken && state.apiKey) {
-        setIsSyncing(true);
-        try {
-          const sessionId = await createSession(state.apiKey, requestToken);
-          const account = await getAccountDetails(state.apiKey, sessionId);
-          
-          const newState = {
-            ...state,
-            tmdbSessionId: sessionId,
-            tmdbAccountId: account.id
-          };
-          
-          setState(newState);
-          saveState(newState);
-          
-          // Clean up URL
-          window.history.replaceState({}, document.title, window.location.pathname);
-          localStorage.removeItem('tmdb_request_token');
-          
-          // Initial sync
-          await syncFromTMDBInternal(state.apiKey, sessionId, account.id);
-        } catch (error) {
-          console.error("TMDB Auth Error:", error);
-        } finally {
-          setIsSyncing(false);
-        }
-      }
-    };
-
-    if (typeof window !== 'undefined' && !initialLoadDone.current) {
-      handleAuthCallback();
+  const syncFromTMDBInternal = useCallback(async (apiKey: string, sessionId: string, accountId: number) => {
+    // Prevent syncing more than once every 30 seconds automatically
+    const now = Date.now();
+    if (now - lastSyncTime.current < 30000 && initialLoadDone.current) {
+      return;
     }
-  }, [state.apiKey]);
-
-  // Load from local storage on mount
-  useEffect(() => {
-    const loaded = loadState();
-    setState(loaded);
-    setIsLoaded(true);
-
-    if (loaded.tmdbSessionId && loaded.tmdbAccountId && loaded.apiKey && !initialLoadDone.current) {
-      initialLoadDone.current = true;
-      syncFromTMDBInternal(loaded.apiKey, loaded.tmdbSessionId, loaded.tmdbAccountId);
-    }
-  }, []);
-
-  const syncFromTMDBInternal = async (apiKey: string, sessionId: string, accountId: number) => {
+    
     setIsSyncing(true);
     try {
       const fetchAll = async (type: 'movies' | 'tv', list: 'watchlist' | 'rated'): Promise<Media[]> => {
@@ -143,42 +96,75 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         saveState(newState);
         return newState;
       });
+      lastSyncTime.current = Date.now();
     } catch (error) {
       console.error("TMDB Sync Error:", error);
     } finally {
       setIsSyncing(false);
     }
-  };
+  }, []);
 
-  const loginWithTMDB = async () => {
-    if (!state.apiKey) return;
-    try {
-      const token = await createRequestToken(state.apiKey);
-      localStorage.setItem('tmdb_request_token', token);
-      const redirectUrl = `${window.location.origin}${window.location.pathname}`;
-      window.location.href = `https://www.themoviedb.org/authenticate/${token}?redirect_to=${encodeURIComponent(redirectUrl)}`;
-    } catch (error) {
-      console.error("Failed to start TMDB login:", error);
-    }
-  };
-
-  const logoutTMDB = () => {
-    const newState = {
-      ...state,
-      tmdbSessionId: undefined,
-      tmdbAccountId: undefined,
-      watchlist: [],
-      watched: []
-    };
-    setState(newState);
-    saveState(newState);
-  };
-
-  const syncFromTMDB = async () => {
+  const syncFromTMDB = useCallback(async (force = false) => {
     if (state.apiKey && state.tmdbSessionId && state.tmdbAccountId) {
+      if (force) lastSyncTime.current = 0; // Reset timer for manual sync
       await syncFromTMDBInternal(state.apiKey, state.tmdbSessionId, state.tmdbAccountId);
     }
-  };
+  }, [state.apiKey, state.tmdbSessionId, state.tmdbAccountId, syncFromTMDBInternal]);
+
+  // Handle TMDB Auth Callback
+  useEffect(() => {
+    const handleAuthCallback = async () => {
+      const searchParams = new URLSearchParams(window.location.search);
+      const approved = searchParams.get('approved');
+      const requestToken = searchParams.get('request_token');
+      const savedToken = localStorage.getItem('tmdb_request_token');
+
+      if (approved === 'true' && requestToken && requestToken === savedToken && state.apiKey) {
+        setIsSyncing(true);
+        try {
+          const sessionId = await createSession(state.apiKey, requestToken);
+          const account = await getAccountDetails(state.apiKey, sessionId);
+          
+          const newState = {
+            ...state,
+            tmdbSessionId: sessionId,
+            tmdbAccountId: account.id
+          };
+          
+          setState(newState);
+          saveState(newState);
+          
+          // Clean up URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+          localStorage.removeItem('tmdb_request_token');
+          
+          // Initial sync
+          lastSyncTime.current = 0;
+          await syncFromTMDBInternal(state.apiKey, sessionId, account.id);
+        } catch (error) {
+          console.error("TMDB Auth Error:", error);
+        } finally {
+          setIsSyncing(false);
+        }
+      }
+    };
+
+    if (typeof window !== 'undefined' && !initialLoadDone.current) {
+      handleAuthCallback();
+    }
+  }, [state.apiKey, state.tmdbSessionId, state.tmdbAccountId, syncFromTMDBInternal]);
+
+  // Load from local storage on mount
+  useEffect(() => {
+    const loaded = loadState();
+    setState(loaded);
+    setIsLoaded(true);
+
+    if (loaded.tmdbSessionId && loaded.tmdbAccountId && loaded.apiKey && !initialLoadDone.current) {
+      initialLoadDone.current = true;
+      syncFromTMDBInternal(loaded.apiKey, loaded.tmdbSessionId, loaded.tmdbAccountId);
+    }
+  }, [syncFromTMDBInternal]);
 
   // Trigger sync on focus
   useEffect(() => {
@@ -190,7 +176,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [isLoaded, isSyncing, state.apiKey, state.tmdbSessionId, state.tmdbAccountId]);
+  }, [isLoaded, isSyncing, syncFromTMDB]);
 
   const setApiKey = useCallback((apiKey: string) => {
     setState((prev) => ({ ...prev, apiKey }));
@@ -347,56 +333,97 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [state]);
 
+  const logoutTMDB = useCallback(() => {
+    const newState = {
+      ...state,
+      tmdbSessionId: undefined,
+      tmdbAccountId: undefined,
+      watchlist: [],
+      watched: []
+    };
+    setState(newState);
+    saveState(newState);
+  }, [state]);
+
+  const loginWithTMDB = useCallback(async () => {
+    if (!state.apiKey) return;
+    try {
+      const token = await createRequestToken(state.apiKey);
+      localStorage.setItem('tmdb_request_token', token);
+      const redirectUrl = `${window.location.origin}${window.location.pathname}`;
+      window.location.href = `https://www.themoviedb.org/authenticate/${token}?redirect_to=${encodeURIComponent(redirectUrl)}`;
+    } catch (error) {
+      console.error("Failed to start TMDB login:", error);
+    }
+  }, [state.apiKey]);
+
   // Effect to backfill missing next_episode_to_air and automatically migrate shows with new episodes
   useEffect(() => {
     const processTVInfo = async () => {
       if (!isLoaded || !state.apiKey || isSyncing || !state.tmdbSessionId || !state.tmdbAccountId) return;
       
-      const showsToProcess = state.watched.filter(m => m.media_type === 'tv');
+      const now = Date.now();
+      const checkThreshold = 24 * 60 * 60 * 1000; // 24 hours
+
+      // Filter for TV shows that:
+      // 1. Are TV shows
+      // 2. Are NOT ended or canceled
+      // 3. Haven't been checked in the last 24 hours (or ever)
+      const showsToProcess = state.watched.filter(m => 
+        m.media_type === 'tv' && 
+        m.status !== 'Ended' && 
+        m.status !== 'Canceled' &&
+        (now - (m.lastChecked || 0) > checkThreshold)
+      );
+
       if (showsToProcess.length === 0) return;
 
       let changedLocally = false;
       const updatedWatched = [...state.watched];
 
-      for (let i = 0; i < updatedWatched.length; i++) {
-        const m = updatedWatched[i];
-        if (m.media_type === 'tv') {
-          try {
-            // Fetch fresh details to see if there's a next episode
-            const details = await getMediaDetails(m.id, 'tv', state.apiKey);
+      for (const show of showsToProcess) {
+        try {
+          // Fetch fresh details
+          const details = await getMediaDetails(show.id, 'tv', state.apiKey);
+          
+          // Find index in the original list to update it
+          const idx = updatedWatched.findIndex(m => m.id === show.id && m.media_type === 'tv');
+          if (idx === -1) continue;
+
+          if (details.next_episode_to_air) {
+            // --- MIGRATION LOGIC ---
+            await toggleWatchlistStatus(state.apiKey, state.tmdbSessionId, state.tmdbAccountId, show.id, 'tv', true);
+            await deleteRating(state.apiKey, state.tmdbSessionId, show.id, 'tv');
             
-            if (details.next_episode_to_air) {
-              // --- MIGRATION LOGIC ---
-              // 1. Add to watchlist on TMDB
-              await toggleWatchlistStatus(state.apiKey, state.tmdbSessionId, state.tmdbAccountId, m.id, 'tv', true);
-              // 2. Remove rating on TMDB
-              await deleteRating(state.apiKey, state.tmdbSessionId, m.id, 'tv');
-              
-              // Remove from local watched list (it will be added to watchlist on next sync or we can do it now)
-              updatedWatched.splice(i, 1);
-              i--; 
-              changedLocally = true;
-            } else if (m.next_episode_to_air === undefined) {
-              // Just backfill the null if no next episode exists
-              updatedWatched[i] = { ...m, next_episode_to_air: null };
-              changedLocally = true;
-            }
-          } catch (err) {
-            console.error(`Failed to process TV info for ${m.id}:`, err);
+            updatedWatched.splice(idx, 1);
+            changedLocally = true;
+          } else {
+            // Just update metadata so we don't check again for 24h
+            updatedWatched[idx] = { 
+              ...updatedWatched[idx], 
+              status: details.status,
+              next_episode_to_air: null,
+              lastChecked: now 
+            };
+            changedLocally = true;
           }
+        } catch (err) {
+          console.error(`Failed to process TV info for ${show.id}:`, err);
         }
       }
 
       if (changedLocally) {
-        // Trigger a full sync to ensure local state perfectly matches TMDB after migrations
-        syncFromTMDB();
+        setState(prev => {
+          const newState = { ...prev, watched: updatedWatched };
+          saveState(newState);
+          return newState;
+        });
       }
     };
 
-    // We use a small timeout to avoid hammering the API immediately after a sync
-    const timeout = setTimeout(processTVInfo, 2000);
+    const timeout = setTimeout(processTVInfo, 10000);
     return () => clearTimeout(timeout);
-  }, [isLoaded, state.apiKey, isSyncing, state.tmdbSessionId, state.tmdbAccountId]);
+  }, [isLoaded, state.apiKey, isSyncing, state.tmdbSessionId, state.tmdbAccountId, state.watched.length]);
 
   // Derive selectedExternalPlayer from selectedExternalPlayerId
   const selectedExternalPlayer = state.selectedExternalPlayerId
