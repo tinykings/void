@@ -146,25 +146,37 @@ export default function DetailsView() {
 
   return (
     <div className="pb-4">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 relative z-10">
-        <button
-          onClick={() => router.push('/')}
-          className="mb-6 inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl text-gray-600 dark:text-gray-300 font-bold shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-all active:scale-95"
-        >
-          <ChevronLeft size={20} />
-          <span>Back</span>
-        </button>
+      {/* Cinematic Backdrop */}
+      <div className="relative w-full h-[30vh] md:h-[45vh] overflow-hidden bg-gray-900">
+        {media.backdrop_path ? (
+          <>
+            <img 
+              src={getImageUrl(media.backdrop_path, 'original')} 
+              alt="" 
+              className="w-full h-full object-cover opacity-60"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-gray-950 via-transparent to-transparent" />
+          </>
+        ) : (
+          <div className="w-full h-full bg-indigo-900/20" />
+        )}
         
-        <div className="flex flex-col md:flex-row md:items-start gap-6 mb-8">
-          <div className="w-32 md:w-48 aspect-[2/3] rounded-lg overflow-hidden shadow-2xl border-2 border-white dark:border-gray-800 shrink-0 bg-gray-200 dark:bg-gray-800 mb-2 mx-auto md:mx-0">
-            {media.poster_path && (
-              <img src={getImageUrl(media.poster_path, 'w500')} alt={title} className="w-full h-full object-cover" />
-            )}
-          </div>
+        <div className="absolute top-4 left-4 z-20">
+          <button
+            onClick={() => router.push('/')}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl text-white font-bold shadow-xl hover:bg-black/60 transition-all active:scale-95"
+          >
+            <ChevronLeft size={20} />
+            <span>Back</span>
+          </button>
+        </div>
+      </div>
 
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 -mt-12 md:-mt-16 relative z-10">
+        <div className="flex flex-col items-center text-center mb-8">
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl md:text-4xl font-black leading-tight mb-2 text-gray-900 dark:text-white text-center md:text-left">{title}</h1>
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-xs md:text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <h1 className="text-3xl md:text-5xl font-black leading-tight mb-4 text-gray-900 dark:text-white drop-shadow-sm">{title}</h1>
+            <div className="flex flex-wrap items-center justify-center gap-3 text-xs md:text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               <span className="flex items-center gap-1"><Calendar size={14} /> {year}</span>
               <span className="flex items-center gap-1"><Star size={14} className="text-yellow-500 fill-yellow-500" /> {media.vote_average.toFixed(1)}</span>
               <span className="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded uppercase">{media.media_type}</span>

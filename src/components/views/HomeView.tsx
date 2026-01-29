@@ -316,10 +316,16 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               <SortControl 
                 currentSort={sort || 'added'} 
                 onSortChange={(s) => startTransition(() => setSort(s))} 
-                hideUpcoming={filter === 'movie'}
+                hideUpcoming={filter === 'movie' || showWatched}
               />
               <button
-                onClick={() => startTransition(() => setShowWatched(!showWatched))}
+                onClick={() => startTransition(() => {
+                  const nextShowWatched = !showWatched;
+                  setShowWatched(nextShowWatched);
+                  if (nextShowWatched && sort === 'upcoming') {
+                    setSort('added');
+                  }
+                })}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
                   showWatched 
                     ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' 
