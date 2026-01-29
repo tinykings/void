@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "sonner";
+import { OfflineGuard } from "@/components/OfflineGuard";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -46,9 +47,11 @@ export default function RootLayout({
             disableTransitionOnChange
           >
           <AppProvider>
-            <main className="container mx-auto min-h-screen bg-white dark:bg-gray-950 pb-12 pt-4 px-2 sm:px-3 lg:px-4 transition-colors duration-300">
-              {children}
-            </main>
+            <OfflineGuard>
+              <main className="container mx-auto min-h-screen bg-white dark:bg-gray-950 pb-12 pt-4 px-2 sm:px-3 lg:px-4 transition-colors duration-300">
+                {children}
+              </main>
+            </OfflineGuard>
             <Toaster position="bottom-center" theme="dark" closeButton />
           </AppProvider>
         </ThemeProvider>
