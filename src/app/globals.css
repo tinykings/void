@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --breakpoint-xs: 380px;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

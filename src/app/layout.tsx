@@ -12,8 +12,8 @@ export const metadata: Metadata = {
   description: "Mobile-first movie and TV show watchlist tracker",
   manifest: "/void/manifest.json",
   icons: {
-    icon: "/void/logo.png",
-    apple: "/void/logo.png",
+    icon: "/void/icon.svg",
+    apple: "/void/icon.svg",
   },
   appleWebApp: {
     capable: true,
@@ -27,7 +27,7 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#4f46e5",
+  themeColor: "#030712",
 };
 
 export default function RootLayout({

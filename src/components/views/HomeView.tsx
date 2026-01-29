@@ -10,7 +10,7 @@ import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
 import { FilterTabs } from '@/components/FilterTabs';
 import { SortControl } from '@/components/SortControl';
 import { sortMedia } from '@/lib/sort';
-import { AlertCircle, Settings, Search as SearchIcon, X, Eye, ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react';
+import { AlertCircle, Settings, Search as SearchIcon, X, Eye, ArrowLeft, ArrowRight, ShieldCheck, Bookmark, CheckCircle2 } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface HomeViewProps {
@@ -202,26 +202,21 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 pb-24 relative">
-      <div className="flex flex-col items-center gap-6 mb-8 pt-4">
-        <div className="flex flex-row items-center gap-4 md:gap-6 w-full">
-          <button 
-            onClick={() => {
-              startTransition(() => {
-                setQuery('');
-                setSearchResults([]);
-                setIsSearchFocused(false);
-                if (searchAbortController.current) {
-                  searchAbortController.current.abort();
-                }
-              });
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            className="shrink-0 transition-opacity hover:opacity-80"
-          >
-            <img src="/void/logo.png" alt="Void" className="h-12 md:h-16 w-auto object-contain dark:opacity-75" />
-          </button>
-          <div className="relative flex-1 w-full">
-            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+      <div className="flex flex-col gap-4 mb-6 pt-4">
+        <div className="flex flex-row items-center justify-between gap-3 w-full">
+          {/* Left: Movies/Shows Filter */}
+          <div className="shrink-0">
+            <FilterTabs 
+              currentFilter={filter || 'movie'} 
+              onFilterChange={(f) => startTransition(() => {
+                setFilter(f);
+              })} 
+            />
+          </div>
+
+          {/* Center: Search Field */}
+          <div className="relative flex-1 min-w-0">
+            <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
               value={query}
@@ -229,16 +224,16 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Search..."
-              className="w-full pl-11 pr-24 py-3 bg-gray-100 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm text-lg font-medium text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+              className="w-full pl-10 pr-20 py-2.5 bg-gray-100 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm text-sm font-medium text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
             />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
               {query.trim().length >= 2 && (
                 <button 
                   onClick={() => handleSearch(query)}
-                  className="p-2 bg-indigo-600 text-white rounded-xl shadow-md hover:bg-indigo-700 transition-all active:scale-95"
+                  className="p-1.5 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-all active:scale-95"
                   title="Search"
                 >
-                  <ArrowRight size={18} />
+                  <ArrowRight size={14} />
                 </button>
               )}
               {(query || isSearchFocused) && (
@@ -253,62 +248,65 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                       }
                     });
                   }}
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                 >
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               )}
             </div>
           </div>
+
+          {/* Right: Settings */}
           <button 
             onClick={onGoToSettings}
-            className="p-3 bg-gray-100 dark:bg-gray-900 rounded-2xl text-gray-500 hover:text-indigo-600 transition-colors"
+            className="p-2.5 bg-gray-100 dark:bg-gray-900 rounded-2xl text-gray-500 hover:text-indigo-600 transition-colors shadow-sm shrink-0"
           >
             <Settings size={20} />
           </button>
         </div>
         
         {showLibrary && (
-          <div className="flex flex-col items-center md:flex-row md:justify-between gap-4 w-full">
-            <div className="flex items-center justify-center gap-4 overflow-x-auto pb-2 md:pb-0 no-scrollbar w-full md:w-auto">
-              <FilterTabs 
-                currentFilter={filter || 'movie'} 
-                onFilterChange={(f) => startTransition(() => {
-                  setFilter(f);
-                })} 
-              />
-            </div>
-            
-            <div className="flex items-center gap-2 w-full md:w-auto justify-center md:justify-end">
+          <div className="flex flex-row justify-center items-center w-full pb-1">
+            <div className="flex flex-row items-center gap-1.5 bg-gray-100/50 dark:bg-gray-900/50 p-1 rounded-2xl backdrop-blur-sm border border-gray-100 dark:border-gray-800">
               {vidAngelEnabled && (
                 <button
                   onClick={() => startTransition(() => setShowEditedOnly(!showEditedOnly))}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
+                  className={clsx(
+                    "flex items-center justify-center w-9 h-9 rounded-xl transition-all",
                     showEditedOnly 
-                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' 
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
-                  }`}
+                      ? 'bg-amber-500 text-white shadow-lg shadow-amber-900/20' 
+                      : 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'
+                  )}
+                  title="Edited Only"
                 >
-                  <ShieldCheck size={14} className={showEditedOnly ? 'fill-current' : ''} />
-                  EDITED
+                  <ShieldCheck size={18} className={showEditedOnly ? 'fill-current' : ''} />
                 </button>
               )}
-              <SortControl 
-                currentSort={sort || 'added'} 
-                onSortChange={(s) => startTransition(() => setSort(s))} 
-              />
+              
+              <div className="w-px h-4 bg-gray-200 dark:bg-gray-800 mx-0.5" />
+
+              <div className="px-1">
+                <SortControl 
+                  currentSort={sort || 'added'} 
+                  onSortChange={(s) => startTransition(() => setSort(s))} 
+                />
+              </div>
+
+              <div className="w-px h-4 bg-gray-200 dark:bg-gray-800 mx-0.5" />
+
               <button
                 onClick={() => startTransition(() => {
                   setShowWatched(!showWatched);
                 })}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
+                className={clsx(
+                  "flex items-center justify-center w-9 h-9 rounded-xl transition-all",
                   showWatched 
-                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' 
-                    : 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300'
-                }`}
+                    ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20' 
+                    : 'bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20'
+                )}
+                title={showWatched ? "Switch to Watchlist" : "Switch to History"}
               >
-                {showWatched && <Eye size={14} />}
-                {showWatched ? 'HISTORY' : 'WATCHLIST'}
+                {showWatched ? <CheckCircle2 size={18} /> : <Bookmark size={18} />}
               </button>
             </div>
           </div>
