@@ -110,20 +110,20 @@ export const externalPlayerOptions: ExternalPlayerOption[] = [
   {
     id: 'cineby.gd',
     name: 'Cineby.gd',
-    tvUrlTemplate: 'https://www.cineby.gd/tv/{TMDBID}/{season_num}/{episode_num}?play=true',
-    movieUrlTemplate: 'https://www.cineby.gd/movie/{TMDBID}?play=true',
+    tvUrlTemplate: 'https://www.cineby.gd/tv/{TMDBID}/{season_num}/{episode_num}',
+    movieUrlTemplate: 'https://www.cineby.gd/movie/{TMDBID}',
   },
   {
     id: 'bitcine.app',
     name: 'Bitcine.app',
-    tvUrlTemplate: 'https://www.bitcine.app/tv/{TMDBID}/{season_num}/{episode_num}?play=true',
-    movieUrlTemplate: 'https://www.bitcine.app/movie/{TMDBID}?play=true',
+    tvUrlTemplate: 'https://www.bitcine.app/tv/{TMDBID}/{season_num}/{episode_num}',
+    movieUrlTemplate: 'https://www.bitcine.app/movie/{TMDBID}',
   },
   {
     id: 'fmovies.gd',
     name: 'Fmovies.gd',
-    tvUrlTemplate: 'https://www.fmovies.gd/watch/tv/{TMDBID}/{season_num}/{episode_num}#?play=true',
-    movieUrlTemplate: 'https://www.fmovies.gd/watch/movie/{TMDBID}?play=true',
+    tvUrlTemplate: 'https://www.fmovies.gd/watch/tv/{TMDBID}/{season_num}/{episode_num}',
+    movieUrlTemplate: 'https://www.fmovies.gd/watch/movie/{TMDBID}',
     seriesUrlTemplate: 'https://www.fmovies.gd/tv/{TMDBID}',
   },
   {
