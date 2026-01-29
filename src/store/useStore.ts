@@ -1,7 +1,24 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, StateStorage, createJSONStorage } from 'zustand/middleware';
+import { get, set, del } from 'idb-keyval';
 import { Media, UserState, FilterType, SortOption } from '@/lib/types';
 import { getMediaDetails, createRequestToken, createSession, getAccountDetails, getAccountLists, toggleWatchlistStatus, rateMedia, deleteRating } from '@/lib/tmdb';
+
+// Custom storage object for IndexedDB
+const storage: StateStorage = {
+  getItem: async (name: string): Promise<string | null> => {
+    if (typeof window === 'undefined') return null;
+    return (await get(name)) || null;
+  },
+  setItem: async (name: string, value: string): Promise<void> => {
+    if (typeof window === 'undefined') return;
+    await set(name, value);
+  },
+  removeItem: async (name: string): Promise<void> => {
+    if (typeof window === 'undefined') return;
+    await del(name);
+  },
+};
 
 interface StoreState extends UserState {
   isLoaded: boolean;
@@ -22,9 +39,6 @@ interface StoreState extends UserState {
   setMediaEditedStatus: (id: number, type: 'movie' | 'tv', isEdited: boolean) => void;
   updateMediaMetadata: (id: number, type: 'movie' | 'tv', metadata: Partial<Media>) => void;
   
-  setSession: (sessionId: string, accountId: number) => void;
-  setLists: (watchlist: Media[], watched: Media[]) => void;
-  
   // TMDB Sync & Auth
   loginWithTMDB: () => Promise<void>;
   logoutTMDB: () => void;
@@ -33,6 +47,9 @@ interface StoreState extends UserState {
   
   toggleWatchlist: (media: Media) => Promise<void>;
   toggleWatched: (media: Media, rating?: number) => Promise<void>;
+  
+  setSession: (sessionId: string, accountId: number) => void;
+  setLists: (watchlist: Media[], watched: Media[]) => void;
 }
 
 export const useStore = create<StoreState>()(
@@ -49,25 +66,20 @@ export const useStore = create<StoreState>()(
         set({ isSyncing: true });
         try {
           const fetchAll = async (type: 'movies' | 'tv', list: 'watchlist' | 'rated'): Promise<Media[]> => {
-            // 1. Fetch first page to get total pages count
             const firstPage = await getAccountLists(apiKey, sessionId, accountId, type, list, 1);
             let allItems = [...firstPage.results];
             const totalPages = firstPage.totalPages;
 
             if (totalPages > 1) {
-              // 2. Create an array of promises for all remaining pages
               const pagePromises = [];
               for (let p = 2; p <= totalPages; p++) {
                 pagePromises.push(getAccountLists(apiKey, sessionId, accountId, type, list, p));
               }
-
-              // 3. Fetch all in parallel
               const otherPages = await Promise.all(pagePromises);
               otherPages.forEach(page => {
                 allItems = [...allItems, ...page.results];
               });
             }
-
             return allItems;
           };
 
@@ -275,8 +287,37 @@ export const useStore = create<StoreState>()(
     },
     {
       name: 'void_user_state',
+      storage: createJSONStorage(() => storage),
       onRehydrateStorage: (state) => {
-        return () => state?.setIsLoaded(true);
+        // Migration bridge: If IndexedDB is empty, try to import from localStorage
+        return async (rehydratedState, error) => {
+          if (error) {
+            console.error('Rehydration error:', error);
+            return;
+          }
+          
+          // If the rehydrated state from IDB is empty/default, check localStorage
+          if (rehydratedState && !rehydratedState.apiKey && typeof window !== 'undefined') {
+            const localData = localStorage.getItem('void_user_state');
+            if (localData) {
+              try {
+                const parsed = JSON.parse(localData);
+                if (parsed.state) {
+                  // Merge localStorage data into current store
+                  rehydratedState.setApiKey(parsed.state.apiKey);
+                  if (parsed.state.tmdbSessionId) {
+                    rehydratedState.setSession(parsed.state.tmdbSessionId, parsed.state.tmdbAccountId);
+                  }
+                  rehydratedState.setLists(parsed.state.watchlist || [], parsed.state.watched || []);
+                  console.log('Successfully migrated data from localStorage to IndexedDB');
+                }
+              } catch (e) {
+                console.error('Failed to migrate localStorage data', e);
+              }
+            }
+          }
+          rehydratedState?.setIsLoaded(true);
+        };
       },
     }
   )
