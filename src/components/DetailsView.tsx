@@ -204,7 +204,7 @@ export default function DetailsView() {
         {media.backdrop_path ? (
           <>
             <img 
-              src={getImageUrl(media.backdrop_path, 'original')} 
+              src={getImageUrl(media.backdrop_path, 'w780')} 
               alt="" 
               className="w-full h-full object-cover opacity-60"
             />

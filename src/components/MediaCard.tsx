@@ -73,6 +73,13 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
   const title = media.title || media.name;
   const year = (media.release_date || media.first_air_date)?.split('-')[0];
 
+  const prefetchBackdrop = () => {
+    if (media.backdrop_path) {
+      const img = new Image();
+      img.src = getImageUrl(media.backdrop_path, 'w780');
+    }
+  };
+
   const handleWatchlistClick = () => {
     if (inWatchlist) {
       setModalConfig({
@@ -112,7 +119,12 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
   return (
     <>
       <div ref={cardRef} className="relative group bg-white dark:bg-gray-900 rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-full transition-colors duration-300">
-        <Link href={`/details?type=${media.media_type}&id=${media.id}`} className="block relative aspect-[2/3] bg-gray-200 dark:bg-gray-800 overflow-hidden shrink-0">
+        <Link 
+          href={`/details?type=${media.media_type}&id=${media.id}`} 
+          className="block relative aspect-[2/3] bg-gray-200 dark:bg-gray-800 overflow-hidden shrink-0"
+          onMouseEnter={prefetchBackdrop}
+          onTouchStart={prefetchBackdrop}
+        >
           {media.poster_path ? (
             <img
               src={getImageUrl(media.poster_path)}
