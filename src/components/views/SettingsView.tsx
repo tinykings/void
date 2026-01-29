@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { Key, Save, ExternalLink, Moon, RefreshCw, ArrowLeft, ShieldCheck, Play, User, LogOut } from 'lucide-react';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { Key, Save, ExternalLink, RefreshCw, ArrowLeft, ShieldCheck, Play, User, LogOut } from 'lucide-react';
 import { clsx } from 'clsx';
 import { externalPlayerOptions } from '@/lib/types';
 
@@ -70,6 +69,33 @@ export const SettingsView = () => {
       <div className="space-y-6">
         <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
           <div className="flex items-center gap-2 mb-4">
+            <Key className="text-indigo-600 dark:text-indigo-400" size={20} />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">TMDB API Key</h2>
+          </div>
+
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            To use this app, you need a free API key from The Movie Database.
+            <a
+              href="https://developer.themoviedb.org/reference/intro/getting-started"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-600 dark:text-indigo-400 flex items-center gap-1 mt-1 font-medium hover:underline"
+            >
+              Get one here <ExternalLink size={14} />
+            </a>
+          </p>
+
+          <input
+            type="password"
+            value={tempApiKey}
+            onChange={(e) => setTempApiKey(e.target.value)}
+            placeholder="Enter your TMDB API key..."
+            className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+          />
+        </section>
+
+        <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-2 mb-4">
             <User className="text-indigo-600 dark:text-indigo-400" size={20} />
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">TMDB Synchronization</h2>
           </div>
@@ -109,7 +135,7 @@ export const SettingsView = () => {
                   {isSyncing ? 'Syncing...' : 'Connected to TMDB'}
                 </span>
                 <button
-                  onClick={syncFromTMDB}
+                  onClick={() => syncFromTMDB(true)}
                   disabled={isSyncing}
                   className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline disabled:opacity-50"
                 >
@@ -119,41 +145,6 @@ export const SettingsView = () => {
               </div>
             </div>
           )}
-        </section>
-
-        <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2 mb-4">
-            <Moon className="text-indigo-600 dark:text-indigo-400" size={20} />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Appearance</h2>
-          </div>
-          <ThemeToggle />
-        </section>
-
-        <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2 mb-4">
-            <Key className="text-indigo-600 dark:text-indigo-400" size={20} />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">TMDB API Key</h2>
-          </div>
-
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            To use this app, you need a free API key from The Movie Database.
-            <a
-              href="https://developer.themoviedb.org/reference/intro/getting-started"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-indigo-600 dark:text-indigo-400 flex items-center gap-1 mt-1 font-medium hover:underline"
-            >
-              Get one here <ExternalLink size={14} />
-            </a>
-          </p>
-
-          <input
-            type="password"
-            value={tempApiKey}
-            onChange={(e) => setTempApiKey(e.target.value)}
-            placeholder="Enter your TMDB API key..."
-            className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
-          />
         </section>
 
         <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
