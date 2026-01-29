@@ -72,6 +72,15 @@ export const createRequestToken = async (apiKey: string) => {
   return data.request_token;
 };
 
+export const validateApiKey = async (apiKey: string): Promise<boolean> => {
+  try {
+    const data = await fetchFromTMDB('/authentication', apiKey);
+    return data.success === true;
+  } catch (error) {
+    return false;
+  }
+};
+
 export const createSession = async (apiKey: string, requestToken: string) => {
   const response = await fetch(`${BASE_URL}/authentication/session/new?api_key=${apiKey}`, {
     method: 'POST',

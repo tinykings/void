@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { Key, User, ShieldCheck, Play, ArrowRight, Check, ExternalLink } from 'lucide-react';
 import { externalPlayerOptions } from '@/lib/types';
+import { validateApiKey } from '@/lib/tmdb';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 
@@ -15,7 +16,8 @@ import {
   Play as PlayIcon,
   ArrowRight as ArrowIcon,
   Check as CheckIcon,
-  ExternalLink as LinkIcon
+  ExternalLink as LinkIcon,
+  Loader2
 } from 'lucide-react';
 
 export const Onboarding = () => {
@@ -30,6 +32,32 @@ export const Onboarding = () => {
 
   const [step, setStep] = useState(1);
   const [tempApiKey, setTempApiKey] = useState(apiKey);
+  const [isValidating, setIsValidating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const nextStep = () => {
+    setError(null);
+    setStep(s => s + 1);
+  };
+  const prevStep = () => {
+    setError(null);
+    setStep(s => s - 1);
+  };
+
+  const handleValidateKey = async () => {
+    setIsValidating(true);
+    setError(null);
+    const isValid = await validateApiKey(tempApiKey);
+    if (isValid) {
+      setApiKey(tempApiKey);
+      toast.success('API Key validated');
+      nextStep();
+    } else {
+      setError('Invalid API Key. Please check and try again.');
+      toast.error('Validation failed');
+    }
+    setIsValidating(false);
+  };
 
   // Notify when account is connected during onboarding
   useEffect(() => {
@@ -37,9 +65,6 @@ export const Onboarding = () => {
       toast.success('Account connected successfully!');
     }
   }, [tmdbSessionId, step]);
-
-  const nextStep = () => setStep(s => s + 1);
-  const prevStep = () => setStep(s => s - 1);
 
   const handleFinish = () => {
     setOnboardingCompleted(true);
@@ -62,10 +87,21 @@ export const Onboarding = () => {
               <input
                 type="password"
                 value={tempApiKey}
-                onChange={(e) => setTempApiKey(e.target.value)}
+                onChange={(e) => {
+                  setTempApiKey(e.target.value);
+                  if (error) setError(null);
+                }}
                 placeholder="Paste your API key here..."
-                className="w-full p-4 rounded-xl bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-gray-400"
+                className={clsx(
+                  "w-full p-4 rounded-xl bg-gray-800 border text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-gray-400",
+                  error ? "border-red-500" : "border-gray-700"
+                )}
               />
+              {error && (
+                <p className="text-red-500 text-xs font-bold text-center animate-in fade-in slide-in-from-top-1 duration-300">
+                  {error}
+                </p>
+              )}
               <a
                 href="https://developer.themoviedb.org/reference/intro/getting-started"
                 target="_blank"
@@ -76,15 +112,20 @@ export const Onboarding = () => {
               </a>
             </div>
             <button
-              onClick={() => {
-                setApiKey(tempApiKey);
-                toast.success('API Key saved');
-                nextStep();
-              }}
-              disabled={!tempApiKey}
+              onClick={handleValidateKey}
+              disabled={!tempApiKey || isValidating}
               className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-black rounded-xl transition-all flex items-center justify-center gap-2 uppercase tracking-widest shadow-lg shadow-indigo-900/20"
             >
-              Continue <ArrowIcon size={18} />
+              {isValidating ? (
+                <>
+                  <Loader2 className="animate-spin" size={18} />
+                  Validating...
+                </>
+              ) : (
+                <>
+                  Continue <ArrowIcon size={18} />
+                </>
+              )}
             </button>
           </div>
         );
