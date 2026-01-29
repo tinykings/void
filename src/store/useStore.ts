@@ -49,15 +49,25 @@ export const useStore = create<StoreState>()(
         set({ isSyncing: true });
         try {
           const fetchAll = async (type: 'movies' | 'tv', list: 'watchlist' | 'rated'): Promise<Media[]> => {
-            let allItems: Media[] = [];
-            let currentPage = 1;
-            let totalPages = 1;
-            do {
-              const data = await getAccountLists(apiKey, sessionId, accountId, type, list, currentPage);
-              allItems = [...allItems, ...data.results];
-              totalPages = data.totalPages;
-              currentPage++;
-            } while (currentPage <= totalPages);
+            // 1. Fetch first page to get total pages count
+            const firstPage = await getAccountLists(apiKey, sessionId, accountId, type, list, 1);
+            let allItems = [...firstPage.results];
+            const totalPages = firstPage.totalPages;
+
+            if (totalPages > 1) {
+              // 2. Create an array of promises for all remaining pages
+              const pagePromises = [];
+              for (let p = 2; p <= totalPages; p++) {
+                pagePromises.push(getAccountLists(apiKey, sessionId, accountId, type, list, p));
+              }
+
+              // 3. Fetch all in parallel
+              const otherPages = await Promise.all(pagePromises);
+              otherPages.forEach(page => {
+                allItems = [...allItems, ...page.results];
+              });
+            }
+
             return allItems;
           };
 
