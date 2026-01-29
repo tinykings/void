@@ -176,6 +176,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Trigger sync on focus
+  useEffect(() => {
+    const handleFocus = () => {
+      if (isLoaded && !isSyncing) {
+        syncFromTMDB();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [isLoaded, isSyncing, state.apiKey, state.tmdbSessionId, state.tmdbAccountId]);
+
   const setApiKey = (apiKey: string) => {
     setState((prev) => ({ ...prev, apiKey }));
     saveState({ ...state, apiKey });
@@ -313,38 +325,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Effect to backfill missing next_episode_to_air for TV shows in watched list
+  // Effect to backfill missing next_episode_to_air and automatically migrate shows with new episodes
   useEffect(() => {
-    const backfillTVInfo = async () => {
-      if (!isLoaded || !state.apiKey || isSyncing) return;
+    const processTVInfo = async () => {
+      if (!isLoaded || !state.apiKey || isSyncing || !state.tmdbSessionId || !state.tmdbAccountId) return;
       
-      const needsUpdate = state.watched.some(m => m.media_type === 'tv' && m.next_episode_to_air === undefined);
-      if (!needsUpdate) return;
+      const showsToProcess = state.watched.filter(m => m.media_type === 'tv');
+      if (showsToProcess.length === 0) return;
 
-      const updatedWatched = await Promise.all(state.watched.map(async (m) => {
-        if (m.media_type === 'tv' && m.next_episode_to_air === undefined) {
+      let changedLocally = false;
+      const updatedWatched = [...state.watched];
+
+      for (let i = 0; i < updatedWatched.length; i++) {
+        const m = updatedWatched[i];
+        if (m.media_type === 'tv') {
           try {
+            // Fetch fresh details to see if there's a next episode
             const details = await getMediaDetails(m.id, 'tv', state.apiKey);
-            return { ...m, next_episode_to_air: details.next_episode_to_air || null };
-          } catch {
-            return m;
+            
+            if (details.next_episode_to_air) {
+              // --- MIGRATION LOGIC ---
+              // 1. Add to watchlist on TMDB
+              await toggleWatchlistStatus(state.apiKey, state.tmdbSessionId, state.tmdbAccountId, m.id, 'tv', true);
+              // 2. Remove rating on TMDB
+              await deleteRating(state.apiKey, state.tmdbSessionId, m.id, 'tv');
+              
+              // Remove from local watched list (it will be added to watchlist on next sync or we can do it now)
+              updatedWatched.splice(i, 1);
+              i--; 
+              changedLocally = true;
+            } else if (m.next_episode_to_air === undefined) {
+              // Just backfill the null if no next episode exists
+              updatedWatched[i] = { ...m, next_episode_to_air: null };
+              changedLocally = true;
+            }
+          } catch (err) {
+            console.error(`Failed to process TV info for ${m.id}:`, err);
           }
         }
-        return m;
-      }));
+      }
 
-      const hasChanged = updatedWatched.some((m, i) => m.next_episode_to_air !== state.watched[i].next_episode_to_air);
-      if (hasChanged) {
-        setState(prev => {
-          const newState = { ...prev, watched: updatedWatched };
-          saveState(newState);
-          return newState;
-        });
+      if (changedLocally) {
+        // Trigger a full sync to ensure local state perfectly matches TMDB after migrations
+        syncFromTMDB();
       }
     };
 
-    backfillTVInfo();
-  }, [isLoaded, state.apiKey, isSyncing, state.watched]);
+    // We use a small timeout to avoid hammering the API immediately after a sync
+    const timeout = setTimeout(processTVInfo, 2000);
+    return () => clearTimeout(timeout);
+  }, [isLoaded, state.apiKey, isSyncing, state.tmdbSessionId, state.tmdbAccountId]);
 
   // Derive selectedExternalPlayer from selectedExternalPlayerId
   const selectedExternalPlayer = state.selectedExternalPlayerId

@@ -178,7 +178,7 @@ export type ListType = 'watchlist' | 'watched';
 
 export type FilterType = 'movie' | 'tv';
 
-export type SortOption = 'added' | 'title' | 'release' | 'upcoming';
+export type SortOption = 'added' | 'title' | 'release';
 
 export interface UserState {
   apiKey: string;

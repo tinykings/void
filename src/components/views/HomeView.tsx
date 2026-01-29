@@ -102,24 +102,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
   // Combine and process library media
   const baseLibraryMedia = useMemo(() => {
-    let combined: Media[] = [];
-    
-    if (showWatched) {
-      combined = watched.filter(m => {
-        if (m.media_type === 'tv' && m.next_episode_to_air) return false;
-        return true;
-      });
-    } else {
-      combined = [...watchlist];
-      watched.forEach(m => {
-        if (m.media_type === 'tv' && m.next_episode_to_air) {
-          if (!watchlist.some(w => w.id === m.id && w.media_type === 'tv')) {
-            combined.push(m);
-          }
-        }
-      });
-    }
-
+    const combined = showWatched ? watched : watchlist;
     return combined.filter(m => m.media_type === (filter || 'movie'));
   }, [watchlist, watched, filter, showWatched]);
 
@@ -292,9 +275,6 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                 currentFilter={filter || 'movie'} 
                 onFilterChange={(f) => startTransition(() => {
                   setFilter(f);
-                  if (f === 'movie' && sort === 'upcoming') {
-                    setSort('added');
-                  }
                 })} 
               />
             </div>
@@ -316,15 +296,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               <SortControl 
                 currentSort={sort || 'added'} 
                 onSortChange={(s) => startTransition(() => setSort(s))} 
-                hideUpcoming={filter === 'movie' || showWatched}
               />
               <button
                 onClick={() => startTransition(() => {
-                  const nextShowWatched = !showWatched;
-                  setShowWatched(nextShowWatched);
-                  if (nextShowWatched && sort === 'upcoming') {
-                    setSort('added');
-                  }
+                  setShowWatched(!showWatched);
                 })}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
                   showWatched 

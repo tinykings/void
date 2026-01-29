@@ -185,6 +185,15 @@ export default function DetailsView() {
               )}
             </div>
 
+            {media.next_episode_to_air && (
+              <div className="mt-4 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 rounded-xl inline-block mx-auto md:mx-0">
+                <p className="text-xs md:text-sm font-bold text-indigo-600 dark:text-indigo-400">
+                  NEXT EPISODE: {new Date(media.next_episode_to_air.air_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                  <span className="ml-2 opacity-75 font-medium">(S{media.next_episode_to_air.season_number} E{media.next_episode_to_air.episode_number})</span>
+                </p>
+              </div>
+            )}
+
             <div className="flex flex-col gap-3 mt-6">
               <div className="flex flex-wrap gap-3">
                 <button
