@@ -5,7 +5,7 @@ import { Media } from '@/lib/types';
 import { getImageUrl } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { useAppContext } from '@/context/AppContext';
-import { Plus, Check, Trash2, Star } from 'lucide-react';
+import { Plus, Check, Trash2, Star, Bookmark } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
@@ -143,7 +143,7 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
             )}
             {inWatchlist && (
               <div className="bg-indigo-500 text-white p-1 rounded-full shadow-md">
-                <Plus size={14} strokeWidth={3} />
+                <Bookmark size={14} strokeWidth={3} className="fill-current" />
               </div>
             )}
           </div>
