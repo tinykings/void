@@ -6,6 +6,7 @@ import { getTrending, searchMedia } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { Media, FilterType, SortOption } from '@/lib/types';
 import { MediaCard } from '@/components/MediaCard';
+import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
 import { FilterTabs } from '@/components/FilterTabs';
 import { SortControl } from '@/components/SortControl';
 import { sortMedia } from '@/lib/sort';
@@ -329,9 +330,9 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
       )}
 
       {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 animate-pulse">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {[...Array(12)].map((_, i) => (
-            <div key={i} className="aspect-[2/3] bg-gray-100 dark:bg-gray-800 rounded-xl" />
+            <MediaCardSkeleton key={i} />
           ))}
         </div>
       ) : (
@@ -348,7 +349,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                       ...item,
                       isEdited: editedStatusMap[`${item.media_type}-${item.id}`]
                     }} 
-                    showBadge={showEditedOnly || isSearching || showTrending}
+                    showBadge={showEditedOnly}
                   />
                 </div>
               ))}
