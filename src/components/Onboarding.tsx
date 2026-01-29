@@ -30,7 +30,7 @@ export const Onboarding = () => {
     setOnboardingCompleted 
   } = useAppContext();
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(apiKey ? 2 : 1);
   const [tempApiKey, setTempApiKey] = useState(apiKey);
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);

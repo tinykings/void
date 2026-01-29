@@ -191,7 +191,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
       : (showTrending ? trending : libraryMedia);
 
     if (showEditedOnly && (isSearching || showTrending)) {
-      list = list.filter(m => editedStatusMap[`${m.media_type}-${m.id}`] === true);
+      list = list.filter(m => editedStatusMap[`${m.media_type}-${m.id}`] !== false);
     }
     return list;
   }, [searchResults, trending, libraryMedia, showEditedOnly, isSearching, showTrending, editedStatusMap]);

@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
+import { vidAngelObserver } from '@/lib/observerManager';
 
 interface MediaCardProps {
   media: Media;
@@ -48,23 +49,18 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
 
   useEffect(() => {
     // Only check if VidAngel is enabled, we don't have a status yet, AND the Edited filter is active
-    if (!vidAngelEnabled || !showBadge || isEdited !== undefined) return;
+    if (!vidAngelEnabled || !showBadge || isEdited !== undefined || !cardRef.current) return;
 
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        checkVidAngelAvailability(media.title || media.name || '', media.id)
-          .then((slug) => {
-            setMediaEditedStatus(media.id, media.media_type, !!slug);
-          });
-        observer.disconnect();
-      }
-    }, { threshold: 0.1 });
+    const element = cardRef.current;
+    
+    vidAngelObserver.observe(element, () => {
+      checkVidAngelAvailability(media.title || media.name || '', media.id)
+        .then((slug) => {
+          setMediaEditedStatus(media.id, media.media_type, !!slug);
+        });
+    });
 
-    if (cardRef.current) {
-      observer.observe(cardRef.current);
-    }
-
-    return () => observer.disconnect();
+    return () => vidAngelObserver.unobserve(element);
   }, [media.id, media.media_type, media.title, media.name, vidAngelEnabled, isEdited, setMediaEditedStatus, showBadge]);
 
   const inWatchlist = watchlist.some((m) => m.id === media.id && m.media_type === media.media_type);
