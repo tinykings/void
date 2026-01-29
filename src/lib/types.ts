@@ -192,5 +192,6 @@ export interface UserState {
   filter?: FilterType;
   sort?: SortOption;
   showWatched?: boolean;
+  showEditedOnly?: boolean;
   isSearchFocused?: boolean;
 }

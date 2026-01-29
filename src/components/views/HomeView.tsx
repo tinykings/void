@@ -27,6 +27,8 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     setSort,
     showWatched,
     setShowWatched,
+    showEditedOnly,
+    setShowEditedOnly,
     updateMediaMetadata,
     isSearchFocused,
     setIsSearchFocused,
@@ -42,7 +44,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Media[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [showEditedOnly, setShowEditedOnly] = useState(false);
+  
+  // Track VidAngel availability locally to prevent sync overrides
+  // Key: "type-id", Value: boolean
+  const [editedStatusMap, setEditedStatusMap] = useState<Record<string, boolean>>({});
   
   const [error, setError] = useState<string | null>(null);
 
@@ -66,40 +71,6 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     setVisibleItemsCount(itemsPerPage);
   }, [filter, sort, showWatched, showEditedOnly, isSearchFocused, query]);
 
-  // Trigger VidAngel checks for trending
-  useEffect(() => {
-    if (trending.length > 0 && vidAngelEnabled) {
-      trending.forEach(m => {
-        if (m.isEdited === undefined) {
-          checkVidAngelAvailability(m.title || m.name || '', m.id)
-            .then(slug => {
-              setTrending(prev => prev.map(item => 
-                (item.id === m.id && item.media_type === m.media_type) ? { ...item, isEdited: !!slug } : item
-              ));
-            });
-        }
-      });
-    }
-  }, [trending, vidAngelEnabled]);
-
-  // Trigger VidAngel checks for search results
-  useEffect(() => {
-    if (searchResults.length > 0 && vidAngelEnabled) {
-      searchResults.forEach(m => {
-        if (m.isEdited === undefined) {
-          checkVidAngelAvailability(m.title || m.name || '', m.id)
-            .then(slug => {
-              setSearchResults(prev => prev.map(item => 
-                (item.id === m.id && item.media_type === m.media_type) ? { ...item, isEdited: !!slug } : item
-              ));
-            });
-        }
-      });
-    }
-  }, [searchResults, vidAngelEnabled]);
-
-  // Trigger VidAngel checks for library when showEditedOnly is active
-
   // Combine and process library media
   const baseLibraryMedia = useMemo(() => {
     const combined = showWatched ? watched : watchlist;
@@ -110,26 +81,47 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     let filtered = [...baseLibraryMedia];
 
     if (showEditedOnly) {
-      filtered = filtered.filter(m => m.isEdited === true);
+      filtered = filtered.filter(m => editedStatusMap[`${m.media_type}-${m.id}`] === true);
     }
 
     return sortMedia(filtered, (sort || 'added'));
-  }, [baseLibraryMedia, sort, showEditedOnly]);
+  }, [baseLibraryMedia, sort, showEditedOnly, editedStatusMap]);
 
-  // Trigger VidAngel checks for library when showEditedOnly is active
+  // Track which IDs we've already started checking to avoid loops
+  const dispatchedChecks = useRef<Set<string>>(new Set());
+
+  // Consolidated VidAngel check logic
   useEffect(() => {
-    if (showEditedOnly && vidAngelEnabled) {
-      // Check each item that hasn't been checked yet
-      baseLibraryMedia.forEach(m => {
-        if (m.isEdited === undefined) {
+    if (!vidAngelEnabled) return;
+
+    const checkList = (list: Media[]) => {
+      list.forEach(m => {
+        const key = `${m.media_type}-${m.id}`;
+        if (editedStatusMap[key] === undefined && !dispatchedChecks.current.has(key)) {
+          dispatchedChecks.current.add(key);
           checkVidAngelAvailability(m.title || m.name || '', m.id)
             .then(slug => {
-              updateMediaMetadata(m.id, m.media_type, { isEdited: !!slug });
+              setEditedStatusMap(prev => ({ ...prev, [key]: !!slug }));
             });
         }
       });
+    };
+
+    // 1. Check Library (only if Edited filter is on)
+    if (showEditedOnly) {
+      checkList(baseLibraryMedia);
     }
-  }, [showEditedOnly, baseLibraryMedia, vidAngelEnabled, updateMediaMetadata]);
+
+    // 2. Check Trending
+    if (trending.length > 0) {
+      checkList(trending);
+    }
+
+    // 3. Check Search Results
+    if (searchResults.length > 0) {
+      checkList(searchResults);
+    }
+  }, [showEditedOnly, baseLibraryMedia.length, trending.length, searchResults.length, vidAngelEnabled, editedStatusMap]);
 
   // Fetch Trending when search is focused
   useEffect(() => {
@@ -362,7 +354,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                   ref={index === displayMedia.length - 1 ? lastItemRef : null}
                 >
                   <MediaCard 
-                    media={item} 
+                    media={{
+                      ...item,
+                      isEdited: editedStatusMap[`${item.media_type}-${item.id}`]
+                    }} 
                     showBadge={showEditedOnly || isSearching || showTrending}
                   />
                 </div>

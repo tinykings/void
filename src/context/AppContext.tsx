@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { Media, UserState, ExternalPlayerOption, externalPlayerOptions, SortOption, FilterType } from '@/lib/types';
 import { loadState, saveState, toggleInList as toggleInStorage } from '@/lib/storage';
 import { getMediaDetails, createRequestToken, createSession, getAccountDetails, getAccountLists, toggleWatchlistStatus, rateMedia, deleteRating } from '@/lib/tmdb';
@@ -26,6 +26,7 @@ interface AppContextType extends UserState {
   setFilter: (filter: FilterType) => void;
   setSort: (sort: SortOption) => void;
   setShowWatched: (show: boolean) => void;
+  setShowEditedOnly: (show: boolean) => void;
   updateMediaMetadata: (id: number, type: 'movie' | 'tv', metadata: Partial<Media>) => void;
   isSearchFocused: boolean;
   setIsSearchFocused: (focused: boolean) => void;
@@ -44,6 +45,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     filter: 'movie',
     sort: 'added',
     showWatched: false,
+    showEditedOnly: false,
     isSearchFocused: false,
   });
   const [isLoaded, setIsLoaded] = useState(false);
@@ -188,18 +190,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => window.removeEventListener('focus', handleFocus);
   }, [isLoaded, isSyncing, state.apiKey, state.tmdbSessionId, state.tmdbAccountId]);
 
-  const setApiKey = (apiKey: string) => {
+  const setApiKey = useCallback((apiKey: string) => {
     setState((prev) => ({ ...prev, apiKey }));
     saveState({ ...state, apiKey });
-  };
+  }, [state]);
 
-  const setVidAngelEnabled = (vidAngelEnabled: boolean) => {
+  const setVidAngelEnabled = useCallback((vidAngelEnabled: boolean) => {
     setState((prev) => ({ ...prev, vidAngelEnabled }));
     saveState({ ...state, vidAngelEnabled });
-  };
+  }, [state]);
 
   // New external player functions
-  const toggleExternalPlayerEnabled = () => {
+  const toggleExternalPlayerEnabled = useCallback(() => {
     setState((prev) => {
       const newEnabledState = !prev.externalPlayerEnabled;
       const newState = { ...prev, externalPlayerEnabled: newEnabledState };
@@ -209,49 +211,57 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       saveState(newState);
       return newState;
     });
-  };
+  }, []);
 
-  const setSelectedExternalPlayerId = (id: string | null) => {
+  const setSelectedExternalPlayerId = useCallback((id: string | null) => {
     setState((prev) => {
       const newState = { ...prev, selectedExternalPlayerId: id };
       saveState(newState);
       return newState;
     });
-  };
+  }, []);
 
-  const setFilter = (filter: FilterType) => {
+  const setFilter = useCallback((filter: FilterType) => {
     setState((prev) => {
       const newState = { ...prev, filter };
       saveState(newState);
       return newState;
     });
-  };
+  }, []);
 
-  const setSort = (sort: SortOption) => {
+  const setSort = useCallback((sort: SortOption) => {
     setState((prev) => {
       const newState = { ...prev, sort };
       saveState(newState);
       return newState;
     });
-  };
+  }, []);
 
-  const setShowWatched = (showWatched: boolean) => {
+  const setShowWatched = useCallback((showWatched: boolean) => {
     setState((prev) => {
       const newState = { ...prev, showWatched };
       saveState(newState);
       return newState;
     });
-  };
+  }, []);
 
-  const setIsSearchFocused = (isSearchFocused: boolean) => {
+  const setShowEditedOnly = useCallback((showEditedOnly: boolean) => {
+    setState((prev) => {
+      const newState = { ...prev, showEditedOnly };
+      saveState(newState);
+      return newState;
+    });
+  }, []);
+
+  const setIsSearchFocused = useCallback((isSearchFocused: boolean) => {
     setState((prev) => {
       const newState = { ...prev, isSearchFocused };
       saveState(newState);
       return newState;
     });
-  };
+  }, []);
 
-  const updateMediaMetadata = (id: number, type: 'movie' | 'tv', metadata: Partial<Media>) => {
+  const updateMediaMetadata = useCallback((id: number, type: 'movie' | 'tv', metadata: Partial<Media>) => {
     setState((prev) => {
       const updateList = (list: Media[]) => 
         list.map(m => m.id === id && m.media_type === type ? { ...m, ...metadata } : m);
@@ -265,9 +275,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       saveState(newState);
       return newState;
     });
-  };
+  }, []);
 
-  const toggleWatchlist = async (media: Media) => {
+  const toggleWatchlist = useCallback(async (media: Media) => {
     const inWatchlist = state.watchlist.some((m) => m.id === media.id && m.media_type === media.media_type);
     
     if (inWatchlist) {
@@ -295,9 +305,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.error("Failed to sync watchlist with TMDB:", error);
       }
     }
-  };
+  }, [state]);
 
-  const toggleWatched = async (media: Media, rating?: number) => {
+  const toggleWatched = useCallback(async (media: Media, rating?: number) => {
     const inWatched = state.watched.some((m) => m.id === media.id && m.media_type === media.media_type);
     
     if (inWatched && !rating) {
@@ -323,7 +333,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.error("Failed to sync rating with TMDB:", error);
       }
     }
-  };
+  }, [state]);
 
   // Effect to backfill missing next_episode_to_air and automatically migrate shows with new episodes
   useEffect(() => {
@@ -402,6 +412,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setFilter,
         setSort,
         setShowWatched,
+        showEditedOnly: state.showEditedOnly || false,
+        setShowEditedOnly,
         updateMediaMetadata,
         isSearchFocused: state.isSearchFocused || false,
         setIsSearchFocused,
