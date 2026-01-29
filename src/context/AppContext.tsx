@@ -108,11 +108,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const syncFromTMDBInternal = async (apiKey: string, sessionId: string, accountId: number) => {
     setIsSyncing(true);
     try {
+      const fetchAll = async (type: 'movies' | 'tv', list: 'watchlist' | 'rated'): Promise<Media[]> => {
+        let allItems: Media[] = [];
+        let currentPage = 1;
+        let totalPages = 1;
+
+        do {
+          const data = await getAccountLists(apiKey, sessionId, accountId, type, list, currentPage);
+          allItems = [...allItems, ...data.results];
+          totalPages = data.totalPages;
+          currentPage++;
+        } while (currentPage <= totalPages);
+
+        return allItems;
+      };
+
       const [wlMovies, wlTv, ratedMovies, ratedTv] = await Promise.all([
-        getAccountLists(apiKey, sessionId, accountId, 'movies', 'watchlist'),
-        getAccountLists(apiKey, sessionId, accountId, 'tv', 'watchlist'),
-        getAccountLists(apiKey, sessionId, accountId, 'movies', 'rated'),
-        getAccountLists(apiKey, sessionId, accountId, 'tv', 'rated'),
+        fetchAll('movies', 'watchlist'),
+        fetchAll('tv', 'watchlist'),
+        fetchAll('movies', 'rated'),
+        fetchAll('tv', 'rated'),
       ]);
 
       setState(prev => {

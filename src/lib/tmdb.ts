@@ -86,13 +86,16 @@ export const getAccountDetails = async (apiKey: string, sessionId: string) => {
   return fetchFromTMDB('/account', apiKey, { session_id: sessionId });
 };
 
-export const getAccountLists = async (apiKey: string, sessionId: string, accountId: number, type: 'movies' | 'tv', list: 'watchlist' | 'rated') => {
+export const getAccountLists = async (apiKey: string, sessionId: string, accountId: number, type: 'movies' | 'tv', list: 'watchlist' | 'rated', page: number = 1) => {
   const endpoint = `/account/${accountId}/${list}/${type}`;
-  const data = await fetchFromTMDB(endpoint, apiKey, { session_id: sessionId, sort_by: 'created_at.desc' });
-  return data.results.map((item: any) => ({
-    ...item,
-    media_type: type === 'movies' ? 'movie' : 'tv'
-  }));
+  const data = await fetchFromTMDB(endpoint, apiKey, { session_id: sessionId, sort_by: 'created_at.desc', page: page.toString() });
+  return {
+    results: data.results.map((item: any) => ({
+      ...item,
+      media_type: type === 'movies' ? 'movie' : 'tv'
+    })),
+    totalPages: data.total_pages
+  };
 };
 
 export const toggleWatchlistStatus = async (apiKey: string, sessionId: string, accountId: number, mediaId: number, mediaType: 'movie' | 'tv', watchlist: boolean) => {

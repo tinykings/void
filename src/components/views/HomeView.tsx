@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useTransition } from 'react';
+import { useEffect, useState, useMemo, useTransition, useCallback, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { getTrending, searchMedia } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
@@ -45,6 +45,26 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   const [showEditedOnly, setShowEditedOnly] = useState(false);
   
   const [error, setError] = useState<string | null>(null);
+
+  // Pagination for library
+  const [visibleItemsCount, setVisibleItemsCount] = useState(24);
+  const itemsPerPage = 24;
+  const observer = useRef<IntersectionObserver | null>(null);
+
+  const lastItemRef = useCallback((node: HTMLDivElement) => {
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (node && entries[0].isIntersecting) {
+        setVisibleItemsCount(prev => prev + itemsPerPage);
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, []);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setVisibleItemsCount(itemsPerPage);
+  }, [filter, sort, showWatched, showEditedOnly, isSearchFocused, query]);
 
   // Trigger VidAngel checks for trending
   useEffect(() => {
@@ -195,9 +215,11 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   const showTrending = isSearchFocused && searchResults.length === 0 && !searchLoading;
   const showLibrary = !isSearchFocused && query.length === 0;
 
-  const displayMedia = searchResults.length > 0 
+  const fullList = searchResults.length > 0 
     ? searchResults 
     : (showTrending ? trending : libraryMedia);
+    
+  const displayMedia = useMemo(() => fullList.slice(0, visibleItemsCount), [fullList, visibleItemsCount]);
     
   const isLoading = searchLoading || (showTrending ? trendingLoading : isPending);
 
@@ -353,12 +375,16 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
         <>
           {displayMedia.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-              {displayMedia.map((item) => (
-                <MediaCard 
-                  key={`${item.media_type}-${item.id}`} 
-                  media={item} 
-                  showBadge={showEditedOnly || isSearching || showTrending}
-                />
+              {displayMedia.map((item, index) => (
+                <div 
+                  key={`${item.media_type}-${item.id}`}
+                  ref={index === displayMedia.length - 1 ? lastItemRef : null}
+                >
+                  <MediaCard 
+                    media={item} 
+                    showBadge={showEditedOnly || isSearching || showTrending}
+                  />
+                </div>
               ))}
             </div>
           ) : (

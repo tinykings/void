@@ -15,7 +15,7 @@ interface MediaCardProps {
   showBadge?: boolean;
 }
 
-export const MediaCard: React.FC<MediaCardProps> = ({ media, showActions = true, showBadge = false }) => {
+export const MediaCard = React.memo(({ media, showActions = true, showBadge = false }: MediaCardProps) => {
   const { watchlist, watched, toggleWatchlist, toggleWatched } = useAppContext();
   
   const [isEdited, setIsEdited] = useState<boolean>(media.isEdited || false);
@@ -112,4 +112,6 @@ export const MediaCard: React.FC<MediaCardProps> = ({ media, showActions = true,
       </div>
     </div>
   );
-};
+});
+
+MediaCard.displayName = 'MediaCard';
