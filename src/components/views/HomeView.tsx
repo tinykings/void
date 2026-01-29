@@ -83,7 +83,8 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     let filtered = [...baseLibraryMedia];
 
     if (showEditedOnly) {
-      filtered = filtered.filter(m => editedStatusMap[`${m.media_type}-${m.id}`] === true);
+      // Show items that are confirmed edited OR haven't been checked yet
+      filtered = filtered.filter(m => editedStatusMap[`${m.media_type}-${m.id}`] !== false);
     }
 
     return sortMedia(filtered, (sort || 'added'));
@@ -343,7 +344,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                   ref={index === displayMedia.length - 1 ? lastItemRef : null}
                 >
                   <MediaCard 
-                    media={item} 
+                    media={{
+                      ...item,
+                      isEdited: editedStatusMap[`${item.media_type}-${item.id}`]
+                    }} 
                     showBadge={showEditedOnly || isSearching || showTrending}
                   />
                 </div>
