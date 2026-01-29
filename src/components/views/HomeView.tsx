@@ -74,6 +74,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
   // Cleanup abort controller on unmount
   useEffect(() => {
+    // Set default theme color for Home
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', '#030712'); // gray-950
+
     return () => {
       if (searchAbortController.current) {
         searchAbortController.current.abort();
@@ -158,8 +162,8 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     setSearchLoading(true);
     try {
       const results = await searchMedia(searchQuery, apiKey, searchAbortController.current.signal);
-      const sorted = [...results].sort((a, b) => b.popularity - a.popularity);
-      setSearchResults(sorted);
+      // Remove manual sort to rely on TMDB native relevance
+      setSearchResults(results);
     } catch (err: any) {
       if (err.name === 'AbortError') return;
       console.error("Search error:", err);

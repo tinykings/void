@@ -56,6 +56,15 @@ export default function DetailsView() {
   useEffect(() => {
     setSelectedSeasonNumber(1);
     setSeasonDetails(null);
+
+    // Set immersive theme color for Details
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', '#000000');
+
+    return () => {
+      // Revert to Home theme color on unmount
+      if (meta) meta.setAttribute('content', '#030712');
+    };
   }, [id]);
 
   useEffect(() => {
