@@ -46,8 +46,18 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Media[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const searchAbortController = useRef<AbortController | null>(null);
   
   const [error, setError] = useState<string | null>(null);
+
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (searchAbortController.current) {
+        searchAbortController.current.abort();
+      }
+    };
+  }, []);
 
   // Pagination for library
   const [visibleItemsCount, setVisibleItemsCount] = useState(24);
@@ -110,16 +120,26 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
   const handleSearch = async (searchQuery: string) => {
     if (!searchQuery || searchQuery.trim().length < 2 || !apiKey) {
+      if (searchAbortController.current) {
+        searchAbortController.current.abort();
+      }
       setSearchResults([]);
       return;
     }
 
+    // Cancel any pending search
+    if (searchAbortController.current) {
+      searchAbortController.current.abort();
+    }
+    searchAbortController.current = new AbortController();
+
     setSearchLoading(true);
     try {
-      const results = await searchMedia(searchQuery, apiKey);
+      const results = await searchMedia(searchQuery, apiKey, searchAbortController.current.signal);
       const sorted = [...results].sort((a, b) => b.popularity - a.popularity);
       setSearchResults(sorted);
-    } catch (err) {
+    } catch (err: any) {
+      if (err.name === 'AbortError') return;
       console.error("Search error:", err);
     } finally {
       setSearchLoading(false);
@@ -183,6 +203,9 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                 setQuery('');
                 setSearchResults([]);
                 setIsSearchFocused(false);
+                if (searchAbortController.current) {
+                  searchAbortController.current.abort();
+                }
               });
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
@@ -213,14 +236,16 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               )}
               {(query || isSearchFocused) && (
                 <button 
-                  onClick={() => {
-                    startTransition(() => {
-                      setQuery('');
-                      setSearchResults([]);
-                      setIsSearchFocused(false);
-                    });
-                  }}
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                                  onClick={() => {
+                                    startTransition(() => {
+                                      setQuery('');
+                                      setSearchResults([]);
+                                      setIsSearchFocused(false);
+                                      if (searchAbortController.current) {
+                                        searchAbortController.current.abort();
+                                      }
+                                    });
+                                  }}                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                 >
                   <X size={20} />
                 </button>

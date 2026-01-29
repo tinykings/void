@@ -2,21 +2,21 @@ import { Media, WatchProvidersResponse, SeasonDetails, TmdbResult, ReleaseDatesR
 
 const BASE_URL = 'https://api.themoviedb.org/3';
 
-export const fetchFromTMDB = async (endpoint: string, apiKey: string, params: Record<string, string> = {}) => {
+export const fetchFromTMDB = async (endpoint: string, apiKey: string, params: Record<string, string> = {}, signal?: AbortSignal) => {
   const queryParams = new URLSearchParams({
     api_key: apiKey,
     ...params,
   });
 
-  const response = await fetch(`${BASE_URL}${endpoint}?${queryParams}`);
+  const response = await fetch(`${BASE_URL}${endpoint}?${queryParams}`, { signal });
   if (!response.ok) {
     throw new Error(`TMDB API error: ${response.statusText}`);
   }
   return response.json();
 };
 
-export const searchMedia = async (query: string, apiKey: string): Promise<Media[]> => {
-  const data = await fetchFromTMDB('/search/multi', apiKey, { query });
+export const searchMedia = async (query: string, apiKey: string, signal?: AbortSignal): Promise<Media[]> => {
+  const data = await fetchFromTMDB('/search/multi', apiKey, { query }, signal);
   return data.results.filter((item: TmdbResult) => item.media_type === 'movie' || item.media_type === 'tv');
 };
 
