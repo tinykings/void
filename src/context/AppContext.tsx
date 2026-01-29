@@ -28,6 +28,7 @@ interface AppContextType extends UserState {
   setShowWatched: (show: boolean) => void;
   setShowEditedOnly: (show: boolean) => void;
   updateMediaMetadata: (id: number, type: 'movie' | 'tv', metadata: Partial<Media>) => void;
+  setMediaEditedStatus: (id: number, type: 'movie' | 'tv', isEdited: boolean) => void;
   isSearchFocused: boolean;
   setIsSearchFocused: (focused: boolean) => void;
 }
@@ -47,6 +48,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showWatched: false,
     showEditedOnly: false,
     isSearchFocused: false,
+    editedStatusMap: {},
   });
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -277,6 +279,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   }, []);
 
+  const setMediaEditedStatus = useCallback((id: number, type: 'movie' | 'tv', isEdited: boolean) => {
+    setState((prev) => {
+      const key = `${type}-${id}`;
+      const newMap = { ...prev.editedStatusMap, [key]: isEdited };
+      const newState = { ...prev, editedStatusMap: newMap };
+      saveState(newState);
+      return newState;
+    });
+  }, []);
+
   const toggleWatchlist = useCallback(async (media: Media) => {
     const inWatchlist = state.watchlist.some((m) => m.id === media.id && m.media_type === media.media_type);
     
@@ -415,6 +427,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         showEditedOnly: state.showEditedOnly || false,
         setShowEditedOnly,
         updateMediaMetadata,
+        editedStatusMap: state.editedStatusMap || {},
+        setMediaEditedStatus,
         isSearchFocused: state.isSearchFocused || false,
         setIsSearchFocused,
       }}

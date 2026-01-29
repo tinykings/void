@@ -9,6 +9,7 @@ const defaultState: UserState = {
   tmdbSessionId: '',
   tmdbAccountId: undefined,
   vidAngelEnabled: false,
+  editedStatusMap: {},
 };
 
 export const loadState = (): UserState => {

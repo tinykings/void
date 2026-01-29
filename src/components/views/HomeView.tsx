@@ -30,6 +30,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     showEditedOnly,
     setShowEditedOnly,
     updateMediaMetadata,
+    editedStatusMap,
     isSearchFocused,
     setIsSearchFocused,
     vidAngelEnabled
@@ -44,10 +45,6 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Media[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  
-  // Track VidAngel availability locally to prevent sync overrides
-  // Key: "type-id", Value: boolean
-  const [editedStatusMap, setEditedStatusMap] = useState<Record<string, boolean>>({});
   
   const [error, setError] = useState<string | null>(null);
 
@@ -71,6 +68,11 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     setVisibleItemsCount(itemsPerPage);
   }, [filter, sort, showWatched, showEditedOnly, isSearchFocused, query]);
 
+  // Reset Edited filter when switching views or searching
+  useEffect(() => {
+    setShowEditedOnly(false);
+  }, [isSearchFocused, query, setShowEditedOnly]);
+
   // Combine and process library media
   const baseLibraryMedia = useMemo(() => {
     const combined = showWatched ? watched : watchlist;
@@ -86,42 +88,6 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
     return sortMedia(filtered, (sort || 'added'));
   }, [baseLibraryMedia, sort, showEditedOnly, editedStatusMap]);
-
-  // Track which IDs we've already started checking to avoid loops
-  const dispatchedChecks = useRef<Set<string>>(new Set());
-
-  // Consolidated VidAngel check logic
-  useEffect(() => {
-    if (!vidAngelEnabled) return;
-
-    const checkList = (list: Media[]) => {
-      list.forEach(m => {
-        const key = `${m.media_type}-${m.id}`;
-        if (editedStatusMap[key] === undefined && !dispatchedChecks.current.has(key)) {
-          dispatchedChecks.current.add(key);
-          checkVidAngelAvailability(m.title || m.name || '', m.id)
-            .then(slug => {
-              setEditedStatusMap(prev => ({ ...prev, [key]: !!slug }));
-            });
-        }
-      });
-    };
-
-    // 1. Check Library (only if Edited filter is on)
-    if (showEditedOnly) {
-      checkList(baseLibraryMedia);
-    }
-
-    // 2. Check Trending
-    if (trending.length > 0) {
-      checkList(trending);
-    }
-
-    // 3. Check Search Results
-    if (searchResults.length > 0) {
-      checkList(searchResults);
-    }
-  }, [showEditedOnly, baseLibraryMedia.length, trending.length, searchResults.length, vidAngelEnabled, editedStatusMap]);
 
   // Fetch Trending when search is focused
   useEffect(() => {
@@ -190,9 +156,16 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   const showTrending = isSearchFocused && searchResults.length === 0 && !searchLoading;
   const showLibrary = !isSearchFocused && query.length === 0;
 
-  const fullList = searchResults.length > 0 
-    ? searchResults 
-    : (showTrending ? trending : libraryMedia);
+  const fullList = useMemo(() => {
+    let list = searchResults.length > 0 
+      ? searchResults 
+      : (showTrending ? trending : libraryMedia);
+
+    if (showEditedOnly && (isSearching || showTrending)) {
+      list = list.filter(m => editedStatusMap[`${m.media_type}-${m.id}`] === true);
+    }
+    return list;
+  }, [searchResults, trending, libraryMedia, showEditedOnly, isSearching, showTrending, editedStatusMap]);
     
   const displayMedia = useMemo(() => fullList.slice(0, visibleItemsCount), [fullList, visibleItemsCount]);
     
@@ -309,11 +282,27 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
       {(isSearching || showTrending) && (
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
-          <div className="flex items-center gap-2">
-            {isSearching ? <SearchIcon className="text-indigo-600 dark:text-indigo-400" size={20} /> : <div className="w-2 h-6 bg-indigo-600 rounded-full" />}
-            <h1 className="text-xl font-black italic tracking-tighter text-gray-900 dark:text-white uppercase">
-              {isSearching ? (searchLoading ? 'Searching...' : (searchResults.length > 0 ? `Results for "${query}"` : 'Type and press Enter to search')) : 'Popular Right Now'}
-            </h1>
+          <div className="flex flex-col md:flex-row md:items-center gap-4 w-full md:w-auto">
+            <div className="flex items-center gap-2">
+              {isSearching ? <SearchIcon className="text-indigo-600 dark:text-indigo-400" size={20} /> : <div className="w-2 h-6 bg-indigo-600 rounded-full" />}
+              <h1 className="text-xl font-black italic tracking-tighter text-gray-900 dark:text-white uppercase">
+                {isSearching ? (searchLoading ? 'Searching...' : (searchResults.length > 0 ? `Results for "${query}"` : 'Type and press Enter to search')) : 'Popular Right Now'}
+              </h1>
+            </div>
+            
+            {vidAngelEnabled && (
+              <button
+                onClick={() => startTransition(() => setShowEditedOnly(!showEditedOnly))}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
+                  showEditedOnly 
+                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' 
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                }`}
+              >
+                <ShieldCheck size={14} className={showEditedOnly ? 'fill-current' : ''} />
+                EDITED
+              </button>
+            )}
           </div>
           {(showTrending || isSearching) && (
             <button 
@@ -354,10 +343,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                   ref={index === displayMedia.length - 1 ? lastItemRef : null}
                 >
                   <MediaCard 
-                    media={{
-                      ...item,
-                      isEdited: editedStatusMap[`${item.media_type}-${item.id}`]
-                    }} 
+                    media={item} 
                     showBadge={showEditedOnly || isSearching || showTrending}
                   />
                 </div>

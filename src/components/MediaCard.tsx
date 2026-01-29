@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Media } from '@/lib/types';
 import { getImageUrl } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
@@ -16,9 +16,39 @@ interface MediaCardProps {
 }
 
 export const MediaCard = React.memo(({ media, showActions = true, showBadge = false }: MediaCardProps) => {
-  const { watchlist, watched, toggleWatchlist, toggleWatched } = useAppContext();
+  const { 
+    watchlist, 
+    watched, 
+    toggleWatchlist, 
+    toggleWatched, 
+    vidAngelEnabled,
+    editedStatusMap,
+    setMediaEditedStatus
+  } = useAppContext();
   
-  const [isEdited, setIsEdited] = useState<boolean>(media.isEdited || false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const isEdited = editedStatusMap[`${media.media_type}-${media.id}`];
+
+  useEffect(() => {
+    // Only check if VidAngel is enabled, we don't have a status yet, AND the Edited filter is active
+    if (!vidAngelEnabled || !showBadge || isEdited !== undefined) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        checkVidAngelAvailability(media.title || media.name || '', media.id)
+          .then((slug) => {
+            setMediaEditedStatus(media.id, media.media_type, !!slug);
+          });
+        observer.disconnect();
+      }
+    }, { threshold: 0.1 });
+
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [media.id, media.media_type, media.title, media.name, vidAngelEnabled, isEdited, setMediaEditedStatus]);
 
   const inWatchlist = watchlist.some((m) => m.id === media.id && m.media_type === media.media_type);
   const inWatched = watched.some((m) => m.id === media.id && m.media_type === media.media_type);
@@ -27,7 +57,7 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
   const year = (media.release_date || media.first_air_date)?.split('-')[0];
 
   return (
-    <div className="relative group bg-white dark:bg-gray-900 rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-full transition-colors duration-300">
+    <div ref={cardRef} className="relative group bg-white dark:bg-gray-900 rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-full transition-colors duration-300">
       <Link href={`/details?type=${media.media_type}&id=${media.id}`} className="block relative aspect-[2/3] bg-gray-200 dark:bg-gray-800 overflow-hidden shrink-0">
         {media.poster_path ? (
           <img
