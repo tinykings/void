@@ -62,6 +62,16 @@ body {
   scrollbar-width: none;  /* Firefox */
 }
 
+@media (display-mode: standalone) {
+  html, body {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  html::-webkit-scrollbar, body::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
