@@ -39,12 +39,14 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
     message: string;
     onConfirm: () => void;
     type: 'danger' | 'info';
+    confirmText?: string;
   }>({
     isOpen: false,
     title: '',
     message: '',
     onConfirm: () => {},
-    type: 'info'
+    type: 'info',
+    confirmText: 'Confirm'
   });
 
   useEffect(() => {
@@ -83,6 +85,7 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
         title: 'Remove from List',
         message: `Are you sure you want to remove "${title}" from your watchlist?`,
         type: 'danger',
+        confirmText: 'Remove',
         onConfirm: () => {
           toggleWatchlist(media);
           toast.success('Removed from watchlist');
@@ -101,14 +104,24 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
         title: 'Remove from History',
         message: `Remove "${title}" from your history?`,
         type: 'danger',
+        confirmText: 'Remove',
         onConfirm: () => {
           toggleWatched(media);
           toast.success('Removed from history');
         }
       });
     } else {
-      toggleWatched(media);
-      toast.success('Marked as watched');
+      setModalConfig({
+        isOpen: true,
+        title: 'Mark as Watched',
+        message: `Add "${title}" to your watched history?`,
+        type: 'info',
+        confirmText: 'Mark Watched',
+        onConfirm: () => {
+          toggleWatched(media);
+          toast.success('Marked as watched');
+        }
+      });
     }
   };
 
@@ -195,7 +208,7 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
         type={modalConfig.type}
         onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
         onConfirm={modalConfig.onConfirm}
-        confirmText="Remove"
+        confirmText={modalConfig.confirmText}
       />
     </>
   );
