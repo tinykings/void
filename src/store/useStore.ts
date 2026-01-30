@@ -230,10 +230,24 @@ export const useStore = create<StoreState>()(
               if (idx === -1) continue;
 
               if (details.next_episode_to_air) {
-                await toggleWatchlistStatus(apiKey, tmdbSessionId, tmdbAccountId, show.id, 'tv', true);
-                await deleteRating(apiKey, tmdbSessionId, show.id, 'tv');
-                updatedWatched.splice(idx, 1);
-                changed = true;
+                const airDate = new Date(details.next_episode_to_air.air_date);
+                const nextWeek = new Date();
+                nextWeek.setDate(nextWeek.getDate() + 7);
+
+                if (airDate <= nextWeek) {
+                  await toggleWatchlistStatus(apiKey, tmdbSessionId, tmdbAccountId, show.id, 'tv', true);
+                  await deleteRating(apiKey, tmdbSessionId, show.id, 'tv');
+                  updatedWatched.splice(idx, 1);
+                  changed = true;
+                } else {
+                  updatedWatched[idx] = { 
+                    ...updatedWatched[idx], 
+                    status: details.status,
+                    next_episode_to_air: details.next_episode_to_air,
+                    lastChecked: now 
+                  };
+                  changed = true;
+                }
               } else {
                 updatedWatched[idx] = { 
                   ...updatedWatched[idx], 
