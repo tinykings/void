@@ -16,9 +16,10 @@ interface MediaCardProps {
   media: Media;
   showActions?: boolean;
   showBadge?: boolean;
+  onClick?: () => void;
 }
 
-export const MediaCard = React.memo(({ media, showActions = true, showBadge = false }: MediaCardProps) => {
+export const MediaCard = React.memo(({ media, showActions = true, showBadge = false, onClick }: MediaCardProps) => {
   const { 
     watchlist, 
     watched, 
@@ -133,6 +134,7 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
           className="block relative aspect-[2/3] bg-brand-bg/50 overflow-hidden shrink-0"
           onMouseEnter={prefetchBackdrop}
           onTouchStart={prefetchBackdrop}
+          onClick={onClick}
         >
           {media.poster_path ? (
             <img

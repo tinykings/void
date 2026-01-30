@@ -64,6 +64,7 @@ export default function DetailsView() {
   });
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     setSelectedSeasonNumber(1);
     setSeasonDetails(null);
 
@@ -210,9 +211,19 @@ export default function DetailsView() {
     setCreditsLoading(true);
     try {
       const data = await getPersonCredits(actor.id, apiKey);
-      const sortedCredits = data.cast
-        .sort((a: any, b: any) => b.popularity - a.popularity)
-        .slice(0, 20)
+      
+      // Filter out duplicates and invalid entries
+      const seen = new Set();
+      const uniqueCredits = data.cast.filter((c: any) => {
+        const key = `${c.media_type || 'movie'}-${c.id}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      const sortedCredits = uniqueCredits
+        .sort((a: any, b: any) => (b.vote_count || 0) - (a.vote_count || 0))
+        .slice(0, 24)
         .map((c: any) => ({ ...c, media_type: c.media_type || 'movie' } as Media));
       setActorCredits(sortedCredits);
     } catch (err) {

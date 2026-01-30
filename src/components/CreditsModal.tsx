@@ -85,6 +85,7 @@ export const CreditsModal = ({
                       key={`${media.media_type}-${media.id}`} 
                       media={media} 
                       showActions={false}
+                      onClick={onClose}
                     />
                   ))}
                 </div>
