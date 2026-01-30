@@ -97,6 +97,7 @@ export const useStore = create<StoreState>()(
           const allIncomingWatchlist = [...wlMovies, ...wlTv];
 
           const mergeMetadata = (newItem: Media) => {
+            // Find the item in either local list to preserve metadata
             const oldItem = state.watchlist.find(o => o.id === newItem.id && o.media_type === newItem.media_type) ||
                             state.watched.find(o => o.id === newItem.id && o.media_type === newItem.media_type);
             if (oldItem) {
@@ -111,26 +112,28 @@ export const useStore = create<StoreState>()(
             return newItem;
           };
 
-          // Process Rated list first
+          // Process Rated list
           const finalWatched = allIncomingRated.map(mergeMetadata);
 
-          // Process Watchlist with exclusivity check
+          // Process Watchlist with strict exclusivity check
           const finalWatchlist = allIncomingWatchlist
             .filter(w => {
-              // If it's also in the rated list on TMDB, it's "Watched"
-              const isRated = allIncomingRated.some(r => r.id === w.id && r.media_type === w.media_type);
-              if (!isRated) return true;
-
-              // If it's in both, only keep in Watchlist if we have metadata saying it has an upcoming episode
-              const merged = mergeMetadata(w);
-              if (merged.next_episode_to_air && merged.next_episode_to_air.air_date) {
-                const airDate = new Date(merged.next_episode_to_air.air_date).getTime();
-                const nextWeek = now + (7 * 24 * 60 * 60 * 1000);
-                return !isNaN(airDate) && airDate <= nextWeek;
+              const isRatedOnTMDB = allIncomingRated.some(r => r.id === w.id && r.media_type === w.media_type);
+              const isWatchedLocally = state.watched.some(o => o.id === w.id && o.media_type === w.media_type);
+              
+              // If it's considered "Watched" (either on TMDB or in our current local state)
+              if (isRatedOnTMDB || isWatchedLocally) {
+                const merged = mergeMetadata(w);
+                // Only allow it back in the Watchlist if it has an upcoming episode in the next 7 days
+                if (merged.next_episode_to_air && merged.next_episode_to_air.air_date) {
+                  const airDate = new Date(merged.next_episode_to_air.air_date).getTime();
+                  const nextWeek = now + (7 * 24 * 60 * 60 * 1000);
+                  return !isNaN(airDate) && airDate <= nextWeek;
+                }
+                return false;
               }
-
-              // Otherwise, prefer the Rated/Watched state
-              return false;
+              
+              return true;
             })
             .map(mergeMetadata);
 
@@ -248,11 +251,13 @@ export const useStore = create<StoreState>()(
         },
 
         processTVMigrations: async () => {
-          const { apiKey, tmdbSessionId, tmdbAccountId, watched, isSyncing, isLoaded } = get();
+          const { apiKey, tmdbSessionId, tmdbAccountId, isSyncing, isLoaded } = get();
           if (!isLoaded || !apiKey || isSyncing || !tmdbSessionId || !tmdbAccountId) return;
           
           const now = Date.now();
           const checkThreshold = 24 * 60 * 60 * 1000;
+          
+          const { watched } = get();
           const showsToProcess = watched.filter(m => 
             m.media_type === 'tv' && 
             m.status !== 'Ended' && 
@@ -262,52 +267,46 @@ export const useStore = create<StoreState>()(
 
           if (showsToProcess.length === 0) return;
 
-          let tmdbChanged = false;
-          let localChanged = false;
-          const updatedWatched = [...watched];
-
           for (const show of showsToProcess) {
+            // Re-verify membership in case of simultaneous sync
+            if (!get().watched.some(m => m.id === show.id && m.media_type === 'tv')) continue;
+
             try {
               const details = await getMediaDetails(show.id, 'tv', apiKey);
-              const idx = updatedWatched.findIndex(m => m.id === show.id && m.media_type === 'tv');
-              if (idx === -1) continue;
-
+              
               if (details.next_episode_to_air && details.next_episode_to_air.air_date) {
                 const airDate = new Date(details.next_episode_to_air.air_date).getTime();
                 const nextWeek = now + (7 * 24 * 60 * 60 * 1000);
 
                 if (!isNaN(airDate) && airDate <= nextWeek) {
+                  // Migration to watchlist
                   await toggleWatchlistStatus(apiKey, tmdbSessionId, tmdbAccountId, show.id, 'tv', true);
                   await deleteRating(apiKey, tmdbSessionId, show.id, 'tv');
-                  updatedWatched.splice(idx, 1);
-                  tmdbChanged = true;
+                  
+                  set(state => ({
+                    watched: state.watched.filter(m => !(m.id === show.id && m.media_type === 'tv')),
+                    watchlist: [...state.watchlist, { ...show, ...details, lastChecked: now, date_added: new Date().toISOString() }]
+                  }));
+                  
+                  // Force a clean sync to align with TMDB
+                  get().syncFromTMDB(true);
                 } else {
-                  updatedWatched[idx] = { 
-                    ...updatedWatched[idx], 
-                    status: details.status,
-                    next_episode_to_air: details.next_episode_to_air,
-                    lastChecked: now 
-                  };
-                  localChanged = true;
+                  // Metadata update only
+                  set(state => ({
+                    watched: state.watched.map(m => m.id === show.id && m.media_type === 'tv' 
+                      ? { ...m, status: details.status, next_episode_to_air: details.next_episode_to_air, lastChecked: now } 
+                      : m)
+                  }));
                 }
               } else {
-                updatedWatched[idx] = { 
-                  ...updatedWatched[idx], 
-                  status: details.status,
-                  next_episode_to_air: null,
-                  lastChecked: now 
-                };
-                localChanged = true;
+                // No upcoming episode, just refresh lastChecked
+                set(state => ({
+                  watched: state.watched.map(m => m.id === show.id && m.media_type === 'tv' 
+                    ? { ...m, status: details.status, next_episode_to_air: null, lastChecked: now } 
+                    : m)
+                }));
               }
             } catch (err) { console.error(err); }
-          }
-
-          if (tmdbChanged || localChanged) {
-            set({ watched: updatedWatched });
-            if (tmdbChanged) {
-              const { syncFromTMDB } = get();
-              syncFromTMDB(true);
-            }
           }
         },
 
