@@ -204,14 +204,20 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     <div className="max-w-7xl mx-auto px-4 pb-24 relative">
       <div className="flex flex-col gap-4 mb-6 pt-4">
         <div className="flex flex-row items-center justify-between gap-3 w-full">
-          {/* Left: Movies/Shows Filter */}
-          <div className="shrink-0">
+          {/* Left: Movies/Shows Filter & Settings */}
+          <div className="flex items-center gap-2 shrink-0">
             <FilterTabs 
               currentFilter={filter || 'movie'} 
               onFilterChange={(f) => startTransition(() => {
                 setFilter(f);
               })} 
             />
+            <button 
+              onClick={onGoToSettings}
+              className="p-2.5 bg-brand-bg blueprint-border rounded-2xl text-brand-silver hover:text-brand-cyan transition-colors shadow-sm"
+            >
+              <Settings size={20} />
+            </button>
           </div>
 
           {/* Center: Search Field */}
@@ -255,14 +261,6 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               )}
             </div>
           </div>
-
-          {/* Right: Settings */}
-          <button 
-            onClick={onGoToSettings}
-            className="p-2.5 bg-brand-bg blueprint-border rounded-2xl text-brand-silver hover:text-brand-cyan transition-colors shadow-sm shrink-0"
-          >
-            <Settings size={20} />
-          </button>
         </div>
         
         {showLibrary && (
