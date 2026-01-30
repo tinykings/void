@@ -301,7 +301,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                 className={clsx(
                   "flex items-center justify-center w-9 h-9 rounded-xl transition-all",
                   showWatched 
-                    ? 'bg-brand-cyan/20 text-brand-cyan shadow-[0_0_10px_rgba(34,211,238,0.2)]' 
+                    ? 'bg-green-500/20 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.2)]' 
                     : 'bg-brand-cyan/10 text-brand-cyan hover:bg-brand-cyan/20'
                 )}
                 title={showWatched ? "Switch to Watchlist" : "Switch to History"}
