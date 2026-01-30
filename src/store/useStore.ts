@@ -236,7 +236,8 @@ export const useStore = create<StoreState>()(
 
           if (showsToProcess.length === 0) return;
 
-          let changed = false;
+          let tmdbChanged = false;
+          let localChanged = false;
           const updatedWatched = [...watched];
 
           for (const show of showsToProcess) {
@@ -245,16 +246,15 @@ export const useStore = create<StoreState>()(
               const idx = updatedWatched.findIndex(m => m.id === show.id && m.media_type === 'tv');
               if (idx === -1) continue;
 
-              if (details.next_episode_to_air) {
-                const airDate = new Date(details.next_episode_to_air.air_date);
-                const nextWeek = new Date();
-                nextWeek.setDate(nextWeek.getDate() + 7);
+              if (details.next_episode_to_air && details.next_episode_to_air.air_date) {
+                const airDate = new Date(details.next_episode_to_air.air_date).getTime();
+                const nextWeek = now + (7 * 24 * 60 * 60 * 1000);
 
-                if (airDate <= nextWeek) {
+                if (!isNaN(airDate) && airDate <= nextWeek) {
                   await toggleWatchlistStatus(apiKey, tmdbSessionId, tmdbAccountId, show.id, 'tv', true);
                   await deleteRating(apiKey, tmdbSessionId, show.id, 'tv');
                   updatedWatched.splice(idx, 1);
-                  changed = true;
+                  tmdbChanged = true;
                 } else {
                   updatedWatched[idx] = { 
                     ...updatedWatched[idx], 
@@ -262,7 +262,7 @@ export const useStore = create<StoreState>()(
                     next_episode_to_air: details.next_episode_to_air,
                     lastChecked: now 
                   };
-                  changed = true;
+                  localChanged = true;
                 }
               } else {
                 updatedWatched[idx] = { 
@@ -271,15 +271,17 @@ export const useStore = create<StoreState>()(
                   next_episode_to_air: null,
                   lastChecked: now 
                 };
-                changed = true;
+                localChanged = true;
               }
             } catch (err) { console.error(err); }
           }
 
-          if (changed) {
+          if (tmdbChanged || localChanged) {
             set({ watched: updatedWatched });
-            const { syncFromTMDB } = get();
-            syncFromTMDB(true);
+            if (tmdbChanged) {
+              const { syncFromTMDB } = get();
+              syncFromTMDB(true);
+            }
           }
         },
 
@@ -318,7 +320,7 @@ export const useStore = create<StoreState>()(
             }
           } else {
             set({
-              watched: [...watched, { ...media, date_added: new Date().toISOString() }],
+              watched: [...watched, { ...media, date_added: new Date().toISOString(), lastChecked: Date.now() }],
               watchlist: watchlist.filter((m) => !(m.id === media.id && m.media_type === media.media_type))
             });
             if (apiKey && tmdbSessionId && tmdbAccountId) {
