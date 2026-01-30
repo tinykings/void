@@ -92,9 +92,25 @@ export const useStore = create<StoreState>()(
             fetchAll('tv', 'rated'),
           ]);
 
+          const mergeMetadata = (newList: Media[], oldList: Media[]) => {
+            return newList.map(newItem => {
+              const oldItem = oldList.find(o => o.id === newItem.id && o.media_type === newItem.media_type);
+              if (oldItem) {
+                return {
+                  ...newItem,
+                  lastChecked: oldItem.lastChecked,
+                  next_episode_to_air: oldItem.next_episode_to_air,
+                  status: oldItem.status || newItem.status
+                };
+              }
+              return newItem;
+            });
+          };
+
+          const state = get();
           set({ 
-            watchlist: [...wlMovies, ...wlTv],
-            watched: [...ratedMovies, ...ratedTv]
+            watchlist: mergeMetadata([...wlMovies, ...wlTv], state.watchlist),
+            watched: mergeMetadata([...ratedMovies, ...ratedTv], state.watched)
           });
           lastSyncTime.current = Date.now();
         } catch (error: any) {
@@ -268,18 +284,25 @@ export const useStore = create<StoreState>()(
         },
 
         toggleWatchlist: async (media) => {
-          const { apiKey, tmdbSessionId, tmdbAccountId, watchlist } = get();
+          const { apiKey, tmdbSessionId, tmdbAccountId, watchlist, watched } = get();
           const inWatchlist = watchlist.some((m) => m.id === media.id && m.media_type === media.media_type);
           
-          const newWatchlist = inWatchlist
-            ? watchlist.filter((m) => !(m.id === media.id && m.media_type === media.media_type))
-            : [...watchlist, { ...media, date_added: new Date().toISOString() }];
-          
-          set({ watchlist: newWatchlist });
+          if (inWatchlist) {
+            set({ watchlist: watchlist.filter((m) => !(m.id === media.id && m.media_type === media.media_type)) });
+          } else {
+            set({ 
+              watchlist: [...watchlist, { ...media, date_added: new Date().toISOString() }],
+              watched: watched.filter((m) => !(m.id === media.id && m.media_type === media.media_type))
+            });
+          }
 
           if (apiKey && tmdbSessionId && tmdbAccountId) {
             try {
               await toggleWatchlistStatus(apiKey, tmdbSessionId, tmdbAccountId, media.id, media.media_type, !inWatchlist);
+              // If we are adding to watchlist, also remove rating (history) on TMDB
+              if (!inWatchlist) {
+                await deleteRating(apiKey, tmdbSessionId, media.id, media.media_type);
+              }
             } catch (err) { console.error(err); }
           }
         },
@@ -299,7 +322,11 @@ export const useStore = create<StoreState>()(
               watchlist: watchlist.filter((m) => !(m.id === media.id && m.media_type === media.media_type))
             });
             if (apiKey && tmdbSessionId && tmdbAccountId) {
-              try { await rateMedia(apiKey, tmdbSessionId, media.id, media.media_type, rating || 1); } catch (err) { console.error(err); }
+              try { 
+                await rateMedia(apiKey, tmdbSessionId, media.id, media.media_type, rating || 1);
+                // Also remove from watchlist on TMDB when marking as watched
+                await toggleWatchlistStatus(apiKey, tmdbSessionId, tmdbAccountId, media.id, media.media_type, false);
+              } catch (err) { console.error(err); }
             }
           }
         }
