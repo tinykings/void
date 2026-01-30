@@ -128,7 +128,7 @@ export const useStore = create<StoreState>()(
                 if (merged.next_episode_to_air && merged.next_episode_to_air.air_date) {
                   const airDate = new Date(merged.next_episode_to_air.air_date).getTime();
                   const nextWeek = now + (7 * 24 * 60 * 60 * 1000);
-                  return !isNaN(airDate) && airDate <= nextWeek;
+                  return !isNaN(airDate) && airDate >= now && airDate <= nextWeek;
                 }
                 return false;
               }
@@ -278,7 +278,7 @@ export const useStore = create<StoreState>()(
                 const airDate = new Date(details.next_episode_to_air.air_date).getTime();
                 const nextWeek = now + (7 * 24 * 60 * 60 * 1000);
 
-                if (!isNaN(airDate) && airDate <= nextWeek) {
+                if (!isNaN(airDate) && airDate >= now && airDate <= nextWeek) {
                   // Migration to watchlist
                   await toggleWatchlistStatus(apiKey, tmdbSessionId, tmdbAccountId, show.id, 'tv', true);
                   await deleteRating(apiKey, tmdbSessionId, show.id, 'tv');
