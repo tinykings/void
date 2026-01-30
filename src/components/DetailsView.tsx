@@ -124,7 +124,7 @@ export default function DetailsView() {
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.2)]"></div>
     </div>
   );
 
@@ -209,7 +209,7 @@ export default function DetailsView() {
   return (
     <div className="pb-4">
       {/* Cinematic Backdrop */}
-      <div className="relative w-full h-[30vh] md:h-[45vh] overflow-hidden bg-gray-900">
+      <div className="relative w-full h-[30vh] md:h-[45vh] overflow-hidden bg-brand-bg">
         {media.backdrop_path ? (
           <>
             <img 
@@ -217,16 +217,16 @@ export default function DetailsView() {
               alt="" 
               className="w-full h-full object-cover opacity-60"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-gray-950 via-transparent to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-brand-bg via-transparent to-transparent" />
           </>
         ) : (
-          <div className="w-full h-full bg-indigo-900/20" />
+          <div className="w-full h-full bg-brand-cyan/10" />
         )}
         
         <div className="absolute top-4 left-4 z-20">
           <button
             onClick={() => router.push('/')}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-xl text-white font-bold shadow-xl hover:bg-black/60 transition-all active:scale-95"
+            className="inline-flex items-center gap-2 px-4 py-2 glass-effect rounded-xl text-white font-bold shadow-xl hover:bg-brand-bg transition-all active:scale-95"
           >
             <ChevronLeft size={20} />
             <span>Back</span>
@@ -237,19 +237,19 @@ export default function DetailsView() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 -mt-12 md:-mt-16 relative z-10">
         <div className="flex flex-col items-center text-center mb-8">
           <div className="flex-1 min-w-0">
-            <h1 className="text-3xl md:text-5xl font-black leading-tight mb-4 text-gray-900 dark:text-white drop-shadow-sm">{title}</h1>
-            <div className="flex flex-wrap items-center justify-center gap-3 text-xs md:text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <h1 className="text-3xl md:text-5xl font-black leading-tight mb-4 text-white drop-shadow-[0_0_15px_rgba(34,211,238,0.2)] uppercase italic tracking-tighter">{title}</h1>
+            <div className="flex flex-wrap items-center justify-center gap-3 text-xs md:text-sm font-bold text-brand-silver uppercase tracking-wider">
               <span className="flex items-center gap-1"><Calendar size={14} /> {year}</span>
-              <span className="flex items-center gap-1"><Star size={14} className="text-yellow-500 fill-yellow-500" /> {media.vote_average.toFixed(1)}</span>
-              <span className="bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded uppercase">{media.media_type}</span>
+              <span className="flex items-center gap-1"><Star size={14} className="text-brand-cyan fill-brand-cyan" /> {media.vote_average.toFixed(1)}</span>
+              <span className="bg-brand-bg/50 blueprint-border px-2 py-0.5 rounded uppercase">{media.media_type}</span>
               {rating && (
-                <span className="bg-black/10 dark:bg-white/10 px-2 py-0.5 rounded border border-black/5 dark:border-white/5">{rating}</span>
+                <span className="bg-brand-bg/50 blueprint-border px-2 py-0.5 rounded border border-white/5">{rating}</span>
               )}
             </div>
 
             {media.next_episode_to_air && (
-              <div className="mt-4 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 rounded-xl inline-block mx-auto md:mx-0">
-                <p className="text-xs md:text-sm font-bold text-indigo-600 dark:text-indigo-400">
+              <div className="mt-4 px-4 py-2 bg-brand-cyan/10 blueprint-border rounded-xl inline-block mx-auto md:mx-0">
+                <p className="text-xs md:text-sm font-bold text-brand-cyan">
                   NEXT EPISODE: {new Date(media.next_episode_to_air.air_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                   <span className="ml-2 opacity-75 font-medium">(S{media.next_episode_to_air.season_number} E{media.next_episode_to_air.episode_number})</span>
                 </p>
@@ -263,8 +263,8 @@ export default function DetailsView() {
                   className={clsx(
                     "flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm",
                     inWatchlist
-                      ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700"
-                      : "bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500"
+                      ? "bg-brand-bg/80 blueprint-border text-white hover:bg-brand-bg"
+                      : "bg-brand-cyan text-brand-bg shadow-lg shadow-brand-cyan/20 hover:bg-brand-cyan/90"
                   )}
                 >
                   {inWatchlist ? <Trash2 size={18} /> : <Plus size={18} />}
@@ -274,10 +274,10 @@ export default function DetailsView() {
                 <button
                   onClick={handleWatchedToggle}
                   className={clsx(
-                    "flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm border-2",
+                    "flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm",
                     inWatched
-                      ? "bg-green-100 dark:bg-green-900/30 border-green-100 dark:border-green-900/30 text-green-700 dark:text-green-300"
-                      : "bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                      ? "bg-green-500/20 blueprint-border text-green-400"
+                      : "bg-brand-bg/50 blueprint-border text-brand-silver hover:bg-brand-bg hover:text-white"
                   )}
                 >
                   <Check size={18} />
@@ -292,9 +292,9 @@ export default function DetailsView() {
                       href={getExternalPlayerUrl(media.media_type, media.id)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm bg-rose-600 text-white shadow-lg shadow-rose-200 dark:shadow-none hover:bg-rose-700 dark:bg-rose-500"
+                      className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm bg-brand-cyan text-brand-bg shadow-lg shadow-brand-cyan/20 hover:bg-brand-cyan/90"
                     >
-                      <Play size={18} className="fill-white" />
+                      <Play size={18} className="fill-brand-bg" />
                       <span>Play</span>
                     </a>
                   )}
@@ -304,7 +304,7 @@ export default function DetailsView() {
                       href={`https://www.vidangel.com/${media.media_type === 'movie' ? 'movie' : 'show'}/${vidAngelSlug}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm bg-amber-500 text-white shadow-lg shadow-amber-200 dark:shadow-none hover:bg-amber-600"
+                      className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm bg-amber-500 text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600"
                     >
                       <ShieldCheck size={18} />
                       <span>Edit</span>
@@ -317,8 +317,8 @@ export default function DetailsView() {
         </div>
 
         <section className="mt-8">
-          <h2 className="text-lg font-bold mb-2 uppercase tracking-tighter italic text-gray-900 dark:text-white">Overview</h2>
-          <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg mb-4">
+          <h2 className="text-lg font-bold mb-2 uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Overview</h2>
+          <p className="text-brand-silver leading-relaxed text-lg mb-4">
             {media.overview || 'No overview available.'}
           </p>
           
@@ -334,29 +334,29 @@ export default function DetailsView() {
         {media.media_type === 'tv' && media.seasons && (
           <section className="mt-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold uppercase tracking-tighter italic text-gray-900 dark:text-white">Episodes</h2>
+              <h2 className="text-lg font-bold uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Episodes</h2>
               <div className="relative">
                 <select
                   value={selectedSeasonNumber}
                   onChange={(e) => setSelectedSeasonNumber(Number(e.target.value))}
-                  className="appearance-none bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-bold py-2 pl-4 pr-10 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  className="appearance-none bg-brand-bg blueprint-border text-white font-bold py-2 pl-4 pr-10 rounded-lg outline-none focus:ring-1 focus:ring-brand-cyan cursor-pointer"
                 >
                   {media.seasons.map((s) => (
-                    <option key={s.id} value={s.season_number}>{s.name}</option>
+                    <option key={s.id} value={s.season_number} className="bg-brand-bg">{s.name}</option>
                   ))}
                 </select>
-                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-silver pointer-events-none" />
               </div>
             </div>
 
             <div className="space-y-4">
               {seasonDetails ? seasonDetails.episodes.map((ep) => (
-                <div key={ep.id} className="flex gap-3 p-3 sm:p-4 sm:gap-4 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
-                  <div className="w-24 sm:w-32 aspect-video rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0 relative group">
+                <div key={ep.id} className="flex gap-3 p-3 sm:p-4 sm:gap-4 rounded-xl bg-brand-bg/50 blueprint-border">
+                  <div className="w-24 sm:w-32 aspect-video rounded-lg overflow-hidden bg-brand-bg shrink-0 relative group blueprint-border">
                     {ep.still_path ? (
                       <img src={getImageUrl(ep.still_path)} alt={ep.name} className="w-full h-full object-cover" loading="lazy" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      <div className="w-full h-full flex items-center justify-center text-brand-silver">
                         <Play size={24} />
                       </div>
                     )}
@@ -367,30 +367,30 @@ export default function DetailsView() {
                         target="_blank"
                         rel="noopener noreferrer"
                         title={`Play S${ep.season_number} E${ep.episode_number} on ${selectedExternalPlayer.name}`}
-                        className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors"
+                        className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-brand-cyan/20 transition-colors"
                       >
-                        <Play size={24} className="text-white/80 group-hover:text-white fill-current" />
+                        <Play size={24} className="text-white/80 group-hover:text-brand-cyan fill-current" />
                       </a>
                     )}
 
-                    <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] sm:text-[10px] font-bold px-1 rounded pointer-events-none">
+                    <div className="absolute bottom-1 right-1 bg-brand-bg/80 text-white text-[8px] sm:text-[10px] font-bold px-1 rounded pointer-events-none blueprint-border">
                       S{ep.season_number} E{ep.episode_number}
                     </div>
                   </div>
                   <div className="flex-1 min-w-0 py-0.5 sm:py-1">
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-0.5 sm:gap-4 mb-1">
-                      <h3 className="font-bold text-gray-900 dark:text-white truncate text-sm sm:text-base" title={ep.name}>{ep.name}</h3>
-                      <span className="text-[10px] sm:text-xs font-medium text-gray-500 whitespace-nowrap">
+                      <h3 className="font-bold text-white truncate text-sm sm:text-base" title={ep.name}>{ep.name}</h3>
+                      <span className="text-[10px] sm:text-xs font-medium text-brand-silver whitespace-nowrap">
                         {ep.air_date ? new Date(ep.air_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'TBA'}
                       </span>
                     </div>
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-brand-silver line-clamp-2 leading-relaxed">
                       {ep.overview || 'No overview available.'}
                     </p>
                   </div>
                 </div>
               )) : (
-                <div className="py-8 text-center text-gray-500 dark:text-gray-400 animate-pulse">Loading episodes...</div>
+                <div className="py-8 text-center text-brand-silver animate-pulse">Loading episodes...</div>
               )}
             </div>
           </section>
@@ -398,10 +398,10 @@ export default function DetailsView() {
 
         {videos.length > 0 && (
           <section className="mt-8">
-            <h2 className="text-lg font-bold mb-4 uppercase tracking-tighter italic text-gray-900 dark:text-white">Trailers</h2>
+            <h2 className="text-lg font-bold mb-4 uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Trailers</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {videos.map((video) => (
-                <div key={video.id} className="aspect-video rounded-xl overflow-hidden bg-black shadow-lg border border-gray-100 dark:border-gray-800">
+                <div key={video.id} className="aspect-video rounded-xl overflow-hidden bg-black shadow-lg blueprint-border">
                   <iframe
                     className="w-full h-full"
                     src={`https://www.youtube.com/embed/${video.key}`}
@@ -430,7 +430,7 @@ export default function DetailsView() {
 }
 
 const ProviderIcon = ({ provider }: { provider: WatchProvider }) => (
-  <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
+  <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm blueprint-border bg-brand-bg shrink-0">
     <img src={getImageUrl(provider.logo_path, 'w185')} alt={provider.provider_name} className="w-full h-full object-cover" />
   </div>
 );

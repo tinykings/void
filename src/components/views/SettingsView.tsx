@@ -72,21 +72,21 @@ export const SettingsView = () => {
       <div className="flex items-center gap-4 mb-8">
         <button 
           onClick={() => router.replace('/?tab=home')}
-          className="p-2 -ml-2 text-gray-500 hover:text-indigo-600 transition-colors"
+          className="p-2 -ml-2 text-brand-silver hover:text-brand-cyan transition-colors"
         >
           <ArrowLeft size={24} />
         </button>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
+        <h1 className="text-2xl font-bold text-white uppercase italic tracking-tighter">Settings</h1>
       </div>
 
       <div className="space-y-6">
-        <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+        <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">
           <div className="flex items-center gap-2 mb-4">
-            <User className="text-indigo-600 dark:text-indigo-400" size={20} />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">TMDB Synchronization</h2>
+            <User className="text-brand-cyan" size={20} />
+            <h2 className="text-lg font-semibold text-white">TMDB Synchronization</h2>
           </div>
 
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-sm text-brand-silver mb-4">
             Sync your watchlist and history (using ratings) directly with your TMDB account.
           </p>
 
@@ -94,22 +94,22 @@ export const SettingsView = () => {
             <button
               onClick={loginWithTMDB}
               disabled={!tempApiKey}
-              className="w-full py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors disabled:opacity-50"
+              className="w-full py-3 bg-brand-bg blueprint-border rounded-xl font-bold text-white hover:bg-brand-cyan/10 transition-colors disabled:opacity-50"
             >
               Login with TMDB
             </button>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+              <div className="flex items-center justify-between p-3 bg-brand-bg blueprint-border rounded-xl">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold">
+                  <div className="w-8 h-8 bg-brand-cyan/10 rounded-full flex items-center justify-center text-brand-cyan font-bold">
                     {tmdbAccountId?.toString().slice(0, 1)}
                   </div>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">Account ID: {tmdbAccountId}</span>
+                  <span className="text-sm font-medium text-white">Account ID: {tmdbAccountId}</span>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                   title="Logout"
                 >
                   <LogOut size={18} />
@@ -117,13 +117,13 @@ export const SettingsView = () => {
               </div>
               
               <div className="flex justify-between items-center">
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-brand-silver">
                   {isSyncing ? 'Syncing...' : 'Connected to TMDB'}
                 </span>
                 <button
                   onClick={handleManualSync}
                   disabled={isSyncing}
-                  className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:underline disabled:opacity-50"
+                  className="text-xs font-bold text-brand-cyan flex items-center gap-1 hover:underline disabled:opacity-50"
                 >
                   <RefreshCw size={12} className={clsx(isSyncing && "animate-spin")} />
                   Sync Now
@@ -133,19 +133,19 @@ export const SettingsView = () => {
           )}
         </section>
 
-        <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+        <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">
           <div className="flex items-center gap-2 mb-4">
-            <Key className="text-indigo-600 dark:text-indigo-400" size={20} />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">TMDB API Key</h2>
+            <Key className="text-brand-cyan" size={20} />
+            <h2 className="text-lg font-semibold text-white">TMDB API Key</h2>
           </div>
 
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          <p className="text-sm text-brand-silver mb-4">
             To use this app, you need a free API key from The Movie Database.
             <a
               href="https://developer.themoviedb.org/reference/intro/getting-started"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-indigo-600 dark:text-indigo-400 flex items-center gap-1 mt-1 font-medium hover:underline"
+              className="text-brand-cyan flex items-center gap-1 mt-1 font-medium hover:underline"
             >
               Get one here <ExternalLink size={14} />
             </a>
@@ -156,20 +156,20 @@ export const SettingsView = () => {
             value={tempApiKey}
             onChange={(e) => setTempApiKey(e.target.value)}
             placeholder="Enter your TMDB API key..."
-            className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+            className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
           />
         </section>
 
-        <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+        <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">
           <div className="flex items-center gap-2 mb-4">
-            <ShieldCheck className="text-indigo-600 dark:text-indigo-400" size={20} />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Content Filters</h2>
+            <ShieldCheck className="text-brand-cyan" size={20} />
+            <h2 className="text-lg font-semibold text-white">Content Filters</h2>
           </div>
 
           <div className="flex items-center justify-between">
             <div className="pr-4">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white">VidAngel Integration</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <h3 className="text-sm font-bold text-white">VidAngel Integration</h3>
+              <p className="text-xs text-brand-silver mt-1">
                 Show availability for movies rated R and TV shows rated TV-MA.
               </p>
             </div>
@@ -180,20 +180,20 @@ export const SettingsView = () => {
                 onChange={(e) => setTempVidAngelEnabled(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+              <div className="w-11 h-6 bg-brand-bg blueprint-border rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-brand-silver after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-cyan peer-checked:after:bg-brand-bg"></div>
             </label>
           </div>
 
           {tempVidAngelEnabled && (
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-3 italic">
+            <div className="mt-4 pt-4 border-t border-white/5">
+              <p className="text-[10px] text-brand-silver mb-3 italic">
                 Note: To check availability, you must be logged in to your VidAngel account in this browser.
               </p>
               <a
                 href="https://www.vidangel.com/login"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-900/20 px-4 py-2 rounded-lg border border-amber-100 dark:border-amber-900/30 hover:bg-amber-100 transition-colors"
+                className="inline-flex items-center gap-2 text-xs font-bold text-amber-500 bg-amber-500/10 px-4 py-2 rounded-lg blueprint-border hover:bg-amber-500/20 transition-colors"
               >
                 <ExternalLink size={12} />
                 Login to VidAngel
@@ -203,16 +203,16 @@ export const SettingsView = () => {
         </section>
 
         {/* New External Player Section */}
-        <section className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+        <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">
           <div className="flex items-center gap-2 mb-4">
-            <Play className="text-indigo-600 dark:text-indigo-400" size={20} />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">External Player</h2>
+            <Play className="text-brand-cyan" size={20} />
+            <h2 className="text-lg font-semibold text-white">External Player</h2>
           </div>
 
           <div className="flex items-center justify-between mb-4">
             <div className="pr-4">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white">Enable External Player Links</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <h3 className="text-sm font-bold text-white">Enable External Player Links</h3>
+              <p className="text-xs text-brand-silver mt-1">
                 Add &quot;Play&quot; links to media details pages for external streaming.
               </p>
             </div>
@@ -234,21 +234,21 @@ export const SettingsView = () => {
                 }}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+              <div className="w-11 h-6 bg-brand-bg blueprint-border rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-brand-silver after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-cyan peer-checked:after:bg-brand-bg"></div>
             </label>
           </div>
 
           {tempExternalPlayerEnabled && (
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-800">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">Select Player</h3>
+            <div className="mt-4 pt-4 border-t border-white/5">
+              <h3 className="text-sm font-bold text-white mb-2">Select Player</h3>
               <select
                 value={tempSelectedExternalPlayerId || ''}
                 onChange={(e) => setTempSelectedExternalPlayerId(e.target.value)}
-                className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all"
               >
-                <option value="" disabled>Select an external player</option>
+                <option value="" disabled className="bg-brand-bg">Select an external player</option>
                 {externalPlayerOptions.map((option) => (
-                  <option key={option.id} value={option.id}>{option.name}</option>
+                  <option key={option.id} value={option.id} className="bg-brand-bg">{option.name}</option>
                 ))}
               </select>
             </div>
@@ -257,7 +257,7 @@ export const SettingsView = () => {
 
         <button
           onClick={handleSave}
-          className="w-full bg-indigo-600 text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-indigo-700 active:scale-95 transition-all dark:bg-indigo-600 dark:hover:bg-indigo-500 shadow-lg shadow-indigo-900/20 uppercase tracking-widest"
+          className="w-full bg-brand-cyan text-brand-bg font-black py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-brand-cyan/90 active:scale-95 transition-all shadow-[0_0_20px_rgba(34,211,238,0.2)] uppercase tracking-widest"
         >
           <Save size={20} />
           {saved ? 'Saved Settings!' : 'Save All Settings'}
@@ -265,13 +265,13 @@ export const SettingsView = () => {
 
         <button
           onClick={() => setOnboardingCompleted(false)}
-          className="w-full py-4 text-xs font-bold text-gray-500 hover:text-indigo-400 transition-colors uppercase tracking-[0.2em]"
+          className="w-full py-4 text-xs font-bold text-brand-silver hover:text-white transition-colors uppercase tracking-[0.2em]"
         >
           Open Setup Guide
         </button>
 
         <section className="text-center pt-4">
-          <p className="text-xs text-gray-400 dark:text-gray-600">
+          <p className="text-xs text-brand-silver/50">
             Void v1.1.0<br />
             Data provided by TMDB.
           </p>

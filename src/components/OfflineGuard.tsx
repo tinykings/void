@@ -24,8 +24,8 @@ export const OfflineGuard = ({ children }: { children: React.ReactNode }) => {
 
   if (!isOnline) {
     return (
-      <div className="fixed inset-0 z-[1000] bg-gray-950 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300">
-        <div className="w-20 h-20 bg-red-500/20 rounded-3xl flex items-center justify-center mb-8 text-red-400">
+      <div className="fixed inset-0 z-[1000] bg-brand-bg flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300">
+        <div className="w-20 h-20 bg-red-500/10 blueprint-border rounded-3xl flex items-center justify-center mb-8 text-red-400">
           <WifiOff size={48} />
         </div>
         
@@ -33,13 +33,13 @@ export const OfflineGuard = ({ children }: { children: React.ReactNode }) => {
           Connection Required
         </h1>
         
-        <p className="text-gray-400 max-w-xs mb-10 leading-relaxed">
+        <p className="text-brand-silver max-w-xs mb-10 leading-relaxed">
           Void requires an active internet connection to sync your library and fetch latest movie data.
         </p>
 
         <button 
           onClick={() => window.location.reload()}
-          className="flex items-center gap-2 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl transition-all active:scale-95 uppercase tracking-widest shadow-lg shadow-indigo-900/40"
+          className="flex items-center gap-2 px-8 py-4 bg-brand-cyan text-brand-bg hover:bg-brand-cyan/90 font-black rounded-2xl transition-all active:scale-95 uppercase tracking-widest shadow-[0_0_20px_rgba(34,211,238,0.2)]"
         >
           <RefreshCw size={20} />
           Retry Connection

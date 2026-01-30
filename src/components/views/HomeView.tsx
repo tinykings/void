@@ -216,7 +216,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
           {/* Center: Search Field */}
           <div className="relative flex-1 min-w-0">
-            <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-silver" size={18} />
             <input
               type="text"
               value={query}
@@ -224,13 +224,13 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Search..."
-              className="w-full pl-10 pr-20 py-2.5 bg-gray-100 dark:bg-gray-900 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm text-sm font-medium text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+              className="w-full pl-10 pr-20 py-2.5 bg-brand-bg blueprint-border rounded-2xl focus:ring-1 focus:ring-brand-cyan/50 outline-none transition-all shadow-sm text-sm font-medium text-white placeholder:text-brand-silver"
             />
             <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
               {query.trim().length >= 2 && (
                 <button 
                   onClick={() => handleSearch(query)}
-                  className="p-1.5 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-all active:scale-95"
+                  className="p-1.5 bg-brand-cyan text-brand-bg rounded-lg shadow-[0_0_10px_rgba(34,211,238,0.3)] hover:bg-brand-cyan/80 transition-all active:scale-95"
                   title="Search"
                 >
                   <ArrowRight size={14} />
@@ -248,7 +248,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                       }
                     });
                   }}
-                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                  className="p-1.5 text-brand-silver hover:text-white transition-colors"
                 >
                   <X size={18} />
                 </button>
@@ -259,7 +259,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
           {/* Right: Settings */}
           <button 
             onClick={onGoToSettings}
-            className="p-2.5 bg-gray-100 dark:bg-gray-900 rounded-2xl text-gray-500 hover:text-indigo-600 transition-colors shadow-sm shrink-0"
+            className="p-2.5 bg-brand-bg blueprint-border rounded-2xl text-brand-silver hover:text-brand-cyan transition-colors shadow-sm shrink-0"
           >
             <Settings size={20} />
           </button>
@@ -267,7 +267,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
         
         {showLibrary && (
           <div className="flex flex-row justify-center items-center w-full pb-1">
-            <div className="flex flex-row items-center gap-1.5 bg-gray-100/50 dark:bg-gray-900/50 p-1 rounded-2xl backdrop-blur-sm border border-gray-100 dark:border-gray-800">
+            <div className="flex flex-row items-center gap-1.5 glass-effect p-1 rounded-2xl">
               {vidAngelEnabled && (
                 <button
                   onClick={() => startTransition(() => setShowEditedOnly(!showEditedOnly))}
@@ -301,8 +301,8 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                 className={clsx(
                   "flex items-center justify-center w-9 h-9 rounded-xl transition-all",
                   showWatched 
-                    ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20' 
-                    : 'bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20'
+                    ? 'bg-brand-cyan/20 text-brand-cyan shadow-[0_0_10px_rgba(34,211,238,0.2)]' 
+                    : 'bg-brand-cyan/10 text-brand-cyan hover:bg-brand-cyan/20'
                 )}
                 title={showWatched ? "Switch to Watchlist" : "Switch to History"}
               >
@@ -317,8 +317,8 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
           <div className="flex flex-col md:flex-row md:items-center gap-4 w-full md:w-auto">
             <div className="flex items-center gap-2">
-              {isSearching ? <SearchIcon className="text-indigo-600 dark:text-indigo-400" size={20} /> : <div className="w-2 h-6 bg-indigo-600 rounded-full" />}
-              <h1 className="text-xl font-black italic tracking-tighter text-gray-900 dark:text-white uppercase">
+              {isSearching ? <SearchIcon className="text-brand-cyan" size={20} /> : <div className="w-2 h-6 bg-brand-cyan rounded-full" />}
+              <h1 className="text-xl font-black italic tracking-tighter text-white uppercase">
                 {isSearching ? (searchLoading ? 'Searching...' : (searchResults.length > 0 ? `Results for "${query}"` : 'Type and press Enter to search')) : 'Popular Right Now'}
               </h1>
             </div>
@@ -328,8 +328,8 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                 onClick={() => startTransition(() => setShowEditedOnly(!showEditedOnly))}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
                   showEditedOnly 
-                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' 
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                    ? 'bg-amber-500/20 text-amber-400 blueprint-border' 
+                    : 'bg-brand-bg/50 text-brand-silver blueprint-border'
                 }`}
               >
                 <ShieldCheck size={14} className={showEditedOnly ? 'fill-current' : ''} />
@@ -347,7 +347,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                   searchAbortController.current.abort();
                 }
               })}
-              className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-900 border-2 border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all shadow-md active:scale-95 uppercase tracking-wider text-sm whitespace-nowrap"
+              className="flex items-center gap-2 px-6 py-3 bg-brand-bg/80 blueprint-border text-brand-cyan rounded-xl font-bold hover:bg-brand-cyan/10 transition-all shadow-[0_0_15px_rgba(34,211,238,0.1)] active:scale-95 uppercase tracking-wider text-sm whitespace-nowrap"
             >
               <ArrowLeft size={18} />
               Return to Library
@@ -389,22 +389,22 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-20 text-gray-500 dark:text-gray-400">
+            <div className="text-center py-20 text-brand-silver">
               {isSearching ? (
-                <p className="font-medium text-lg text-gray-400 dark:text-gray-600">
+                <p className="font-medium text-lg">
                    {searchLoading ? 'Searching...' : `No results found for "${query}"`}
                 </p>
               ) : showTrending ? (
                 <p>No trending content found.</p>
               ) : (
                 <div className="flex flex-col items-center gap-4">
-                  <p className="text-lg font-medium">Your list is empty</p>
-                  <p className="text-sm text-gray-400 max-w-xs mx-auto">
+                  <p className="text-lg font-medium text-white">Your list is empty</p>
+                  <p className="text-sm text-brand-silver max-w-xs mx-auto">
                     Search for movies and shows to add them to your watchlist.
                   </p>
                   <button 
                     onClick={() => setIsSearchFocused(true)}
-                    className="mt-4 text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider text-xs border-b-2 border-indigo-600/20 pb-1"
+                    className="mt-4 text-brand-cyan font-bold uppercase tracking-wider text-xs border-b border-brand-cyan/30 pb-1 hover:border-brand-cyan transition-colors"
                   >
                     Browse Popular
                   </button>

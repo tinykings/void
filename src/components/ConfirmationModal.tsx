@@ -43,17 +43,17 @@ export const ConfirmationModal = ({
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-sm bg-gray-900 border border-gray-800 rounded-3xl p-6 shadow-2xl overflow-hidden"
+            className="relative w-full max-w-sm glass-effect rounded-3xl p-6 shadow-2xl overflow-hidden"
           >
             <div className="flex flex-col items-center text-center">
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 ${
-                type === 'danger' ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 blueprint-border ${
+                type === 'danger' ? 'bg-red-500/20 text-red-400' : 'bg-brand-cyan/20 text-brand-cyan'
               }`}>
                 <AlertCircle size={32} />
               </div>
               
               <h2 className="text-xl font-black text-white uppercase italic tracking-tighter mb-2">{title}</h2>
-              <p className="text-gray-400 text-sm leading-relaxed mb-8">{message}</p>
+              <p className="text-brand-silver text-sm leading-relaxed mb-8">{message}</p>
 
               <div className="flex flex-col w-full gap-3">
                 <button
@@ -64,14 +64,14 @@ export const ConfirmationModal = ({
                   className={`w-full py-4 rounded-xl font-black uppercase tracking-widest transition-all active:scale-95 ${
                     type === 'danger' 
                       ? 'bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/20' 
-                      : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-900/20'
+                      : 'bg-brand-cyan text-brand-bg shadow-lg shadow-brand-cyan/20'
                   }`}
                 >
                   {confirmText}
                 </button>
                 <button
                   onClick={onClose}
-                  className="w-full py-4 text-xs font-bold text-gray-500 hover:text-gray-300 uppercase tracking-[0.2em] transition-colors"
+                  className="w-full py-4 text-xs font-bold text-brand-silver hover:text-white uppercase tracking-[0.2em] transition-colors"
                 >
                   {cancelText}
                 </button>
@@ -80,7 +80,7 @@ export const ConfirmationModal = ({
 
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 text-gray-500 hover:text-white transition-colors"
+              className="absolute top-4 right-4 p-2 text-brand-silver hover:text-white transition-colors"
             >
               <X size={20} />
             </button>

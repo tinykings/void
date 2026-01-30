@@ -17,7 +17,7 @@ export const FilterTabs: React.FC<FilterTabsProps> = ({ currentFilter, onFilterC
   ];
 
   return (
-    <div className="flex p-1 bg-gray-100 dark:bg-gray-900 rounded-xl w-full max-w-md transition-colors duration-300">
+    <div className="flex p-1 bg-brand-bg/50 blueprint-border rounded-xl w-full max-w-md transition-colors duration-300">
       {tabs.map((tab) => {
         const isActive = currentFilter === tab.id;
         const Icon = tab.icon;
@@ -28,8 +28,8 @@ export const FilterTabs: React.FC<FilterTabsProps> = ({ currentFilter, onFilterC
             className={clsx(
               "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-bold transition-all",
               isActive 
-                ? "bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm" 
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                ? "bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
+                : "text-brand-silver hover:text-white"
             )}
           >
             <Icon size={16} />

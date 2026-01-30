@@ -76,11 +76,11 @@ export const Onboarding = () => {
       case 1:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="w-16 h-16 bg-indigo-600/20 rounded-2xl flex items-center justify-center mx-auto mb-8">
-              <KeyIcon className="text-indigo-400" size={32} />
+            <div className="w-16 h-16 bg-brand-cyan/10 blueprint-border rounded-2xl flex items-center justify-center mx-auto mb-8">
+              <KeyIcon className="text-brand-cyan" size={32} />
             </div>
-            <h2 className="text-2xl font-black text-center uppercase italic tracking-tighter">TMDB API Key</h2>
-            <p className="text-gray-400 text-center text-sm leading-relaxed">
+            <h2 className="text-2xl font-black text-center uppercase italic tracking-tighter text-white">TMDB API Key</h2>
+            <p className="text-brand-silver text-center text-sm leading-relaxed">
               To browse and track your movies, you need a free API key from The Movie Database.
             </p>
             <div className="space-y-4">
@@ -93,8 +93,8 @@ export const Onboarding = () => {
                 }}
                 placeholder="Paste your API key here..."
                 className={clsx(
-                  "w-full p-4 rounded-xl bg-gray-800 border text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-gray-400",
-                  error ? "border-red-500" : "border-gray-700"
+                  "w-full p-4 rounded-xl bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50",
+                  error ? "border-red-500" : ""
                 )}
               />
               {error && (
@@ -106,7 +106,7 @@ export const Onboarding = () => {
                 href="https://developer.themoviedb.org/reference/intro/getting-started"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 text-xs font-bold text-indigo-400 hover:underline"
+                className="flex items-center justify-center gap-2 text-xs font-bold text-brand-cyan hover:underline"
               >
                 Don't have a key? Get one here <LinkIcon size={12} />
               </a>
@@ -114,7 +114,7 @@ export const Onboarding = () => {
             <button
               onClick={handleValidateKey}
               disabled={!tempApiKey || isValidating}
-              className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-black rounded-xl transition-all flex items-center justify-center gap-2 uppercase tracking-widest shadow-lg shadow-indigo-900/20"
+              className="w-full py-4 bg-brand-cyan text-brand-bg hover:bg-brand-cyan/90 disabled:opacity-50 font-black rounded-xl transition-all flex items-center justify-center gap-2 uppercase tracking-widest shadow-[0_0_20px_rgba(34,211,238,0.2)]"
             >
               {isValidating ? (
                 <>
@@ -133,30 +133,30 @@ export const Onboarding = () => {
       case 2:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="w-16 h-16 bg-indigo-600/20 rounded-2xl flex items-center justify-center mx-auto mb-8">
-              <UserIcon className="text-indigo-400" size={32} />
+            <div className="w-16 h-16 bg-brand-cyan/10 blueprint-border rounded-2xl flex items-center justify-center mx-auto mb-8">
+              <UserIcon className="text-brand-cyan" size={32} />
             </div>
-            <h2 className="text-2xl font-black text-center uppercase italic tracking-tighter">Connect Account</h2>
-            <p className="text-gray-400 text-center text-sm leading-relaxed">
+            <h2 className="text-2xl font-black text-center uppercase italic tracking-tighter text-white">Connect Account</h2>
+            <p className="text-brand-silver text-center text-sm leading-relaxed">
               Sync your watchlist and history across all your devices using your TMDB account.
             </p>
             {!tmdbSessionId ? (
               <button
                 onClick={loginWithTMDB}
-                className="w-full py-4 bg-white text-gray-900 font-black rounded-xl hover:bg-gray-100 transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
+                className="w-full py-4 bg-brand-bg blueprint-border text-white font-black rounded-xl hover:bg-brand-cyan/10 transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
               >
                 Login with TMDB
               </button>
             ) : (
-              <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-xl flex items-center gap-3 justify-center text-green-400 font-bold">
+              <div className="bg-green-500/10 blueprint-border p-4 rounded-xl flex items-center gap-3 justify-center text-green-400 font-bold">
                 <CheckIcon size={20} /> Account Connected
               </div>
             )}
             <div className="flex gap-3">
-              <button onClick={prevStep} className="flex-1 py-4 text-gray-500 font-bold uppercase tracking-widest text-xs">Back</button>
+              <button onClick={prevStep} className="flex-1 py-4 text-brand-silver font-bold uppercase tracking-widest text-xs">Back</button>
               <button 
                 onClick={nextStep} 
-                className="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl transition-all uppercase tracking-widest"
+                className="flex-[2] py-4 bg-brand-cyan text-brand-bg hover:bg-brand-cyan/90 font-black rounded-xl transition-all uppercase tracking-widest"
               >
                 {tmdbSessionId ? 'Next' : 'Skip for now'}
               </button>
@@ -167,11 +167,11 @@ export const Onboarding = () => {
       case 3:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="w-16 h-16 bg-amber-500/20 rounded-2xl flex items-center justify-center mx-auto mb-8">
+            <div className="w-16 h-16 bg-amber-500/10 blueprint-border rounded-2xl flex items-center justify-center mx-auto mb-8">
               <ShieldIcon className="text-amber-400" size={32} />
             </div>
-            <h2 className="text-2xl font-black text-center uppercase italic tracking-tighter">Content Filters</h2>
-            <p className="text-gray-400 text-center text-sm leading-relaxed">
+            <h2 className="text-2xl font-black text-center uppercase italic tracking-tighter text-white">Content Filters</h2>
+            <p className="text-brand-silver text-center text-sm leading-relaxed">
               Would you like to see if edited versions are available on VidAngel for mature content?
             </p>
             <button
@@ -181,20 +181,20 @@ export const Onboarding = () => {
                 toast.info(newState ? 'VidAngel integration enabled' : 'VidAngel integration disabled');
               }}
               className={clsx(
-                "w-full py-4 rounded-xl font-black transition-all flex items-center justify-center gap-3 uppercase tracking-widest border-2",
+                "w-full py-4 rounded-xl font-black transition-all flex items-center justify-center gap-3 uppercase tracking-widest border",
                 vidAngelEnabled 
-                  ? "bg-amber-500 border-amber-500 text-white" 
-                  : "bg-transparent border-gray-700 text-gray-400 hover:border-gray-600"
+                  ? "bg-amber-500 border-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.2)]" 
+                  : "bg-transparent border-white/10 text-brand-silver hover:border-white/20"
               )}
             >
               {vidAngelEnabled ? <CheckIcon size={20} /> : null}
               {vidAngelEnabled ? 'Enabled' : 'Enable VidAngel'}
             </button>
             <div className="flex gap-3 pt-4">
-              <button onClick={prevStep} className="flex-1 py-4 text-gray-500 font-bold uppercase tracking-widest text-xs">Back</button>
+              <button onClick={prevStep} className="flex-1 py-4 text-brand-silver font-bold uppercase tracking-widest text-xs">Back</button>
               <button 
                 onClick={nextStep} 
-                className="flex-[2] py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl transition-all uppercase tracking-widest"
+                className="flex-[2] py-4 bg-brand-cyan text-brand-bg hover:bg-brand-cyan/90 font-black rounded-xl transition-all uppercase tracking-widest"
               >
                 Continue
               </button>
@@ -205,11 +205,11 @@ export const Onboarding = () => {
       case 4:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="w-16 h-16 bg-rose-600/20 rounded-2xl flex items-center justify-center mx-auto mb-8">
+            <div className="w-16 h-16 bg-rose-500/10 blueprint-border rounded-2xl flex items-center justify-center mx-auto mb-8">
               <PlayIcon className="text-rose-400" size={32} />
             </div>
-            <h2 className="text-2xl font-black text-center uppercase italic tracking-tighter">External Player</h2>
-            <p className="text-gray-400 text-center text-sm leading-relaxed">
+            <h2 className="text-2xl font-black text-center uppercase italic tracking-tighter text-white">External Player</h2>
+            <p className="text-brand-silver text-center text-sm leading-relaxed">
               Optionally enable direct play links using third-party streaming providers.
             </p>
             
@@ -220,10 +220,10 @@ export const Onboarding = () => {
                   // Note: toggleExternalPlayerEnabled logic handles selecting first provider if none selected
                 }}
                 className={clsx(
-                  "w-full py-4 rounded-xl font-black transition-all flex items-center justify-center gap-3 uppercase tracking-widest border-2",
+                  "w-full py-4 rounded-xl font-black transition-all flex items-center justify-center gap-3 uppercase tracking-widest border",
                   externalPlayerEnabled 
-                    ? "bg-rose-600 border-rose-600 text-white" 
-                    : "bg-transparent border-gray-700 text-gray-400 hover:border-gray-600"
+                    ? "bg-rose-600 border-rose-600 text-white shadow-[0_0_20px_rgba(225,29,72,0.2)]" 
+                    : "bg-transparent border-white/10 text-brand-silver hover:border-white/20"
                 )}
               >
                 {externalPlayerEnabled ? <CheckIcon size={20} /> : null}
@@ -238,21 +238,21 @@ export const Onboarding = () => {
                     const name = externalPlayerOptions.find(o => o.id === e.target.value)?.name;
                     toast.info(`Player set to ${name}`);
                   }}
-                  className="w-full p-4 rounded-xl bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-rose-500 outline-none transition-all font-bold text-sm"
+                  className="w-full p-4 rounded-xl bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all font-bold text-sm"
                 >
-                  <option value="" disabled>Select a provider</option>
+                  <option value="" disabled className="bg-brand-bg">Select a provider</option>
                   {externalPlayerOptions.map(opt => (
-                    <option key={opt.id} value={opt.id}>{opt.name}</option>
+                    <option key={opt.id} value={opt.id} className="bg-brand-bg">{opt.name}</option>
                   ))}
                 </select>
               )}
             </div>
 
             <div className="flex gap-3 pt-4">
-              <button onClick={prevStep} className="flex-1 py-4 text-gray-500 font-bold uppercase tracking-widest text-xs">Back</button>
+              <button onClick={prevStep} className="flex-1 py-4 text-brand-silver font-bold uppercase tracking-widest text-xs">Back</button>
               <button 
                 onClick={handleFinish} 
-                className="flex-[2] py-4 bg-green-600 hover:bg-green-500 text-white font-black rounded-xl transition-all uppercase tracking-widest shadow-lg shadow-green-900/20"
+                className="flex-[2] py-4 bg-green-600 hover:bg-green-500 text-white font-black rounded-xl transition-all uppercase tracking-widest shadow-[0_0_20px_rgba(22,163,74,0.2)]"
               >
                 Finish Setup
               </button>
@@ -263,12 +263,12 @@ export const Onboarding = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-gray-950 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-gray-900 rounded-3xl p-8 border border-gray-800 shadow-2xl relative overflow-hidden">
+    <div className="fixed inset-0 z-[200] bg-brand-bg flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-brand-bg/50 blueprint-border rounded-3xl p-8 shadow-2xl relative overflow-hidden">
         {/* Progress Bar */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gray-800">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-white/5">
           <div 
-            className="h-full bg-indigo-600 transition-all duration-500 ease-out" 
+            className="h-full bg-brand-cyan transition-all duration-500 ease-out shadow-[0_0_10px_#22D3EE]" 
             style={{ width: `${(step / 4) * 100}%` }}
           />
         </div>
@@ -276,7 +276,7 @@ export const Onboarding = () => {
         {renderStep()}
         
         <div className="mt-8 text-center">
-          <p className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em]">Step {step} of 4</p>
+          <p className="text-[10px] font-black text-brand-silver uppercase tracking-[0.2em]">Step {step} of 4</p>
         </div>
       </div>
     </div>

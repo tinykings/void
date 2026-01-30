@@ -114,10 +114,10 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
 
   return (
     <>
-      <div ref={cardRef} className="relative group bg-white dark:bg-gray-900 rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col h-full transition-colors duration-300">
+      <div ref={cardRef} className="relative group bg-brand-bg blueprint-border rounded-xl overflow-hidden shadow-sm flex flex-col h-full transition-colors duration-300">
         <Link 
           href={`/details?type=${media.media_type}&id=${media.id}`} 
-          className="block relative aspect-[2/3] bg-gray-200 dark:bg-gray-800 overflow-hidden shrink-0"
+          className="block relative aspect-[2/3] bg-brand-bg/50 overflow-hidden shrink-0"
           onMouseEnter={prefetchBackdrop}
           onTouchStart={prefetchBackdrop}
         >
@@ -129,28 +129,14 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
               loading="lazy"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center p-4 text-center text-gray-400 bg-gray-100 dark:bg-gray-800">
+            <div className="w-full h-full flex items-center justify-center p-4 text-center text-brand-silver bg-brand-bg/80">
               <span className="text-sm font-medium">{title}</span>
             </div>
           )}
-          
-          {/* Overlays */}
-          <div className="absolute top-2 right-2 flex flex-col gap-1">
-            {inWatched && (
-              <div className="bg-green-500 text-white p-1 rounded-full shadow-md">
-                <Check size={14} strokeWidth={3} />
-              </div>
-            )}
-            {inWatchlist && (
-              <div className="bg-indigo-500 text-white p-1 rounded-full shadow-md">
-                <Bookmark size={14} strokeWidth={3} className="fill-current" />
-              </div>
-            )}
-          </div>
 
           {showBadge && isEdited && (
             <div className="absolute top-2 left-2 z-10">
-              <div className="bg-amber-500 text-white text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded shadow-lg border border-white/30" title="Available on VidAngel">
+              <div className="bg-amber-500/90 backdrop-blur-sm text-white text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded shadow-lg border border-white/30" title="Available on VidAngel">
                 Edited
               </div>
             </div>
@@ -159,12 +145,12 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
 
         <div className="p-3 flex flex-col flex-1">
           <div className="mb-2">
-            <h3 className="text-sm font-bold truncate leading-tight mb-0.5 text-gray-900 dark:text-gray-100" title={title}>{title}</h3>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium uppercase tracking-tighter">
+            <h3 className="text-sm font-bold truncate leading-tight mb-0.5 text-white" title={title}>{title}</h3>
+            <p className="text-[10px] text-brand-silver font-medium uppercase tracking-tighter">
               {media.media_type === 'movie' ? 'Movie' : 'TV'} • {year}
             </p>
             {media.next_episode_to_air && (
-              <p className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 mt-1 flex items-center gap-1">
+              <p className="text-[10px] font-bold text-brand-cyan mt-1 flex items-center gap-1">
                 Next: {new Date(media.next_episode_to_air.air_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                 <span className="opacity-75 font-normal">
                   (S{media.next_episode_to_air.season_number}E{media.next_episode_to_air.episode_number})
@@ -178,26 +164,24 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
               <button
                 onClick={handleWatchlistClick}
                 className={clsx(
-                  "flex-1 py-1.5 rounded-md flex items-center justify-center gap-1 transition-colors text-[10px] font-bold",
+                  "flex-1 py-1.5 rounded-md flex items-center justify-center transition-colors text-[10px] font-bold",
                   inWatchlist 
-                    ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300" 
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    ? "bg-brand-cyan/20 text-brand-cyan blueprint-border" 
+                    : "bg-brand-bg/50 text-brand-silver blueprint-border hover:bg-brand-bg hover:text-white"
                 )}
               >
-                {inWatchlist ? <Trash2 size={12} /> : <Plus size={12} />}
-                {inWatchlist ? 'LIST' : 'LIST'}
+                LIST
               </button>
               <button
                 onClick={handleWatchedClick}
                 className={clsx(
-                  "flex-1 py-1.5 rounded-md flex items-center justify-center gap-1 transition-colors text-[10px] font-bold",
+                  "flex-1 py-1.5 rounded-md flex items-center justify-center transition-colors text-[10px] font-bold",
                   inWatched 
-                    ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300" 
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    ? "bg-green-500/20 text-green-400 blueprint-border" 
+                    : "bg-brand-bg/50 text-brand-silver blueprint-border hover:bg-brand-bg hover:text-white"
                 )}
               >
-                <Check size={12} />
-                {inWatched ? 'DONE' : 'WATCHED'}
+                {inWatched ? 'WATCHED' : 'WATCH'}
               </button>
             </div>
           )}

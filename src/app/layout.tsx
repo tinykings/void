@@ -37,10 +37,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-300`}>
+      <body className={`${inter.className} bg-brand-bg text-foreground min-h-screen transition-colors duration-300`}>
         <AppProvider>
           <OfflineGuard>
-            <main className="container mx-auto min-h-screen bg-white dark:bg-gray-950 pb-12 pt-4 px-2 sm:px-3 lg:px-4 transition-colors duration-300">
+            <main className="container mx-auto min-h-screen bg-brand-bg pb-12 pt-4 px-2 sm:px-3 lg:px-4 transition-colors duration-300">
               {children}
             </main>
           </OfflineGuard>
