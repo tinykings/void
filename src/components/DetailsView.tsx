@@ -458,24 +458,24 @@ export default function DetailsView() {
                 <button
                   key={actor.id}
                   onClick={() => handleActorClick(actor)}
-                  className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-brand-bg/50 blueprint-border hover:bg-brand-bg transition-all group active:scale-95"
+                  className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-brand-bg/50 blueprint-border hover:bg-brand-bg transition-all group active:scale-95"
                 >
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-brand-bg blueprint-border group-hover:shadow-[0_0_15px_rgba(34,211,238,0.2)] transition-shadow">
-                    {actor.profile_path ? (
-                      <img
-                        src={getImageUrl(actor.profile_path, 'w185')}
-                        alt={actor.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-brand-silver">
-                        <UserIcon size={32} />
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs sm:text-sm font-bold text-white leading-tight mb-1">{actor.name}</p>
-                    <p className="text-[10px] text-brand-silver font-medium uppercase tracking-tighter truncate max-w-[120px]">{actor.character}</p>
+                  {actor.profile_path ? (
+                    <img
+                      src={getImageUrl(actor.profile_path, 'w185')}
+                      alt={actor.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-brand-silver bg-brand-bg">
+                      <UserIcon size={40} className="mb-2 opacity-20" />
+                    </div>
+                  )}
+                  
+                  {/* Bottom Info Box Overlay */}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-3 pt-8">
+                    <p className="text-xs sm:text-sm font-black text-white leading-tight mb-0.5 uppercase italic tracking-tighter">{actor.name}</p>
+                    <p className="text-[9px] text-brand-cyan font-bold uppercase tracking-widest truncate opacity-80">{actor.character}</p>
                   </div>
                 </button>
               ))}
