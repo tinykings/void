@@ -453,12 +453,12 @@ export default function DetailsView() {
         {cast.length > 0 && (
           <section className="mt-8">
             <h2 className="text-lg font-bold mb-4 uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Top Cast</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
               {cast.map((actor) => (
                 <button
                   key={actor.id}
                   onClick={() => handleActorClick(actor)}
-                  className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-brand-bg/50 blueprint-border hover:bg-brand-bg transition-all group active:scale-95"
+                  className="relative aspect-[3/4] rounded-xl overflow-hidden bg-brand-bg/50 blueprint-border hover:bg-brand-bg transition-all group active:scale-95"
                 >
                   {actor.profile_path ? (
                     <img
@@ -468,14 +468,14 @@ export default function DetailsView() {
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-brand-silver bg-brand-bg">
-                      <UserIcon size={40} className="mb-2 opacity-20" />
+                      <UserIcon size={24} className="mb-1 opacity-20" />
                     </div>
                   )}
                   
                   {/* Bottom Info Box Overlay */}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-3 pt-8">
-                    <p className="text-xs sm:text-sm font-black text-white leading-tight mb-0.5 uppercase italic tracking-tighter">{actor.name}</p>
-                    <p className="text-[9px] text-brand-cyan font-bold uppercase tracking-widest truncate opacity-80">{actor.character}</p>
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-6">
+                    <p className="text-[10px] sm:text-xs font-black text-white leading-tight mb-0.5 uppercase italic tracking-tighter truncate">{actor.name}</p>
+                    <p className="text-[8px] text-brand-cyan font-bold uppercase tracking-widest truncate opacity-80">{actor.character}</p>
                   </div>
                 </button>
               ))}
