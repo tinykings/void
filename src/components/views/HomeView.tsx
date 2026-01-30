@@ -202,41 +202,39 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 pb-24 relative">
-      <div className="flex flex-col gap-4 mb-6 pt-4">
-        <div className="flex flex-row items-center justify-between gap-3 w-full">
-          {/* Left: Movies/Shows Filter */}
-          <div className={clsx(
-            "flex items-center gap-2 shrink-0 transition-all duration-300",
-            isSearchFocused ? "w-0 opacity-0 overflow-hidden" : "w-auto opacity-100"
-          )}>
-            <FilterTabs 
-              currentFilter={filter || 'movie'} 
-              onFilterChange={(f) => startTransition(() => {
-                setFilter(f);
-              })} 
+      <div className="flex flex-col gap-6 mb-8 pt-6">
+        <div className="flex flex-col gap-4 w-full">
+          {/* Top Row: Search (Expands) */}
+          <div className="relative w-full z-20">
+            <SearchIcon 
+              className={clsx(
+                "absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-300",
+                isSearchFocused ? "text-brand-cyan scale-110" : "text-brand-silver"
+              )} 
+              size={isSearchFocused ? 22 : 18} 
             />
-          </div>
-
-          {/* Center: Search Field */}
-          <div className="relative flex-1 min-w-0">
-            <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-silver" size={18} />
             <input
               type="text"
               value={query}
               onFocus={() => startTransition(() => setIsSearchFocused(true))}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Search..."
-              className="w-full pl-10 pr-20 py-2.5 bg-brand-bg blueprint-border rounded-2xl focus:ring-1 focus:ring-brand-cyan/50 outline-none transition-all shadow-sm text-sm font-medium text-white placeholder:text-brand-silver"
+              placeholder="Search movies, shows..."
+              className={clsx(
+                "w-full pl-12 pr-20 bg-brand-bg blueprint-border rounded-2xl transition-all duration-300 outline-none font-medium text-white placeholder:text-brand-silver/50",
+                isSearchFocused 
+                  ? "py-5 text-lg shadow-[0_0_30px_rgba(34,211,238,0.15)] ring-1 ring-brand-cyan/30" 
+                  : "py-3 text-sm shadow-sm"
+              )}
             />
-            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
               {query.trim().length >= 2 && (
                 <button 
                   onClick={() => handleSearch(query)}
-                  className="p-1.5 bg-brand-cyan text-brand-bg rounded-lg shadow-[0_0_10px_rgba(34,211,238,0.3)] hover:bg-brand-cyan/80 transition-all active:scale-95"
+                  className="p-2 bg-brand-cyan text-brand-bg rounded-xl shadow-lg hover:bg-brand-cyan/80 transition-all active:scale-95"
                   title="Search"
                 >
-                  <ArrowRight size={14} />
+                  <ArrowRight size={16} />
                 </button>
               )}
               {(query || isSearchFocused) && (
@@ -251,34 +249,45 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                       }
                     });
                   }}
-                  className="p-1.5 text-brand-silver hover:text-white transition-colors"
+                  className="p-2 text-brand-silver hover:text-white transition-colors"
                 >
-                  <X size={18} />
+                  <X size={20} />
                 </button>
               )}
             </div>
           </div>
-        </div>
-        
-        {showLibrary && (
-          <div className="flex flex-row justify-center items-center w-full pb-1">
-            <div className="flex flex-row items-center gap-1.5 glass-effect p-1 rounded-2xl">
+
+          {/* Bottom Row: Filter Tabs & Controls */}
+          <div className={clsx(
+            "flex flex-row items-center justify-between gap-4 transition-all duration-300",
+            isSearchFocused ? "opacity-0 -translate-y-2 pointer-events-none h-0 overflow-hidden" : "opacity-100 translate-y-0 h-auto"
+          )}>
+            <div className="shrink-0">
+              <FilterTabs 
+                currentFilter={filter || 'movie'} 
+                onFilterChange={(f) => startTransition(() => {
+                  setFilter(f);
+                })} 
+              />
+            </div>
+
+            <div className="flex items-center gap-2 glass-effect p-1 rounded-2xl">
               {vidAngelEnabled && (
                 <button
                   onClick={() => startTransition(() => setShowEditedOnly(!showEditedOnly))}
                   className={clsx(
-                    "flex items-center justify-center w-9 h-9 rounded-xl transition-all",
+                    "flex items-center justify-center w-10 h-10 rounded-xl transition-all",
                     showEditedOnly 
-                      ? 'bg-amber-500 text-white shadow-lg shadow-amber-900/20' 
+                      ? 'bg-amber-500 text-white shadow-lg' 
                       : 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'
                   )}
                   title="Edited Only"
                 >
-                  <ShieldCheck size={18} className={showEditedOnly ? 'fill-current' : ''} />
+                  <ShieldCheck size={20} className={showEditedOnly ? 'fill-current' : ''} />
                 </button>
               )}
               
-              <div className="w-px h-4 bg-gray-200 dark:bg-gray-800 mx-0.5" />
+              <div className="w-px h-5 bg-white/5 mx-0.5" />
 
               <div className="px-1">
                 <SortControl 
@@ -287,35 +296,35 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                 />
               </div>
 
-              <div className="w-px h-4 bg-gray-200 dark:bg-gray-800 mx-0.5" />
+              <div className="w-px h-5 bg-white/5 mx-0.5" />
 
               <button
                 onClick={() => startTransition(() => {
                   setShowWatched(!showWatched);
                 })}
                 className={clsx(
-                  "flex items-center justify-center w-9 h-9 rounded-xl transition-all",
+                  "flex items-center justify-center w-10 h-10 rounded-xl transition-all",
                   showWatched 
-                    ? 'bg-green-500/20 text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.2)]' 
+                    ? 'bg-green-500/20 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.15)]' 
                     : 'bg-brand-cyan/10 text-brand-cyan hover:bg-brand-cyan/20'
                 )}
                 title={showWatched ? "Switch to Watchlist" : "Switch to History"}
               >
-                {showWatched ? <CheckCircle2 size={18} /> : <Bookmark size={18} />}
+                {showWatched ? <CheckCircle2 size={20} /> : <Bookmark size={20} />}
               </button>
 
-              <div className="w-px h-4 bg-gray-200 dark:bg-gray-800 mx-0.5" />
+              <div className="w-px h-5 bg-white/5 mx-0.5" />
 
               <button
                 onClick={onGoToSettings}
-                className="flex items-center justify-center w-9 h-9 rounded-xl text-brand-silver hover:text-brand-cyan hover:bg-brand-bg/50 transition-all"
+                className="flex items-center justify-center w-10 h-10 rounded-xl text-brand-silver hover:text-brand-cyan hover:bg-white/5 transition-all"
                 title="Settings"
               >
-                <Settings size={18} />
+                <Settings size={20} />
               </button>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {(isSearching || showTrending) && (
