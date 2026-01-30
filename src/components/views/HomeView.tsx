@@ -204,20 +204,17 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     <div className="max-w-7xl mx-auto px-4 pb-24 relative">
       <div className="flex flex-col gap-4 mb-6 pt-4">
         <div className="flex flex-row items-center justify-between gap-3 w-full">
-          {/* Left: Movies/Shows Filter & Settings */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Left: Movies/Shows Filter */}
+          <div className={clsx(
+            "flex items-center gap-2 shrink-0 transition-all duration-300",
+            isSearchFocused ? "w-0 opacity-0 overflow-hidden" : "w-auto opacity-100"
+          )}>
             <FilterTabs 
               currentFilter={filter || 'movie'} 
               onFilterChange={(f) => startTransition(() => {
                 setFilter(f);
               })} 
             />
-            <button 
-              onClick={onGoToSettings}
-              className="p-2.5 bg-brand-bg blueprint-border rounded-2xl text-brand-silver hover:text-brand-cyan transition-colors shadow-sm"
-            >
-              <Settings size={20} />
-            </button>
           </div>
 
           {/* Center: Search Field */}
@@ -305,6 +302,16 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                 title={showWatched ? "Switch to Watchlist" : "Switch to History"}
               >
                 {showWatched ? <CheckCircle2 size={18} /> : <Bookmark size={18} />}
+              </button>
+
+              <div className="w-px h-4 bg-gray-200 dark:bg-gray-800 mx-0.5" />
+
+              <button
+                onClick={onGoToSettings}
+                className="flex items-center justify-center w-9 h-9 rounded-xl text-brand-silver hover:text-brand-cyan hover:bg-brand-bg/50 transition-all"
+                title="Settings"
+              >
+                <Settings size={18} />
               </button>
             </div>
           </div>
