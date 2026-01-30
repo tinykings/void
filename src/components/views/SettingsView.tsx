@@ -169,9 +169,6 @@ export const SettingsView = () => {
           <div className="flex items-center justify-between">
             <div className="pr-4">
               <h3 className="text-sm font-bold text-white">VidAngel Integration</h3>
-              <p className="text-xs text-brand-silver mt-1">
-                Show availability for movies rated R and TV shows rated TV-MA.
-              </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
