@@ -153,6 +153,24 @@ export interface Video {
   published_at: string;
 }
 
+export interface CastMember {
+  id: number;
+  name: string;
+  character: string;
+  profile_path: string | null;
+  order: number;
+}
+
+export interface CreditsResponse {
+  id: number;
+  cast: CastMember[];
+}
+
+export interface PersonCreditsResponse {
+  id: number;
+  cast: (TmdbResult & { character: string })[];
+}
+
 export interface VideosResponse {
   id: number;
   results: Video[];

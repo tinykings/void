@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { getMediaDetails, getWatchProviders, getImageUrl, getContentRating, getSeasonDetails, getMediaVideos } from '@/lib/tmdb';
+import { getMediaDetails, getWatchProviders, getImageUrl, getContentRating, getSeasonDetails, getMediaVideos, getMediaCredits, getPersonCredits } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
-import { Media, WatchProvidersResponse, WatchProvider, SeasonDetails, Video, SeasonSummary } from '@/lib/types';
-import { ChevronLeft, Plus, Check, Trash2, Play, Star, Calendar, ShieldCheck, ChevronDown } from 'lucide-react';
+import { Media, WatchProvidersResponse, WatchProvider, SeasonDetails, Video, SeasonSummary, CastMember } from '@/lib/types';
+import { ChevronLeft, Plus, Check, Trash2, Play, Star, Calendar, ShieldCheck, ChevronDown, User as UserIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
+import { CreditsModal } from '@/components/CreditsModal';
 
 export default function DetailsView() {
   const searchParams = useSearchParams();
@@ -31,12 +32,19 @@ export default function DetailsView() {
   const [rating, setRating] = useState<string | null>(null);
   const [providers, setProviders] = useState<WatchProvidersResponse | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
+  const [cast, setCast] = useState<CastMember[]>([]);
   const [vidAngelSlug, setVidAngelSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1);
   const [seasonDetails, setSeasonDetails] = useState<SeasonDetails | null>(null);
+
+  // Credits Modal State
+  const [selectedActor, setSelectedActor] = useState<CastMember | null>(null);
+  const [actorCredits, setActorCredits] = useState<Media[]>([]);
+  const [isCreditsModalOpen, setIsCreditsModalOpen] = useState(false);
+  const [creditsLoading, setCreditsLoading] = useState(false);
 
   // Modal State
   const [modalConfig, setModalConfig] = useState<{
@@ -93,9 +101,10 @@ export default function DetailsView() {
         getMediaDetails(parseInt(id), type, apiKey),
         getWatchProviders(parseInt(id), type, apiKey),
         getContentRating(parseInt(id), type, apiKey),
-        getMediaVideos(parseInt(id), type, apiKey)
+        getMediaVideos(parseInt(id), type, apiKey),
+        getMediaCredits(parseInt(id), type, apiKey)
       ])
-        .then(async ([mediaData, providerData, ratingData, videoData]) => {
+        .then(async ([mediaData, providerData, ratingData, videoData, creditsData]) => {
           if (mediaData.media_type === 'tv' && mediaData.seasons && mediaData.seasons.length > 0) {
             const regularSeasons = mediaData.seasons.filter((s: SeasonSummary) => s.season_number > 0);
             const latestSeason = regularSeasons.length > 0 
@@ -107,10 +116,11 @@ export default function DetailsView() {
           setMedia(mediaData);
           setProviders(providerData);
           setRating(ratingData);
+          setCast(creditsData.cast.slice(0, 4));
           
           const trailers = videoData.results
             .filter((v: Video) => v.site === 'YouTube' && v.type === 'Trailer')
-            .sort((a, b) => new Date(a.published_at).getTime() - new Date(b.published_at).getTime())
+            .sort((a: Video, b: Video) => new Date(a.published_at).getTime() - new Date(b.published_at).getTime())
             .slice(0, 2);
           setVideos(trailers);
 
@@ -190,6 +200,26 @@ export default function DetailsView() {
           toast.success('Marked as watched');
         }
       });
+    }
+  };
+
+  const handleActorClick = async (actor: CastMember) => {
+    if (!apiKey) return;
+    setSelectedActor(actor);
+    setIsCreditsModalOpen(true);
+    setCreditsLoading(true);
+    try {
+      const data = await getPersonCredits(actor.id, apiKey);
+      const sortedCredits = data.cast
+        .sort((a: any, b: any) => b.popularity - a.popularity)
+        .slice(0, 20)
+        .map((c: any) => ({ ...c, media_type: c.media_type || 'movie' } as Media));
+      setActorCredits(sortedCredits);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to load actor credits');
+    } finally {
+      setCreditsLoading(false);
     }
   };
 
@@ -409,6 +439,39 @@ export default function DetailsView() {
           </section>
         )}
 
+        {cast.length > 0 && (
+          <section className="mt-8">
+            <h2 className="text-lg font-bold mb-4 uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Top Cast</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {cast.map((actor) => (
+                <button
+                  key={actor.id}
+                  onClick={() => handleActorClick(actor)}
+                  className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-brand-bg/50 blueprint-border hover:bg-brand-bg transition-all group active:scale-95"
+                >
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-brand-bg blueprint-border group-hover:shadow-[0_0_15px_rgba(34,211,238,0.2)] transition-shadow">
+                    {actor.profile_path ? (
+                      <img
+                        src={getImageUrl(actor.profile_path, 'w185')}
+                        alt={actor.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-brand-silver">
+                        <UserIcon size={32} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs sm:text-sm font-bold text-white leading-tight mb-1">{actor.name}</p>
+                    <p className="text-[10px] text-brand-silver font-medium uppercase tracking-tighter truncate max-w-[120px]">{actor.character}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
         {videos.length > 0 && (
           <section className="mt-8">
             <h2 className="text-lg font-bold mb-4 uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Trailers</h2>
@@ -437,6 +500,14 @@ export default function DetailsView() {
         onClose={() => setModalConfig({ ...modalConfig, isOpen: false })}
         onConfirm={modalConfig.onConfirm}
         confirmText={modalConfig.confirmText}
+      />
+
+      <CreditsModal
+        isOpen={isCreditsModalOpen}
+        onClose={() => setIsCreditsModalOpen(false)}
+        actor={selectedActor}
+        credits={actorCredits}
+        loading={creditsLoading}
       />
     </div>
   );
