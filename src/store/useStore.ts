@@ -92,25 +92,51 @@ export const useStore = create<StoreState>()(
             fetchAll('tv', 'rated'),
           ]);
 
-          const mergeMetadata = (newList: Media[], oldList: Media[]) => {
-            return newList.map(newItem => {
-              const oldItem = oldList.find(o => o.id === newItem.id && o.media_type === newItem.media_type);
-              if (oldItem) {
-                return {
-                  ...newItem,
-                  lastChecked: oldItem.lastChecked,
-                  next_episode_to_air: oldItem.next_episode_to_air,
-                  status: oldItem.status || newItem.status
-                };
-              }
-              return newItem;
-            });
+          const state = get();
+          const allIncomingRated = [...ratedMovies, ...ratedTv];
+          const allIncomingWatchlist = [...wlMovies, ...wlTv];
+
+          const mergeMetadata = (newItem: Media) => {
+            const oldItem = state.watchlist.find(o => o.id === newItem.id && o.media_type === newItem.media_type) ||
+                            state.watched.find(o => o.id === newItem.id && o.media_type === newItem.media_type);
+            if (oldItem) {
+              return {
+                ...newItem,
+                lastChecked: oldItem.lastChecked,
+                next_episode_to_air: oldItem.next_episode_to_air,
+                status: oldItem.status || newItem.status,
+                date_added: oldItem.date_added || newItem.date_added
+              };
+            }
+            return newItem;
           };
 
-          const state = get();
+          // Process Rated list first
+          const finalWatched = allIncomingRated.map(mergeMetadata);
+
+          // Process Watchlist with exclusivity check
+          const finalWatchlist = allIncomingWatchlist
+            .filter(w => {
+              // If it's also in the rated list on TMDB, it's "Watched"
+              const isRated = allIncomingRated.some(r => r.id === w.id && r.media_type === w.media_type);
+              if (!isRated) return true;
+
+              // If it's in both, only keep in Watchlist if we have metadata saying it has an upcoming episode
+              const merged = mergeMetadata(w);
+              if (merged.next_episode_to_air && merged.next_episode_to_air.air_date) {
+                const airDate = new Date(merged.next_episode_to_air.air_date).getTime();
+                const nextWeek = now + (7 * 24 * 60 * 60 * 1000);
+                return !isNaN(airDate) && airDate <= nextWeek;
+              }
+
+              // Otherwise, prefer the Rated/Watched state
+              return false;
+            })
+            .map(mergeMetadata);
+
           set({ 
-            watchlist: mergeMetadata([...wlMovies, ...wlTv], state.watchlist),
-            watched: mergeMetadata([...ratedMovies, ...ratedTv], state.watched)
+            watchlist: finalWatchlist,
+            watched: finalWatched
           });
           lastSyncTime.current = Date.now();
         } catch (error: any) {
