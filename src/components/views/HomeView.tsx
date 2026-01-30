@@ -259,10 +259,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
           {/* Bottom Row: Filter Tabs & Controls */}
           <div className={clsx(
-            "flex flex-row items-center justify-between gap-4 transition-all duration-300",
+            "flex flex-col items-center gap-4 transition-all duration-300",
             isSearchFocused ? "opacity-0 -translate-y-2 pointer-events-none h-0 overflow-hidden" : "opacity-100 translate-y-0 h-auto"
           )}>
-            <div className="shrink-0">
+            <div className="w-full max-w-sm">
               <FilterTabs 
                 currentFilter={filter || 'movie'} 
                 onFilterChange={(f) => startTransition(() => {
