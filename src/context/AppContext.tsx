@@ -93,7 +93,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     window.addEventListener('focus', handleFocus);
-    return () => window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [store.isLoaded, store.isSyncing]);
 
   // TV migration loop
