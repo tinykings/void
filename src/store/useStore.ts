@@ -7,15 +7,21 @@ import { toast } from 'sonner';
 
 // Helper to check if an episode airs within the next 7 days
 const isAiringSoon = (airDateStr: string): boolean => {
-  const airDate = new Date(airDateStr).getTime();
-  if (isNaN(airDate)) return false;
+  // Parse the air date string (format: "YYYY-MM-DD")
+  const airDate = new Date(airDateStr + 'T00:00:00');
+  if (isNaN(airDate.getTime())) return false;
   
-  const now = Date.now();
-  // Allow episodes from the last 24h (to catch "today's" episodes) and up to 7 days in the future
-  const startWindow = now - (24 * 60 * 60 * 1000);
-  const endWindow = now + (7 * 24 * 60 * 60 * 1000);
+  // Get today at midnight for accurate day comparison
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   
-  return airDate >= startWindow && airDate <= endWindow;
+  // Get 7 days from now at end of day
+  const sevenDaysFromNow = new Date(today);
+  sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+  sevenDaysFromNow.setHours(23, 59, 59, 999);
+  
+  // Check if air date is between today and 7 days from now (inclusive)
+  return airDate >= today && airDate <= sevenDaysFromNow;
 };
 
 // Custom storage object for IndexedDB
