@@ -356,37 +356,36 @@ export const useStore = create<StoreState>()(
                 try {
                   console.log(`[TV Migration] Migrating "${show.name || show.id}" to watchlist...`);
                   await toggleWatchlistStatus(apiKey, tmdbSessionId, tmdbAccountId, show.id, 'tv', true);
-                    try {
-                      await deleteRating(apiKey, tmdbSessionId, show.id, 'tv');
-                    } catch (deleteErr) {
-                      // Revert watchlist addition on TMDB to avoid partial state
-                      console.error(`[TV Migration] deleteRating failed for "${show.name || show.id}", reverting watchlist add`, deleteErr);
-                      await toggleWatchlistStatus(apiKey, tmdbSessionId, tmdbAccountId, show.id, 'tv', false).catch(() => {});
-                      throw deleteErr;
-                    }
-                  } catch (tmdbErr) {
-                    console.error(`[TV Migration] TMDB calls failed for "${show.name || show.id}"`, tmdbErr);
-                    // Update lastChecked so we don't retry immediately, but don't migrate locally
-                    set(state => ({
-                      watched: state.watched.map(m => m.id === show.id && m.media_type === 'tv'
-                        ? { ...m, lastChecked: now }
-                        : m)
-                    }));
-                    continue;
+                  try {
+                    await deleteRating(apiKey, tmdbSessionId, show.id, 'tv');
+                  } catch (deleteErr) {
+                    // Revert watchlist addition on TMDB to avoid partial state
+                    console.error(`[TV Migration] deleteRating failed for "${show.name || show.id}", reverting watchlist add`, deleteErr);
+                    await toggleWatchlistStatus(apiKey, tmdbSessionId, tmdbAccountId, show.id, 'tv', false).catch(() => {});
+                    throw deleteErr;
                   }
-
+                } catch (tmdbErr) {
+                  console.error(`[TV Migration] TMDB calls failed for "${show.name || show.id}"`, tmdbErr);
+                  // Update lastChecked so we don't retry immediately, but don't migrate locally
                   set(state => ({
-                    watched: state.watched.filter(m => !(m.id === show.id && m.media_type === 'tv')),
-                    watchlist: [...state.watchlist, { ...show, ...details, lastChecked: now, date_added: new Date().toISOString() }]
-                  }));
-                } else {
-                  // Metadata update only
-                  set(state => ({
-                    watched: state.watched.map(m => m.id === show.id && m.media_type === 'tv' 
-                      ? { ...m, status: details.status, next_episode_to_air: details.next_episode_to_air, lastChecked: now } 
+                    watched: state.watched.map(m => m.id === show.id && m.media_type === 'tv'
+                      ? { ...m, lastChecked: now }
                       : m)
                   }));
+                  continue;
                 }
+
+                set(state => ({
+                  watched: state.watched.filter(m => !(m.id === show.id && m.media_type === 'tv')),
+                  watchlist: [...state.watchlist, { ...show, ...details, lastChecked: now, date_added: new Date().toISOString() }]
+                }));
+              } else if (airDate) {
+                // Metadata update only (upcoming episode but not within 7 days)
+                set(state => ({
+                  watched: state.watched.map(m => m.id === show.id && m.media_type === 'tv' 
+                    ? { ...m, status: details.status, next_episode_to_air: details.next_episode_to_air, lastChecked: now } 
+                    : m)
+                }));
               } else {
                 // No upcoming episode, just refresh lastChecked
                 console.log(`[TV Migration] "${show.name || show.id}" has no upcoming episode`);
