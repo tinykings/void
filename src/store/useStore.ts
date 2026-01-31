@@ -135,6 +135,30 @@ export const useStore = create<StoreState>()(
           const finalWatched = allIncomingRated.map(mergeMetadata);
 
           // Process Watchlist with strict exclusivity check
+          // First, we need to fetch fresh details for TV shows that are both watched and on watchlist
+          const tvShowsNeedingFreshData: Media[] = [];
+          for (const w of allIncomingWatchlist) {
+            const isRatedOnTMDB = allIncomingRated.some(r => r.id === w.id && r.media_type === w.media_type);
+            const isWatchedLocally = state.watched.some(o => o.id === w.id && o.media_type === w.media_type);
+            
+            if ((isRatedOnTMDB || isWatchedLocally) && w.media_type === 'tv') {
+              tvShowsNeedingFreshData.push(w);
+            }
+          }
+
+          // Fetch fresh details for these shows
+          const freshShowDetails = new Map<number, any>();
+          await Promise.all(
+            tvShowsNeedingFreshData.map(async (show) => {
+              try {
+                const details = await getMediaDetails(show.id, 'tv', apiKey);
+                freshShowDetails.set(show.id, details);
+              } catch (err) {
+                console.error(`Failed to fetch details for show ${show.id}:`, err);
+              }
+            })
+          );
+
           const finalWatchlist = allIncomingWatchlist
             .filter(w => {
               const isRatedOnTMDB = allIncomingRated.some(r => r.id === w.id && r.media_type === w.media_type);
@@ -142,12 +166,15 @@ export const useStore = create<StoreState>()(
               
               // If it's considered "Watched" (either on TMDB or in our current local state)
               if (isRatedOnTMDB || isWatchedLocally) {
-                const merged = mergeMetadata(w);
-                // Only allow it back in the Watchlist if it has an upcoming episode in the next 7 days
-                if (merged.next_episode_to_air && merged.next_episode_to_air.air_date) {
-                  return isAiringSoon(merged.next_episode_to_air.air_date);
+                // For TV shows, use fresh data; for movies, this check doesn't apply
+                if (w.media_type === 'tv') {
+                  const freshDetails = freshShowDetails.get(w.id);
+                  if (freshDetails?.next_episode_to_air?.air_date) {
+                    return isAiringSoon(freshDetails.next_episode_to_air.air_date);
+                  }
+                  return false; // No upcoming episode or failed to fetch
                 }
-                return false;
+                return false; // Movies that are watched shouldn't be in watchlist
               }
               
               return true;
@@ -410,3 +437,4 @@ export const useStore = create<StoreState>()(
     }
   )
 );
+
