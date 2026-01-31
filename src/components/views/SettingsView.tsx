@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { Key, Save, ExternalLink, RefreshCw, ArrowLeft, ShieldCheck, Play, User, LogOut } from 'lucide-react';
+import { Key, Save, ExternalLink, RefreshCw, ArrowLeft, ShieldCheck, Play, User, LogOut, Download } from 'lucide-react';
 import { clsx } from 'clsx';
 import { externalPlayerOptions } from '@/lib/types';
 import { toast } from 'sonner';
@@ -65,6 +65,18 @@ export const SettingsView = () => {
   const handleLogout = () => {
     logoutTMDB();
     toast.info('Logged out of TMDB');
+  };
+
+  const handleUpdateApp = async () => {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(r => r.unregister()));
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    window.location.reload();
   };
 
   return (
@@ -265,6 +277,14 @@ export const SettingsView = () => {
           className="w-full py-4 text-xs font-bold text-brand-silver hover:text-white transition-colors uppercase tracking-[0.2em]"
         >
           Open Setup Guide
+        </button>
+
+        <button
+          onClick={handleUpdateApp}
+          className="w-full py-4 text-xs font-bold text-brand-silver hover:text-white transition-colors uppercase tracking-[0.2em] flex items-center justify-center gap-2"
+        >
+          <Download size={14} />
+          Update App
         </button>
 
         <section className="text-center pt-4">
