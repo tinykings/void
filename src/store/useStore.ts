@@ -5,6 +5,19 @@ import { Media, UserState, FilterType, SortOption } from '@/lib/types';
 import { getMediaDetails, createRequestToken, createSession, getAccountDetails, getAccountLists, toggleWatchlistStatus, rateMedia, deleteRating } from '@/lib/tmdb';
 import { toast } from 'sonner';
 
+// Helper to check if an episode airs within the next 7 days
+const isAiringSoon = (airDateStr: string): boolean => {
+  const airDate = new Date(airDateStr).getTime();
+  if (isNaN(airDate)) return false;
+  
+  const now = Date.now();
+  // Allow episodes from the last 24h (to catch "today's" episodes) and up to 7 days in the future
+  const startWindow = now - (24 * 60 * 60 * 1000);
+  const endWindow = now + (7 * 24 * 60 * 60 * 1000);
+  
+  return airDate >= startWindow && airDate <= endWindow;
+};
+
 // Custom storage object for IndexedDB
 const storage: StateStorage = {
   getItem: async (name: string): Promise<string | null> => {
@@ -126,9 +139,7 @@ export const useStore = create<StoreState>()(
                 const merged = mergeMetadata(w);
                 // Only allow it back in the Watchlist if it has an upcoming episode in the next 7 days
                 if (merged.next_episode_to_air && merged.next_episode_to_air.air_date) {
-                  const airDate = new Date(merged.next_episode_to_air.air_date).getTime();
-                  const nextWeek = now + (7 * 24 * 60 * 60 * 1000);
-                  return !isNaN(airDate) && airDate >= now && airDate <= nextWeek;
+                  return isAiringSoon(merged.next_episode_to_air.air_date);
                 }
                 return false;
               }
@@ -275,10 +286,7 @@ export const useStore = create<StoreState>()(
               const details = await getMediaDetails(show.id, 'tv', apiKey);
               
               if (details.next_episode_to_air && details.next_episode_to_air.air_date) {
-                const airDate = new Date(details.next_episode_to_air.air_date).getTime();
-                const nextWeek = now + (7 * 24 * 60 * 60 * 1000);
-
-                if (!isNaN(airDate) && airDate >= now && airDate <= nextWeek) {
+                if (isAiringSoon(details.next_episode_to_air.air_date)) {
                   // Migration to watchlist
                   await toggleWatchlistStatus(apiKey, tmdbSessionId, tmdbAccountId, show.id, 'tv', true);
                   await deleteRating(apiKey, tmdbSessionId, show.id, 'tv');
