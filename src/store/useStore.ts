@@ -299,8 +299,23 @@ export const useStore = create<StoreState>()(
             try {
               const details = await getMediaDetails(show.id, 'tv', apiKey);
               
-              if (details.next_episode_to_air) {
-                console.log(`[TV Migration] "${show.name || show.id}" has an upcoming episode, migrating to watchlist`);
+              const airDateStr = details.next_episode_to_air?.air_date;
+              const isAiringSoon = (() => {
+                if (!airDateStr) return false;
+                const parts = airDateStr.split('-');
+                if (parts.length !== 3) return false;
+                const airDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+                if (isNaN(airDate.getTime())) return false;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const cutoff = new Date(today);
+                cutoff.setDate(today.getDate() + 7);
+                cutoff.setHours(23, 59, 59, 999);
+                return airDate.getTime() >= today.getTime() && airDate.getTime() <= cutoff.getTime();
+              })();
+
+              if (isAiringSoon) {
+                console.log(`[TV Migration] "${show.name || show.id}" has an episode airing within 7 days (${airDateStr}), migrating to watchlist`);
 
                 // Migration to watchlist
                 try {
