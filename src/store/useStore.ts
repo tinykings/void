@@ -150,8 +150,20 @@ export const useStore = create<StoreState>()(
                 // For TV shows, use fresh data; for movies, this check doesn't apply
                 if (w.media_type === 'tv') {
                   const freshDetails = freshShowDetails.get(w.id);
-                  if (freshDetails?.next_episode_to_air) {
-                    return true;
+                  const syncAirDate = freshDetails?.next_episode_to_air?.air_date;
+                  if (syncAirDate) {
+                    const parts = syncAirDate.split('-');
+                    if (parts.length === 3) {
+                      const airDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const cutoff = new Date(today);
+                      cutoff.setDate(today.getDate() + 7);
+                      cutoff.setHours(23, 59, 59, 999);
+                      if (airDate.getTime() >= today.getTime() && airDate.getTime() <= cutoff.getTime()) {
+                        return true;
+                      }
+                    }
                   }
                   return false; // No upcoming episode or failed to fetch
                 }
