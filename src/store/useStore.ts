@@ -5,38 +5,6 @@ import { Media, UserState, FilterType, SortOption } from '@/lib/types';
 import { getMediaDetails, createRequestToken, createSession, getAccountDetails, getAccountLists, toggleWatchlistStatus, rateMedia, deleteRating } from '@/lib/tmdb';
 import { toast } from 'sonner';
 
-// Helper to check if an episode airs within the next 7 days
-const isAiringSoon = (airDateStr: string): boolean => {
-  if (!airDateStr) return false;
-  
-  // Parse YYYY-MM-DD safely without timezone ambiguity
-  const parts = airDateStr.split('-');
-  if (parts.length !== 3) return false;
-  
-  const year = parseInt(parts[0], 10);
-  const month = parseInt(parts[1], 10) - 1; // JS months are 0-indexed
-  const day = parseInt(parts[2], 10);
-  
-  const airDate = new Date(year, month, day);
-  if (isNaN(airDate.getTime())) return false;
-  
-  // Get today at midnight for accurate day comparison
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  // Get 7 days from now at end of day
-  const sevenDaysFromNow = new Date(today);
-  sevenDaysFromNow.setDate(today.getDate() + 7);
-  sevenDaysFromNow.setHours(23, 59, 59, 999);
-  
-  const airTime = airDate.getTime();
-  const startTime = today.getTime();
-  const endTime = sevenDaysFromNow.getTime();
-  
-  // Check if air date is between today and 7 days from now (inclusive)
-  return airTime >= startTime && airTime <= endTime;
-};
-
 // Custom storage object for IndexedDB
 const storage: StateStorage = {
   getItem: async (name: string): Promise<string | null> => {
@@ -133,22 +101,10 @@ export const useStore = create<StoreState>()(
             const oldItem = state.watchlist.find(o => o.id === newItem.id && o.media_type === newItem.media_type) ||
                             state.watched.find(o => o.id === newItem.id && o.media_type === newItem.media_type);
             if (oldItem) {
-              // Only preserve next_episode_to_air if it's still in the future or today
-              let nextEpisode = oldItem.next_episode_to_air;
-              if (nextEpisode?.air_date) {
-                const parts = nextEpisode.air_date.split('-');
-                const airDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                if (airDate < today) {
-                  nextEpisode = null;
-                }
-              }
-
               return {
                 ...newItem,
                 lastChecked: oldItem.lastChecked,
-                next_episode_to_air: nextEpisode,
+                next_episode_to_air: oldItem.next_episode_to_air,
                 status: oldItem.status || newItem.status,
                 date_added: oldItem.date_added || newItem.date_added
               };
@@ -194,8 +150,8 @@ export const useStore = create<StoreState>()(
                 // For TV shows, use fresh data; for movies, this check doesn't apply
                 if (w.media_type === 'tv') {
                   const freshDetails = freshShowDetails.get(w.id);
-                  if (freshDetails?.next_episode_to_air?.air_date) {
-                    return isAiringSoon(freshDetails.next_episode_to_air.air_date);
+                  if (freshDetails?.next_episode_to_air) {
+                    return true;
                   }
                   return false; // No upcoming episode or failed to fetch
                 }
@@ -342,19 +298,12 @@ export const useStore = create<StoreState>()(
 
             try {
               const details = await getMediaDetails(show.id, 'tv', apiKey);
-              const airDate = details.next_episode_to_air?.air_date;
-              const airing = airDate ? isAiringSoon(airDate) : false;
               
-              if (airDate) {
-                console.log(`[TV Migration] Checking "${show.name || show.id}": next episode ${airDate}, airing soon: ${airing}`);
-              } else {
-                console.log(`[TV Migration] Checking "${show.name || show.id}": no upcoming episode found in API response`);
-              }
+              if (details.next_episode_to_air) {
+                console.log(`[TV Migration] "${show.name || show.id}" has an upcoming episode, migrating to watchlist`);
 
-              if (airing && airDate) {
                 // Migration to watchlist
                 try {
-                  console.log(`[TV Migration] Migrating "${show.name || show.id}" to watchlist...`);
                   await toggleWatchlistStatus(apiKey, tmdbSessionId, tmdbAccountId, show.id, 'tv', true);
                   try {
                     await deleteRating(apiKey, tmdbSessionId, show.id, 'tv');
@@ -379,16 +328,8 @@ export const useStore = create<StoreState>()(
                   watched: state.watched.filter(m => !(m.id === show.id && m.media_type === 'tv')),
                   watchlist: [...state.watchlist, { ...show, ...details, lastChecked: now, date_added: new Date().toISOString() }]
                 }));
-              } else if (airDate) {
-                // Metadata update only (upcoming episode but not within 7 days)
-                set(state => ({
-                  watched: state.watched.map(m => m.id === show.id && m.media_type === 'tv' 
-                    ? { ...m, status: details.status, next_episode_to_air: details.next_episode_to_air, lastChecked: now } 
-                    : m)
-                }));
               } else {
-                // No upcoming episode, just refresh lastChecked
-                console.log(`[TV Migration] "${show.name || show.id}" has no upcoming episode`);
+                // Metadata update only
                 set(state => ({
                   watched: state.watched.map(m => m.id === show.id && m.media_type === 'tv' 
                     ? { ...m, status: details.status, next_episode_to_air: null, lastChecked: now } 
