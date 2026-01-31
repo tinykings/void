@@ -269,10 +269,11 @@ export const SettingsView = () => {
 
         <section className="text-center pt-4">
           <p className="text-xs text-brand-silver/50">
-            Void v1.2.0<br />
+            Void v1.2.1<br />
             Data provided by TMDB.
           </p>
           <p className="text-xs text-brand-silver/30 mt-2">
+            v1.2.1 — Fixed 7-day check being bypassed during TMDB sync.<br />
             v1.2.0 — TV shows in watch history now automatically move to<br />
             your watchlist only when a new episode airs within 7 days.
           </p>
