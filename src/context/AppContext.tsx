@@ -33,6 +33,13 @@ interface AppContextType extends UserState {
   setOnboardingCompleted: (completed: boolean) => void;
   isSearchFocused: boolean;
   setIsSearchFocused: (focused: boolean) => void;
+
+  // Gist Backup
+  gistBackupId?: string;
+  gistBackupToken?: string;
+  setGistBackupConfig: (id: string, token: string) => void;
+  backupToGist: () => Promise<void>;
+  lastBackupTime?: number;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -112,6 +119,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, [store.isLoaded]);
 
+  // Gist backup loop
+  useEffect(() => {
+    if (!store.isLoaded) return;
+
+    const tryBackup = () => {
+      if (!store.gistBackupId || !store.gistBackupToken) return;
+      const elapsed = Date.now() - (store.lastBackupTime || 0);
+      if (elapsed >= 24 * 60 * 60 * 1000) {
+        store.backupToGist();
+      }
+    };
+
+    const timeout = setTimeout(tryBackup, 10000); // check shortly after load
+    const interval = setInterval(tryBackup, 60 * 60 * 1000); // then every 60 min
+
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
+  }, [store.isLoaded, store.gistBackupId, store.gistBackupToken, store.lastBackupTime]);
+
   // Derive selectedExternalPlayer
   const selectedExternalPlayer = store.selectedExternalPlayerId
     ? externalPlayerOptions.find(opt => opt.id === store.selectedExternalPlayerId) || null
@@ -154,6 +182,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     onboardingCompleted: store.onboardingCompleted || false,
     setOnboardingCompleted: store.setOnboardingCompleted,
     setIsSearchFocused: store.setIsSearchFocused,
+    gistBackupId: store.gistBackupId,
+    gistBackupToken: store.gistBackupToken,
+    setGistBackupConfig: store.setGistBackupConfig,
+    backupToGist: store.backupToGist,
+    lastBackupTime: store.lastBackupTime,
   };
 
   return (

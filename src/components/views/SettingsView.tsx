@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { Key, Save, ExternalLink, RefreshCw, ArrowLeft, ShieldCheck, Play, User, LogOut, Download } from 'lucide-react';
+import { Key, Save, ExternalLink, RefreshCw, ArrowLeft, ShieldCheck, Play, User, LogOut, Download, HardDrive } from 'lucide-react';
 import { clsx } from 'clsx';
 import { externalPlayerOptions } from '@/lib/types';
 import { toast } from 'sonner';
@@ -18,13 +18,22 @@ export const SettingsView = () => {
     vidAngelEnabled, setVidAngelEnabled,
     externalPlayerEnabled, toggleExternalPlayerEnabled,
     selectedExternalPlayer, setSelectedExternalPlayerId,
-    setOnboardingCompleted
+    setOnboardingCompleted,
+    backupToGist,
+    lastBackupTime,
+    gistBackupId,
+    gistBackupToken,
+    setGistBackupConfig
   } = useAppContext();
 
   const [tempApiKey, setTempApiKey] = useState('');
   const [tempVidAngelEnabled, setTempVidAngelEnabled] = useState(false);
   const [tempExternalPlayerEnabled, setTempExternalPlayerEnabled] = useState(false);
   const [tempSelectedExternalPlayerId, setTempSelectedExternalPlayerId] = useState<string | null>(null);
+
+  const [tempGistId, setTempGistId] = useState('');
+  const [tempGistToken, setTempGistToken] = useState('');
+  const [isBackingUp, setIsBackingUp] = useState(false);
 
   const [saved, setSaved] = useState(false);
 
@@ -37,7 +46,11 @@ export const SettingsView = () => {
     setTempExternalPlayerEnabled(externalPlayerEnabled || false);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTempSelectedExternalPlayerId(selectedExternalPlayer?.id || null);
-  }, [apiKey, vidAngelEnabled, externalPlayerEnabled, selectedExternalPlayer]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTempGistId(gistBackupId || '');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTempGistToken(gistBackupToken || '');
+  }, [apiKey, vidAngelEnabled, externalPlayerEnabled, selectedExternalPlayer, gistBackupId, gistBackupToken]);
 
   const handleSave = () => {
     setApiKey(tempApiKey);
@@ -47,6 +60,7 @@ export const SettingsView = () => {
       toggleExternalPlayerEnabled();
     }
     setSelectedExternalPlayerId(tempSelectedExternalPlayerId);
+    setGistBackupConfig(tempGistId, tempGistToken);
     setSaved(true);
     toast.success('Settings saved successfully');
     
@@ -65,6 +79,15 @@ export const SettingsView = () => {
   const handleLogout = () => {
     logoutTMDB();
     toast.info('Logged out of TMDB');
+  };
+
+  const handleBackupNow = async () => {
+    setIsBackingUp(true);
+    try {
+      await backupToGist();
+    } finally {
+      setIsBackingUp(false);
+    }
   };
 
   const handleUpdateApp = async () => {
@@ -260,6 +283,54 @@ export const SettingsView = () => {
                   <option key={option.id} value={option.id} className="bg-brand-bg">{option.name}</option>
                 ))}
               </select>
+            </div>
+          )}
+        </section>
+
+        <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">
+          <div className="flex items-center gap-2 mb-4">
+            <HardDrive className="text-brand-cyan" size={20} />
+            <h2 className="text-lg font-semibold text-white">Gist Backup</h2>
+          </div>
+
+          <p className="text-sm text-brand-silver mb-4">
+            Automatically back up your lists to a GitHub Gist once per day.
+            Create a <a href="https://gist.github.com" target="_blank" rel="noopener noreferrer" className="text-brand-cyan hover:underline">gist</a> and
+            a <a href="https://github.com/settings/tokens/new?scopes=gist&description=VOID+Backup" target="_blank" rel="noopener noreferrer" className="text-brand-cyan hover:underline">personal access token</a> with the <code className="text-brand-cyan/80 text-xs">gist</code> scope.
+          </p>
+
+          <div className="space-y-3">
+            <input
+              type="password"
+              value={tempGistId}
+              onChange={(e) => setTempGistId(e.target.value)}
+              placeholder="Gist ID"
+              className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
+            />
+            <input
+              type="password"
+              value={tempGistToken}
+              onChange={(e) => setTempGistToken(e.target.value)}
+              placeholder="GitHub Token"
+              className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
+            />
+          </div>
+
+          {gistBackupId && gistBackupToken && (
+            <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+              <span className="text-xs text-brand-silver">
+                {lastBackupTime
+                  ? `Last backup: ${new Date(lastBackupTime).toLocaleString()}`
+                  : 'No backup yet'}
+              </span>
+              <button
+                onClick={handleBackupNow}
+                disabled={isBackingUp}
+                className="text-xs font-bold text-brand-cyan flex items-center gap-1 hover:underline disabled:opacity-50"
+              >
+                <RefreshCw size={12} className={clsx(isBackingUp && "animate-spin")} />
+                Backup Now
+              </button>
             </div>
           )}
         </section>

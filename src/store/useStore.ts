@@ -52,6 +52,10 @@ interface StoreState extends UserState {
   
   setSession: (sessionId: string, accountId: number) => void;
   setLists: (watchlist: Media[], watched: Media[]) => void;
+
+  // Gist Backup
+  setGistBackupConfig: (id: string, token: string) => void;
+  backupToGist: () => Promise<void>;
 }
 
 export const useStore = create<StoreState>()(
@@ -206,6 +210,9 @@ export const useStore = create<StoreState>()(
         isSearchFocused: false,
         onboardingCompleted: false,
         editedStatusMap: {},
+        gistBackupId: undefined,
+        gistBackupToken: undefined,
+        lastBackupTime: undefined,
         isLoaded: false,
         isSyncing: false,
 
@@ -258,6 +265,50 @@ export const useStore = create<StoreState>()(
 
         setSession: (tmdbSessionId, tmdbAccountId) => set({ tmdbSessionId, tmdbAccountId }),
         setLists: (watchlist, watched) => set({ watchlist, watched }),
+
+        setGistBackupConfig: (gistBackupId, gistBackupToken) => set({ gistBackupId, gistBackupToken }),
+
+        backupToGist: async () => {
+          const { gistBackupId, gistBackupToken, watchlist, watched } = get();
+          if (!gistBackupId || !gistBackupToken) return;
+
+          const formatItem = (m: Media) => {
+            const title = m.title || m.name || 'Unknown';
+            const year = (m.release_date || m.first_air_date || '').slice(0, 4);
+            return `- ${title}${year ? ` (${year})` : ''} [${m.media_type}]`;
+          };
+
+          const now = new Date();
+          const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+          const content = [
+            `VOID Backup — ${dateStr}`,
+            '',
+            `WATCHLIST (${watchlist.length})`,
+            ...watchlist.map(formatItem),
+            '',
+            `LIBRARY (${watched.length})`,
+            ...watched.map(formatItem),
+          ].join('\n');
+
+          try {
+            const res = await fetch(`https://api.github.com/gists/${gistBackupId}`, {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${gistBackupToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                files: { 'void-backup.txt': { content } },
+              }),
+            });
+            if (!res.ok) throw new Error(`GitHub API responded ${res.status}`);
+            set({ lastBackupTime: Date.now() });
+            toast.success('Backup saved to GitHub Gist');
+          } catch (err: any) {
+            console.error('Gist backup failed:', err);
+            toast.error(`Backup failed: ${err.message}`);
+          }
+        },
 
         loginWithTMDB: async () => {
           const { apiKey } = get();
