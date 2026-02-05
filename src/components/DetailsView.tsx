@@ -296,6 +296,9 @@ export default function DetailsView() {
               <span className="flex items-center gap-1"><Calendar size={14} /> {year}</span>
               <span className="flex items-center gap-1"><Star size={14} className="text-brand-cyan fill-brand-cyan" /> {media.vote_average.toFixed(1)}</span>
               <span className="bg-brand-bg/50 blueprint-border px-2 py-0.5 rounded uppercase">{media.media_type}</span>
+              {media.media_type === 'tv' && media.status && (
+                <span className="bg-brand-bg/50 blueprint-border px-2 py-0.5 rounded">{media.status}</span>
+              )}
               {rating && (
                 <span className="bg-brand-bg/50 blueprint-border px-2 py-0.5 rounded border border-white/5">{rating}</span>
               )}
