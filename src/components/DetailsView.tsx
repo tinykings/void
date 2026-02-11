@@ -376,15 +376,28 @@ export default function DetailsView() {
                   )}
 
                   {vidAngelAvailable && (
-                    <a
-                      href={`https://www.vidangel.com/${media.media_type === 'movie' ? 'movie' : 'show'}/${vidAngelSlug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm bg-amber-500 text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600"
-                    >
-                      <ShieldCheck size={18} />
-                      <span>Edit</span>
-                    </a>
+                    tvSupportEnabled ? (
+                      <button
+                        onClick={() => setTvPrompt({
+                          url: `https://www.vidangel.com/${media.media_type === 'movie' ? 'movie' : 'show'}/${vidAngelSlug}`,
+                          title: media.title || media.name || 'Unknown',
+                        })}
+                        className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm bg-amber-500 text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600"
+                      >
+                        <ShieldCheck size={18} />
+                        <span>Edit</span>
+                      </button>
+                    ) : (
+                      <a
+                        href={`https://www.vidangel.com/${media.media_type === 'movie' ? 'movie' : 'show'}/${vidAngelSlug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm bg-amber-500 text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600"
+                      >
+                        <ShieldCheck size={18} />
+                        <span>Edit</span>
+                      </a>
+                    )
                   )}
                 </div>
               ) : null}
