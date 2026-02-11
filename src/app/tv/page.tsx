@@ -39,10 +39,11 @@ export default function TvPage() {
     if (!tvGistId || !tvGistToken) return;
 
     try {
-      const res = await fetch(`https://api.github.com/gists/${tvGistId}`, {
+      const res = await fetch(`https://api.github.com/gists/${tvGistId}?_=${Date.now()}`, {
         headers: {
           'Authorization': `Bearer ${tvGistToken}`,
           'Accept': 'application/vnd.github.v3+json',
+          'If-None-Match': '',
         },
       });
 
