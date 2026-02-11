@@ -54,8 +54,13 @@ interface StoreState extends UserState {
   setLists: (watchlist: Media[], watched: Media[]) => void;
 
   // Gist Backup
-  setGistBackupConfig: (id: string, token: string) => void;
+  setGistBackupEnabled: (enabled: boolean) => void;
   backupToGist: () => Promise<void>;
+
+  // TV Support
+  setTvSupportEnabled: (enabled: boolean) => void;
+  setTvGistConfig: (id: string, token: string) => void;
+  sendToTv: (url: string, title: string) => Promise<void>;
 }
 
 export const useStore = create<StoreState>()(
@@ -210,9 +215,11 @@ export const useStore = create<StoreState>()(
         isSearchFocused: false,
         onboardingCompleted: false,
         editedStatusMap: {},
-        gistBackupId: undefined,
-        gistBackupToken: undefined,
         lastBackupTime: undefined,
+        gistBackupEnabled: false,
+        tvSupportEnabled: false,
+        tvGistId: undefined,
+        tvGistToken: undefined,
         isLoaded: false,
         isSyncing: false,
 
@@ -266,11 +273,11 @@ export const useStore = create<StoreState>()(
         setSession: (tmdbSessionId, tmdbAccountId) => set({ tmdbSessionId, tmdbAccountId }),
         setLists: (watchlist, watched) => set({ watchlist, watched }),
 
-        setGistBackupConfig: (gistBackupId, gistBackupToken) => set({ gistBackupId, gistBackupToken }),
+        setGistBackupEnabled: (gistBackupEnabled) => set({ gistBackupEnabled }),
 
         backupToGist: async () => {
-          const { gistBackupId, gistBackupToken, watchlist, watched } = get();
-          if (!gistBackupId || !gistBackupToken) return;
+          const { tvGistId, tvGistToken, gistBackupEnabled, watchlist, watched } = get();
+          if (!gistBackupEnabled || !tvGistId || !tvGistToken) return;
 
           const formatItem = (m: Media) => {
             const title = m.title || m.name || 'Unknown';
@@ -291,10 +298,10 @@ export const useStore = create<StoreState>()(
           ].join('\n');
 
           try {
-            const res = await fetch(`https://api.github.com/gists/${gistBackupId}`, {
+            const res = await fetch(`https://api.github.com/gists/${tvGistId}`, {
               method: 'PATCH',
               headers: {
-                'Authorization': `Bearer ${gistBackupToken}`,
+                'Authorization': `Bearer ${tvGistToken}`,
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
@@ -307,6 +314,38 @@ export const useStore = create<StoreState>()(
           } catch (err: any) {
             console.error('Gist backup failed:', err);
             toast.error(`Backup failed: ${err.message}`);
+          }
+        },
+
+        setTvSupportEnabled: (tvSupportEnabled) => set({ tvSupportEnabled }),
+
+        setTvGistConfig: (tvGistId, tvGistToken) => set({ tvGistId, tvGistToken }),
+
+        sendToTv: async (url: string, title: string) => {
+          const { tvGistId, tvGistToken } = get();
+          if (!tvGistId || !tvGistToken) {
+            toast.error('TV gist not configured. Check settings.');
+            return;
+          }
+
+          const content = JSON.stringify({ url, title, timestamp: Date.now() });
+
+          try {
+            const res = await fetch(`https://api.github.com/gists/${tvGistId}`, {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${tvGistToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                files: { 'void-tv-queue.json': { content } },
+              }),
+            });
+            if (!res.ok) throw new Error(`GitHub API responded ${res.status}`);
+            toast.success(`Sent "${title}" to TV`);
+          } catch (err: any) {
+            console.error('Send to TV failed:', err);
+            toast.error(`Send to TV failed: ${err.message}`);
           }
         },
 

@@ -215,7 +215,9 @@ export interface UserState {
   isSearchFocused?: boolean;
   onboardingCompleted?: boolean;
   editedStatusMap: Record<string, boolean>;
-  gistBackupId?: string;
-  gistBackupToken?: string;
   lastBackupTime?: number;
+  gistBackupEnabled?: boolean;
+  tvSupportEnabled?: boolean;
+  tvGistId?: string;
+  tvGistToken?: string;
 }

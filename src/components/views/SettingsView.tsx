@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { Key, Save, ExternalLink, RefreshCw, ArrowLeft, ShieldCheck, Play, User, LogOut, Download, HardDrive } from 'lucide-react';
+import { Key, Save, ExternalLink, RefreshCw, ArrowLeft, ShieldCheck, Play, User, LogOut, Download, Monitor, Copy, Check as CheckIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 import { externalPlayerOptions } from '@/lib/types';
 import { toast } from 'sonner';
@@ -21,9 +21,13 @@ export const SettingsView = () => {
     setOnboardingCompleted,
     backupToGist,
     lastBackupTime,
-    gistBackupId,
-    gistBackupToken,
-    setGistBackupConfig
+    gistBackupEnabled,
+    setGistBackupEnabled,
+    tvSupportEnabled,
+    tvGistId,
+    tvGistToken,
+    setTvSupportEnabled,
+    setTvGistConfig,
   } = useAppContext();
 
   const [tempApiKey, setTempApiKey] = useState('');
@@ -31,8 +35,11 @@ export const SettingsView = () => {
   const [tempExternalPlayerEnabled, setTempExternalPlayerEnabled] = useState(false);
   const [tempSelectedExternalPlayerId, setTempSelectedExternalPlayerId] = useState<string | null>(null);
 
-  const [tempGistId, setTempGistId] = useState('');
-  const [tempGistToken, setTempGistToken] = useState('');
+  const [tempTvSupportEnabled, setTempTvSupportEnabled] = useState(false);
+  const [tempTvGistId, setTempTvGistId] = useState('');
+  const [tempTvGistToken, setTempTvGistToken] = useState('');
+  const [tempGistBackupEnabled, setTempGistBackupEnabled] = useState(false);
+  const [copiedTvLink, setCopiedTvLink] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
 
   const [saved, setSaved] = useState(false);
@@ -47,10 +54,14 @@ export const SettingsView = () => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTempSelectedExternalPlayerId(selectedExternalPlayer?.id || null);
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTempGistId(gistBackupId || '');
+    setTempTvSupportEnabled(tvSupportEnabled || false);
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTempGistToken(gistBackupToken || '');
-  }, [apiKey, vidAngelEnabled, externalPlayerEnabled, selectedExternalPlayer, gistBackupId, gistBackupToken]);
+    setTempTvGistId(tvGistId || '');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTempTvGistToken(tvGistToken || '');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTempGistBackupEnabled(gistBackupEnabled || false);
+  }, [apiKey, vidAngelEnabled, externalPlayerEnabled, selectedExternalPlayer, tvSupportEnabled, tvGistId, tvGistToken, gistBackupEnabled]);
 
   const handleSave = () => {
     setApiKey(tempApiKey);
@@ -60,7 +71,9 @@ export const SettingsView = () => {
       toggleExternalPlayerEnabled();
     }
     setSelectedExternalPlayerId(tempSelectedExternalPlayerId);
-    setGistBackupConfig(tempGistId, tempGistToken);
+    setTvSupportEnabled(tempTvSupportEnabled);
+    setTvGistConfig(tempTvGistId, tempTvGistToken);
+    setGistBackupEnabled(tempGistBackupEnabled);
     setSaved(true);
     toast.success('Settings saved successfully');
     
@@ -289,48 +302,107 @@ export const SettingsView = () => {
 
         <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">
           <div className="flex items-center gap-2 mb-4">
-            <HardDrive className="text-brand-cyan" size={20} />
-            <h2 className="text-lg font-semibold text-white">Gist Backup</h2>
+            <Monitor className="text-brand-cyan" size={20} />
+            <h2 className="text-lg font-semibold text-white">TV Support</h2>
           </div>
 
-          <p className="text-sm text-brand-silver mb-4">
-            Automatically back up your lists to a GitHub Gist once per day.
-            Create a <a href="https://gist.github.com" target="_blank" rel="noopener noreferrer" className="text-brand-cyan hover:underline">gist</a> and
-            a <a href="https://github.com/settings/tokens/new?scopes=gist&description=VOID+Backup" target="_blank" rel="noopener noreferrer" className="text-brand-cyan hover:underline">personal access token</a> with the <code className="text-brand-cyan/80 text-xs">gist</code> scope.
-          </p>
-
-          <div className="space-y-3">
-            <input
-              type="password"
-              value={tempGistId}
-              onChange={(e) => setTempGistId(e.target.value)}
-              placeholder="Gist ID"
-              className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
-            />
-            <input
-              type="password"
-              value={tempGistToken}
-              onChange={(e) => setTempGistToken(e.target.value)}
-              placeholder="GitHub Token"
-              className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
-            />
+          <div className="flex items-center justify-between mb-4">
+            <div className="pr-4">
+              <h3 className="text-sm font-bold text-white">Enable TV Remote Play</h3>
+              <p className="text-xs text-brand-silver mt-1">
+                Send content from your phone to a TV browser via GitHub Gist.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!tempTvSupportEnabled}
+                onChange={(e) => setTempTvSupportEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-brand-bg blueprint-border rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-brand-silver after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-cyan peer-checked:after:bg-brand-bg"></div>
+            </label>
           </div>
 
-          {gistBackupId && gistBackupToken && (
-            <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
-              <span className="text-xs text-brand-silver">
-                {lastBackupTime
-                  ? `Last backup: ${new Date(lastBackupTime).toLocaleString()}`
-                  : 'No backup yet'}
-              </span>
-              <button
-                onClick={handleBackupNow}
-                disabled={isBackingUp}
-                className="text-xs font-bold text-brand-cyan flex items-center gap-1 hover:underline disabled:opacity-50"
-              >
-                <RefreshCw size={12} className={clsx(isBackingUp && "animate-spin")} />
-                Backup Now
-              </button>
+          {tempTvSupportEnabled && (
+            <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
+              <p className="text-[10px] text-brand-silver italic">
+                Create a <a href="https://gist.github.com" target="_blank" rel="noopener noreferrer" className="text-brand-cyan hover:underline">gist</a> and
+                a <a href="https://github.com/settings/tokens/new?scopes=gist&description=VOID+TV" target="_blank" rel="noopener noreferrer" className="text-brand-cyan hover:underline">personal access token</a> with the <code className="text-brand-cyan/80 text-xs">gist</code> scope.
+              </p>
+              <input
+                type="password"
+                value={tempTvGistId}
+                onChange={(e) => setTempTvGistId(e.target.value)}
+                placeholder="Gist ID"
+                className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
+              />
+              <input
+                type="password"
+                value={tempTvGistToken}
+                onChange={(e) => setTempTvGistToken(e.target.value)}
+                placeholder="GitHub Token"
+                className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
+              />
+
+              {tvGistId && tvGistToken && (
+                <>
+                  <div className="mt-3 pt-3 border-t border-white/5">
+                    <p className="text-xs text-brand-silver mb-2">Open this link on your TV browser:</p>
+                    <button
+                      onClick={() => {
+                        const tvUrl = `${window.location.origin}/void/tv`;
+                        navigator.clipboard.writeText(tvUrl);
+                        setCopiedTvLink(true);
+                        toast.success('TV link copied to clipboard');
+                        setTimeout(() => setCopiedTvLink(false), 2000);
+                      }}
+                      className="w-full flex items-center justify-between p-3 rounded-lg bg-brand-bg blueprint-border text-brand-cyan text-xs font-mono hover:bg-brand-cyan/5 transition-colors"
+                    >
+                      <span className="truncate">{typeof window !== 'undefined' ? `${window.location.origin}/void/tv` : '/void/tv'}</span>
+                      {copiedTvLink ? <CheckIcon size={14} className="shrink-0 ml-2" /> : <Copy size={14} className="shrink-0 ml-2" />}
+                    </button>
+                  </div>
+
+                  <div className="mt-3 pt-3 border-t border-white/5">
+                    <div className="flex items-center justify-between">
+                      <div className="pr-4">
+                        <h3 className="text-sm font-bold text-white">Gist Backup</h3>
+                        <p className="text-xs text-brand-silver mt-1">
+                          Auto-backup watchlist &amp; library to this gist daily.
+                        </p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={!!tempGistBackupEnabled}
+                          onChange={(e) => setTempGistBackupEnabled(e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-brand-bg blueprint-border rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-brand-silver after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-cyan peer-checked:after:bg-brand-bg"></div>
+                      </label>
+                    </div>
+
+                    {gistBackupEnabled && (
+                      <div className="mt-3 flex items-center justify-between">
+                        <span className="text-xs text-brand-silver">
+                          {lastBackupTime
+                            ? `Last backup: ${new Date(lastBackupTime).toLocaleString()}`
+                            : 'No backup yet'}
+                        </span>
+                        <button
+                          onClick={handleBackupNow}
+                          disabled={isBackingUp}
+                          className="text-xs font-bold text-brand-cyan flex items-center gap-1 hover:underline disabled:opacity-50"
+                        >
+                          <RefreshCw size={12} className={clsx(isBackingUp && "animate-spin")} />
+                          Backup Now
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </section>

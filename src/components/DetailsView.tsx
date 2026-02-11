@@ -11,6 +11,7 @@ import { clsx } from 'clsx';
 import { toast } from 'sonner';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { CreditsModal } from '@/components/CreditsModal';
+import { PlayTargetModal } from '@/components/PlayTargetModal';
 
 export default function DetailsView() {
   const searchParams = useSearchParams();
@@ -26,6 +27,8 @@ export default function DetailsView() {
     vidAngelEnabled,
     externalPlayerEnabled,
     selectedExternalPlayer,
+    tvSupportEnabled,
+    sendToTv,
   } = useAppContext();
 
   const [media, setMedia] = useState<Media | null>(null);
@@ -45,6 +48,9 @@ export default function DetailsView() {
   const [actorCredits, setActorCredits] = useState<Media[]>([]);
   const [isCreditsModalOpen, setIsCreditsModalOpen] = useState(false);
   const [creditsLoading, setCreditsLoading] = useState(false);
+
+  // TV Play Prompt State
+  const [tvPrompt, setTvPrompt] = useState<{ url: string; title: string } | null>(null);
 
   // Modal State
   const [modalConfig, setModalConfig] = useState<{
@@ -345,15 +351,28 @@ export default function DetailsView() {
               {(externalPlayerEnabled && selectedExternalPlayer) || vidAngelAvailable ? (
                 <div className="flex gap-3">
                   {externalPlayerEnabled && selectedExternalPlayer && (
-                    <a
-                      href={getExternalPlayerUrl(media.media_type, media.id)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm bg-brand-cyan text-brand-bg shadow-lg shadow-brand-cyan/20 hover:bg-brand-cyan/90"
-                    >
-                      <Play size={18} className="fill-brand-bg" />
-                      <span>Play</span>
-                    </a>
+                    tvSupportEnabled ? (
+                      <button
+                        onClick={() => setTvPrompt({
+                          url: getExternalPlayerUrl(media.media_type, media.id),
+                          title: media.title || media.name || 'Unknown',
+                        })}
+                        className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm bg-brand-cyan text-brand-bg shadow-lg shadow-brand-cyan/20 hover:bg-brand-cyan/90"
+                      >
+                        <Play size={18} className="fill-brand-bg" />
+                        <span>Play</span>
+                      </button>
+                    ) : (
+                      <a
+                        href={getExternalPlayerUrl(media.media_type, media.id)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm bg-brand-cyan text-brand-bg shadow-lg shadow-brand-cyan/20 hover:bg-brand-cyan/90"
+                      >
+                        <Play size={18} className="fill-brand-bg" />
+                        <span>Play</span>
+                      </a>
+                    )
                   )}
 
                   {vidAngelAvailable && (
@@ -419,15 +438,28 @@ export default function DetailsView() {
                     )}
                     
                     {externalPlayerEnabled && selectedExternalPlayer && (
-                      <a
-                        href={getExternalPlayerUrl('tv', media.id, ep.season_number, ep.episode_number)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={`Play S${ep.season_number} E${ep.episode_number} on ${selectedExternalPlayer.name}`}
-                        className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-brand-cyan/20 transition-colors"
-                      >
-                        <Play size={24} className="text-white/80 group-hover:text-brand-cyan fill-current" />
-                      </a>
+                      tvSupportEnabled ? (
+                        <button
+                          onClick={() => setTvPrompt({
+                            url: getExternalPlayerUrl('tv', media.id, ep.season_number, ep.episode_number),
+                            title: `${media.name || media.title} S${ep.season_number} E${ep.episode_number}`,
+                          })}
+                          title={`Play S${ep.season_number} E${ep.episode_number} on ${selectedExternalPlayer.name}`}
+                          className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-brand-cyan/20 transition-colors"
+                        >
+                          <Play size={24} className="text-white/80 group-hover:text-brand-cyan fill-current" />
+                        </button>
+                      ) : (
+                        <a
+                          href={getExternalPlayerUrl('tv', media.id, ep.season_number, ep.episode_number)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`Play S${ep.season_number} E${ep.episode_number} on ${selectedExternalPlayer.name}`}
+                          className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-brand-cyan/20 transition-colors"
+                        >
+                          <Play size={24} className="text-white/80 group-hover:text-brand-cyan fill-current" />
+                        </a>
+                      )
                     )}
 
                     <div className="absolute bottom-1 right-1 bg-brand-bg/80 text-white text-[8px] sm:text-[10px] font-bold px-1 rounded pointer-events-none blueprint-border">
@@ -522,6 +554,18 @@ export default function DetailsView() {
         actor={selectedActor}
         credits={actorCredits}
         loading={creditsLoading}
+      />
+
+      <PlayTargetModal
+        isOpen={!!tvPrompt}
+        onClose={() => setTvPrompt(null)}
+        onSendToTv={() => {
+          if (tvPrompt) sendToTv(tvPrompt.url, tvPrompt.title);
+        }}
+        onPlayLocal={() => {
+          if (tvPrompt) window.open(tvPrompt.url, '_blank');
+        }}
+        title={tvPrompt?.title || ''}
       />
     </div>
   );
