@@ -112,6 +112,17 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     }
   }, [apiKey, isLoaded, isSearchFocused, trending.length]);
 
+  // Restore scroll position when returning from details page
+  useEffect(() => {
+    const savedScroll = sessionStorage.getItem('void_home_scroll');
+    if (savedScroll) {
+      sessionStorage.removeItem('void_home_scroll');
+      requestAnimationFrame(() => {
+        window.scrollTo(0, parseInt(savedScroll, 10));
+      });
+    }
+  }, []);
+
   // Cleanup abort controller on unmount
   useEffect(() => {
     // Set default theme color for Home

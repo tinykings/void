@@ -285,7 +285,7 @@ export default function DetailsView() {
         
         <div className="absolute top-4 left-4 z-20">
           <button
-            onClick={() => router.push('/')}
+            onClick={() => router.back()}
             className="inline-flex items-center gap-2 px-4 py-2 glass-effect rounded-xl text-white font-bold shadow-xl hover:bg-brand-bg transition-all active:scale-95"
           >
             <ChevronLeft size={20} />

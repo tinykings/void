@@ -134,7 +134,10 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
           className="block relative aspect-[2/3] bg-brand-bg/50 overflow-hidden shrink-0"
           onMouseEnter={prefetchBackdrop}
           onTouchStart={prefetchBackdrop}
-          onClick={onClick}
+          onClick={(e) => {
+            sessionStorage.setItem('void_home_scroll', String(window.scrollY));
+            onClick?.();
+          }}
         >
           {media.poster_path ? (
             <img
