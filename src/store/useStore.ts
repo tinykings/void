@@ -102,8 +102,19 @@ export const useStore = create<StoreState>()(
           ]);
 
           const state = get();
-          const allIncomingRated = [...ratedMovies, ...ratedTv];
-          const allIncomingWatchlist = [...wlMovies, ...wlTv];
+
+          // Assign date_added from TMDB's created_at.asc order so it's consistent across devices
+          const assignDateAdded = (items: Media[]) => {
+            const now = Date.now();
+            const baseTime = now - items.length * 1000;
+            return items.map((item, index) => ({
+              ...item,
+              date_added: new Date(baseTime + index * 1000).toISOString()
+            }));
+          };
+
+          const allIncomingRated = assignDateAdded([...ratedMovies, ...ratedTv]);
+          const allIncomingWatchlist = assignDateAdded([...wlMovies, ...wlTv]);
 
           const mergeMetadata = (newItem: Media) => {
             // Find the item in either local list to preserve metadata
@@ -115,7 +126,6 @@ export const useStore = create<StoreState>()(
                 lastChecked: oldItem.lastChecked,
                 next_episode_to_air: oldItem.next_episode_to_air,
                 status: oldItem.status || newItem.status,
-                date_added: oldItem.date_added || newItem.date_added
               };
             }
             return newItem;
