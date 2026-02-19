@@ -23,7 +23,7 @@
 
 VOID is a personal media tracker built as a static Next.js app deployed to GitHub Pages. Track your watchlist and watch history for movies and TV shows, sync with your TMDB account, and launch content directly in external streaming players — all from the browser with no backend required.
 
-Data lives entirely in your browser (IndexedDB) or optionally in a GitHub Gist for cross-device sync.
+Data lives entirely in your browser (IndexedDB) or within your TMDB profile.
 
 ## Features
 
