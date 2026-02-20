@@ -62,11 +62,6 @@ Data lives entirely in your browser (IndexedDB) or within your TMDB profile.
 2. Go to **Settings** and enter your TMDB API key
 3. Optionally log in with TMDB to enable account sync
 
-### Optional: Cross-Device Sync (Gist)
-1. Create a [GitHub personal access token](https://github.com/settings/tokens) (classic) with the `gist` scope
-2. Create a new Gist at [gist.github.com](https://gist.github.com)
-3. Enter the Gist ID and token under **Settings → TV / Sync**
-
 ### Optional: TV Remote Play
 1. Enable **TV Support** in Settings
 2. Copy the TV receiver URL and open it on your TV or second screen
