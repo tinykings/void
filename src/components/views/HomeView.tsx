@@ -10,7 +10,7 @@ import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
 import { FilterTabs } from '@/components/FilterTabs';
 import { SortControl } from '@/components/SortControl';
 import { sortMedia } from '@/lib/sort';
-import { AlertCircle, Settings, Search as SearchIcon, X, Eye, ArrowLeft, ArrowRight, ShieldCheck, Bookmark, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, Settings, Search as SearchIcon, X, Eye, ArrowLeft, ArrowRight, ShieldCheck, Bookmark, CheckCircle2, Heart } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface HomeViewProps {
@@ -31,6 +31,8 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     setShowWatched,
     showEditedOnly,
     setShowEditedOnly,
+    showFavoritesOnly,
+    setShowFavoritesOnly,
     updateMediaMetadata,
     editedStatusMap,
     isSearchFocused,
@@ -71,12 +73,19 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   // Reset pagination when filters change
   useEffect(() => {
     setVisibleItemsCount(itemsPerPage);
-  }, [filter, sort, showWatched, showEditedOnly, isSearchFocused, query]);
+  }, [filter, sort, showWatched, showEditedOnly, showFavoritesOnly, isSearchFocused, query]);
 
   // Reset Edited filter when switching views or searching
   useEffect(() => {
     setShowEditedOnly(false);
   }, [isSearchFocused, query, setShowEditedOnly]);
+
+  // Reset favorites filter when leaving watched view
+  useEffect(() => {
+    if (!showWatched) {
+      setShowFavoritesOnly(false);
+    }
+  }, [showWatched, setShowFavoritesOnly]);
 
   // Combine and process library media
   const baseLibraryMedia = useMemo(() => {
@@ -92,8 +101,12 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
       filtered = filtered.filter(m => editedStatusMap[`${m.media_type}-${m.id}`] !== false);
     }
 
+    if (showFavoritesOnly && showWatched) {
+      filtered = filtered.filter(m => m.isFavorite);
+    }
+
     return sortMedia(filtered, (sort || 'added'));
-  }, [baseLibraryMedia, sort, showEditedOnly, editedStatusMap]);
+  }, [baseLibraryMedia, sort, showEditedOnly, editedStatusMap, showFavoritesOnly, showWatched]);
 
   // Fetch Trending when search is focused
   useEffect(() => {
@@ -315,14 +328,29 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                 })}
                 className={clsx(
                   "flex items-center justify-center w-10 h-10 rounded-xl transition-all",
-                  showWatched 
-                    ? 'bg-green-500/20 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.15)]' 
+                  showWatched
+                    ? 'bg-green-500/20 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.15)]'
                     : 'bg-brand-cyan/10 text-brand-cyan hover:bg-brand-cyan/20'
                 )}
                 title={showWatched ? "Switch to Watchlist" : "Switch to History"}
               >
                 {showWatched ? <CheckCircle2 size={20} /> : <Bookmark size={20} />}
               </button>
+
+              {showWatched && (
+                <button
+                  onClick={() => startTransition(() => setShowFavoritesOnly(!showFavoritesOnly))}
+                  className={clsx(
+                    "flex items-center justify-center w-10 h-10 rounded-xl transition-all",
+                    showFavoritesOnly
+                      ? 'bg-red-500/20 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.15)]'
+                      : 'text-brand-silver hover:text-red-400 hover:bg-white/5'
+                  )}
+                  title={showFavoritesOnly ? "Show all watched" : "Show favorites only"}
+                >
+                  <Heart size={20} className={showFavoritesOnly ? 'fill-current' : ''} />
+                </button>
+              )}
 
               <div className="w-px h-5 bg-white/5 mx-0.5" />
 

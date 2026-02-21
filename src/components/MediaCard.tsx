@@ -5,7 +5,7 @@ import { Media } from '@/lib/types';
 import { getImageUrl } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { useAppContext } from '@/context/AppContext';
-import { Plus, Check, Trash2, Star, Bookmark } from 'lucide-react';
+import { Plus, Check, Trash2, Star, Bookmark, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
@@ -19,11 +19,12 @@ interface MediaCardProps {
 }
 
 export const MediaCard = React.memo(({ media, showActions = true, showBadge = false, onClick }: MediaCardProps) => {
-  const { 
-    watchlist, 
-    watched, 
-    toggleWatchlist, 
-    toggleWatched, 
+  const {
+    watchlist,
+    watched,
+    toggleWatchlist,
+    toggleWatched,
+    toggleFavorite,
     vidAngelEnabled,
     editedStatusMap,
     setMediaEditedStatus
@@ -66,7 +67,9 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
   }, [media.id, media.media_type, media.title, media.name, vidAngelEnabled, isEdited, setMediaEditedStatus, showBadge]);
 
   const inWatchlist = watchlist.some((m) => m.id === media.id && m.media_type === media.media_type);
-  const inWatched = watched.some((m) => m.id === media.id && m.media_type === media.media_type);
+  const watchedItem = watched.find((m) => m.id === media.id && m.media_type === media.media_type);
+  const inWatched = !!watchedItem;
+  const isFavorite = watchedItem?.isFavorite || false;
 
   const title = media.title || media.name;
   const year = (media.release_date || media.first_air_date)?.split('-')[0];
@@ -178,19 +181,33 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
                 onClick={handleWatchlistClick}
                 className={clsx(
                   "flex-1 py-1.5 rounded-md flex items-center justify-center transition-colors text-[10px] font-bold",
-                  inWatchlist 
-                    ? "bg-brand-cyan/20 text-brand-cyan blueprint-border" 
+                  inWatchlist
+                    ? "bg-brand-cyan/20 text-brand-cyan blueprint-border"
                     : "bg-brand-bg/50 text-brand-silver blueprint-border hover:bg-brand-bg hover:text-white"
                 )}
               >
                 LIST
               </button>
+              {inWatched && (
+                <button
+                  onClick={() => toggleFavorite(media)}
+                  className={clsx(
+                    "py-1.5 px-2 rounded-md flex items-center justify-center transition-colors blueprint-border",
+                    isFavorite
+                      ? "bg-red-500/20 text-red-400"
+                      : "bg-brand-bg/50 text-brand-silver hover:bg-brand-bg hover:text-red-400"
+                  )}
+                  title={isFavorite ? "Remove from favorites" : "Mark as favorite"}
+                >
+                  <Heart size={12} className={isFavorite ? 'fill-current' : ''} />
+                </button>
+              )}
               <button
                 onClick={handleWatchedClick}
                 className={clsx(
                   "flex-1 py-1.5 rounded-md flex items-center justify-center transition-colors text-[10px] font-bold",
-                  inWatched 
-                    ? "bg-green-500/20 text-green-400 blueprint-border" 
+                  inWatched
+                    ? "bg-green-500/20 text-green-400 blueprint-border"
                     : "bg-brand-bg/50 text-brand-silver blueprint-border hover:bg-brand-bg hover:text-white"
                 )}
               >
