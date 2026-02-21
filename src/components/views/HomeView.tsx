@@ -350,22 +350,22 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
         </>
       )}
 
-      {/* Fixed Bottom Bar — order from bottom: search → filter tabs → sort controls → notification */}
+      {/* Fixed Bottom Bar — order from bottom: search → filter tabs → sort controls */}
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-brand-bg/40 backdrop-blur-xl border-t border-white/[0.04]">
-        <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col items-center gap-2">
+        {/* Floating status pill — pops up above the bar */}
+        <div
+          aria-live="polite"
+          className={clsx(
+            "absolute left-1/2 -translate-x-1/2 bottom-full mb-3 px-4 py-1.5 rounded-full bg-brand-bg/80 backdrop-blur-md border border-brand-cyan/20 text-xs font-semibold tracking-widest uppercase text-brand-cyan whitespace-nowrap transition-all duration-300 pointer-events-none",
+            statusLabel && !statusFading
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-3"
+          )}
+        >
+          {statusLabel}
+        </div>
 
-          {/* Notification text — top of bar, just below posters */}
-          <div
-            aria-live="polite"
-            className={clsx(
-              "text-xs font-semibold tracking-widest uppercase text-brand-cyan/70 transition-all duration-300 h-4",
-              statusLabel && !statusFading
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 translate-y-1 pointer-events-none"
-            )}
-          >
-            {statusLabel}
-          </div>
+        <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col items-center gap-2">
 
           {/* Sort controls + FilterTabs — collapse when search is focused */}
           <div className={clsx(
