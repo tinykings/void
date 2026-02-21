@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
 import { Key, Save, ExternalLink, RefreshCw, ArrowLeft, ShieldCheck, Play, User, LogOut, Download, Monitor, Copy, Check as CheckIcon } from 'lucide-react';
 import { clsx } from 'clsx';
-import { externalPlayerOptions } from '@/lib/types';
 import { toast } from 'sonner';
 
 export const SettingsView = () => {
@@ -17,7 +16,6 @@ export const SettingsView = () => {
     tmdbSessionId, tmdbAccountId,
     vidAngelEnabled, setVidAngelEnabled,
     externalPlayerEnabled, toggleExternalPlayerEnabled,
-    selectedExternalPlayer, setSelectedExternalPlayerId,
     setOnboardingCompleted,
     backupToGist,
     lastBackupTime,
@@ -33,7 +31,6 @@ export const SettingsView = () => {
   const [tempApiKey, setTempApiKey] = useState('');
   const [tempVidAngelEnabled, setTempVidAngelEnabled] = useState(false);
   const [tempExternalPlayerEnabled, setTempExternalPlayerEnabled] = useState(false);
-  const [tempSelectedExternalPlayerId, setTempSelectedExternalPlayerId] = useState<string | null>(null);
 
   const [tempTvSupportEnabled, setTempTvSupportEnabled] = useState(false);
   const [tempTvGistId, setTempTvGistId] = useState('');
@@ -52,8 +49,6 @@ export const SettingsView = () => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTempExternalPlayerEnabled(externalPlayerEnabled || false);
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTempSelectedExternalPlayerId(selectedExternalPlayer?.id || null);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTempTvSupportEnabled(tvSupportEnabled || false);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTempTvGistId(tvGistId || '');
@@ -61,7 +56,7 @@ export const SettingsView = () => {
     setTempTvGistToken(tvGistToken || '');
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTempGistBackupEnabled(gistBackupEnabled || false);
-  }, [apiKey, vidAngelEnabled, externalPlayerEnabled, selectedExternalPlayer, tvSupportEnabled, tvGistId, tvGistToken, gistBackupEnabled]);
+  }, [apiKey, vidAngelEnabled, externalPlayerEnabled, tvSupportEnabled, tvGistId, tvGistToken, gistBackupEnabled]);
 
   const handleSave = () => {
     setApiKey(tempApiKey);
@@ -70,7 +65,6 @@ export const SettingsView = () => {
     if (tempExternalPlayerEnabled !== externalPlayerEnabled) {
       toggleExternalPlayerEnabled();
     }
-    setSelectedExternalPlayerId(tempSelectedExternalPlayerId);
     setTvSupportEnabled(tempTvSupportEnabled);
     setTvGistConfig(tempTvGistId, tempTvGistToken);
     setGistBackupEnabled(tempGistBackupEnabled);
@@ -247,57 +241,30 @@ export const SettingsView = () => {
           )}
         </section>
 
-        {/* New External Player Section */}
+        {/* External Player Section */}
         <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">
           <div className="flex items-center gap-2 mb-4">
             <Play className="text-brand-cyan" size={20} />
             <h2 className="text-lg font-semibold text-white">External Player</h2>
           </div>
 
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between">
             <div className="pr-4">
-              <h3 className="text-sm font-bold text-white">Enable External Player Links</h3>
+              <h3 className="text-sm font-bold text-white">Enable Streaming</h3>
               <p className="text-xs text-brand-silver mt-1">
-                Add &quot;Play&quot; links to media details pages for external streaming.
+                Show a &quot;Play&quot; button on media pages. You&apos;ll choose the streaming site each time you play.
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
                 checked={!!tempExternalPlayerEnabled}
-                onChange={() => {
-                  setTempExternalPlayerEnabled(!tempExternalPlayerEnabled);
-                  // If disabling, also clear selected player
-                  if (tempExternalPlayerEnabled) {
-                    setTempSelectedExternalPlayerId(null);
-                  } else {
-                    // If enabling and no player is selected, select the first one by default
-                    if (!tempSelectedExternalPlayerId && externalPlayerOptions.length > 0) {
-                      setTempSelectedExternalPlayerId(externalPlayerOptions[0].id);
-                    }
-                  }
-                }}
+                onChange={(e) => setTempExternalPlayerEnabled(e.target.checked)}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-brand-bg blueprint-border rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-brand-silver after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-cyan peer-checked:after:bg-brand-bg"></div>
             </label>
           </div>
-
-          {tempExternalPlayerEnabled && (
-            <div className="mt-4 pt-4 border-t border-white/5">
-              <h3 className="text-sm font-bold text-white mb-2">Select Player</h3>
-              <select
-                value={tempSelectedExternalPlayerId || ''}
-                onChange={(e) => setTempSelectedExternalPlayerId(e.target.value)}
-                className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all"
-              >
-                <option value="" disabled className="bg-brand-bg">Select an external player</option>
-                {externalPlayerOptions.map((option) => (
-                  <option key={option.id} value={option.id} className="bg-brand-bg">{option.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
         </section>
 
         <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">

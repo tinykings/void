@@ -6,27 +6,26 @@ import { useAppContext } from '@/context/AppContext';
 import { getMediaDetails, getWatchProviders, getImageUrl, getContentRating, getSeasonDetails, getMediaVideos, getMediaCredits, getPersonCredits } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { Media, WatchProvidersResponse, WatchProvider, SeasonDetails, Video, SeasonSummary, CastMember } from '@/lib/types';
-import { ChevronLeft, Plus, Check, Trash2, Play, Star, Calendar, ShieldCheck, ChevronDown, User as UserIcon } from 'lucide-react';
+import { ChevronLeft, Plus, Check, Trash2, Play, Star, Calendar, ChevronDown, User as UserIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { CreditsModal } from '@/components/CreditsModal';
-import { PlayTargetModal } from '@/components/PlayTargetModal';
+import { StreamPickerModal } from '@/components/PlayTargetModal';
 
 export default function DetailsView() {
   const searchParams = useSearchParams();
   const type = searchParams.get('type') as 'movie' | 'tv';
   const id = searchParams.get('id');
   const router = useRouter();
-  const { 
-    apiKey, 
-    watchlist, 
-    watched, 
-    toggleWatchlist, 
-    toggleWatched, 
+  const {
+    apiKey,
+    watchlist,
+    watched,
+    toggleWatchlist,
+    toggleWatched,
     vidAngelEnabled,
     externalPlayerEnabled,
-    selectedExternalPlayer,
     tvSupportEnabled,
     sendToTv,
   } = useAppContext();
@@ -49,8 +48,8 @@ export default function DetailsView() {
   const [isCreditsModalOpen, setIsCreditsModalOpen] = useState(false);
   const [creditsLoading, setCreditsLoading] = useState(false);
 
-  // TV Play Prompt State
-  const [tvPrompt, setTvPrompt] = useState<{ url: string; title: string } | null>(null);
+  // Stream picker state
+  const [streamPicker, setStreamPicker] = useState<{ open: boolean; seasonNum?: number; episodeNum?: number }>({ open: false });
 
   // Modal State
   const [modalConfig, setModalConfig] = useState<{
@@ -236,32 +235,6 @@ export default function DetailsView() {
     }
   };
 
-  const getExternalPlayerUrl = (mediaType: 'movie' | 'tv', mediaId: number, seasonNum?: number, episodeNum?: number) => {
-    if (!externalPlayerEnabled || !selectedExternalPlayer) return '';
-    let url = '';
-    if (mediaType === 'movie' && selectedExternalPlayer.movieUrlTemplate) {
-      url = selectedExternalPlayer.movieUrlTemplate.replace('{TMDBID}', mediaId.toString());
-    } else if (mediaType === 'tv') {
-      if (seasonNum !== undefined && episodeNum !== undefined) {
-        if (selectedExternalPlayer.tvUrlTemplate) {
-          url = selectedExternalPlayer.tvUrlTemplate
-            .replace('{TMDBID}', mediaId.toString())
-            .replace('{season_num}', seasonNum.toString())
-            .replace('{episode_num}', episodeNum.toString());
-        }
-      } else if (selectedExternalPlayer.seriesUrlTemplate) {
-        url = selectedExternalPlayer.seriesUrlTemplate.replace('{TMDBID}', mediaId.toString());
-      } else if (selectedExternalPlayer.movieUrlTemplate) {
-        // Series level link fallback: formatted like movie but /tv/ and no ?play=true
-        url = selectedExternalPlayer.movieUrlTemplate
-          .replace('{TMDBID}', mediaId.toString())
-          .replace('/movie/', '/tv/')
-          .replace('?play=true', '');
-      }
-    }
-    return url;
-  };
-
   return (
     <div className="pb-4">
       {/* Cinematic Backdrop */}
@@ -344,59 +317,17 @@ export default function DetailsView() {
                 </button>
               </div>
 
-              {(externalPlayerEnabled && selectedExternalPlayer) || vidAngelAvailable ? (
+              {(externalPlayerEnabled || vidAngelAvailable) && (
                 <div className="flex gap-3">
-                  {externalPlayerEnabled && selectedExternalPlayer && (
-                    tvSupportEnabled ? (
-                      <button
-                        onClick={() => setTvPrompt({
-                          url: getExternalPlayerUrl(media.media_type, media.id),
-                          title: media.title || media.name || 'Unknown',
-                        })}
-                        className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm bg-brand-cyan text-brand-bg shadow-lg shadow-brand-cyan/20 hover:bg-brand-cyan/90"
-                      >
-                        <Play size={18} className="fill-brand-bg" />
-                        <span>Play</span>
-                      </button>
-                    ) : (
-                      <a
-                        href={getExternalPlayerUrl(media.media_type, media.id)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm bg-brand-cyan text-brand-bg shadow-lg shadow-brand-cyan/20 hover:bg-brand-cyan/90"
-                      >
-                        <Play size={18} className="fill-brand-bg" />
-                        <span>Play</span>
-                      </a>
-                    )
-                  )}
-
-                  {vidAngelAvailable && (
-                    tvSupportEnabled ? (
-                      <button
-                        onClick={() => setTvPrompt({
-                          url: `https://www.vidangel.com/${media.media_type === 'movie' ? 'movie' : 'show'}/${vidAngelSlug}`,
-                          title: media.title || media.name || 'Unknown',
-                        })}
-                        className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm bg-amber-500 text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600"
-                      >
-                        <ShieldCheck size={18} />
-                        <span>Edit</span>
-                      </button>
-                    ) : (
-                      <a
-                        href={`https://www.vidangel.com/${media.media_type === 'movie' ? 'movie' : 'show'}/${vidAngelSlug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm bg-amber-500 text-white shadow-lg shadow-amber-500/20 hover:bg-amber-600"
-                      >
-                        <ShieldCheck size={18} />
-                        <span>Edit</span>
-                      </a>
-                    )
-                  )}
+                  <button
+                    onClick={() => setStreamPicker({ open: true })}
+                    className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm bg-brand-cyan text-brand-bg shadow-lg shadow-brand-cyan/20 hover:bg-brand-cyan/90"
+                  >
+                    <Play size={18} className="fill-brand-bg" />
+                    <span>Play</span>
+                  </button>
                 </div>
-              ) : null}
+              )}
             </div>
           </div>
         </div>
@@ -446,29 +377,14 @@ export default function DetailsView() {
                       </div>
                     )}
                     
-                    {externalPlayerEnabled && selectedExternalPlayer && (
-                      tvSupportEnabled ? (
-                        <button
-                          onClick={() => setTvPrompt({
-                            url: getExternalPlayerUrl('tv', media.id, ep.season_number, ep.episode_number),
-                            title: `${media.name || media.title} S${ep.season_number} E${ep.episode_number}`,
-                          })}
-                          title={`Play S${ep.season_number} E${ep.episode_number} on ${selectedExternalPlayer.name}`}
-                          className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-brand-cyan/20 transition-colors"
-                        >
-                          <Play size={24} className="text-white/80 group-hover:text-brand-cyan fill-current" />
-                        </button>
-                      ) : (
-                        <a
-                          href={getExternalPlayerUrl('tv', media.id, ep.season_number, ep.episode_number)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title={`Play S${ep.season_number} E${ep.episode_number} on ${selectedExternalPlayer.name}`}
-                          className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-brand-cyan/20 transition-colors"
-                        >
-                          <Play size={24} className="text-white/80 group-hover:text-brand-cyan fill-current" />
-                        </a>
-                      )
+                    {externalPlayerEnabled && (
+                      <button
+                        onClick={() => setStreamPicker({ open: true, seasonNum: ep.season_number, episodeNum: ep.episode_number })}
+                        title={`Stream S${ep.season_number} E${ep.episode_number}`}
+                        className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-brand-cyan/20 transition-colors"
+                      >
+                        <Play size={24} className="text-white/80 group-hover:text-brand-cyan fill-current" />
+                      </button>
                     )}
 
                     <div className="absolute bottom-1 right-1 bg-brand-bg/80 text-white text-[8px] sm:text-[10px] font-bold px-1 rounded pointer-events-none blueprint-border">
@@ -565,16 +481,22 @@ export default function DetailsView() {
         loading={creditsLoading}
       />
 
-      <PlayTargetModal
-        isOpen={!!tvPrompt}
-        onClose={() => setTvPrompt(null)}
-        onSendToTv={() => {
-          if (tvPrompt) sendToTv(tvPrompt.url, tvPrompt.title);
-        }}
-        onPlayLocal={() => {
-          if (tvPrompt) window.open(tvPrompt.url, '_blank');
-        }}
-        title={tvPrompt?.title || ''}
+      <StreamPickerModal
+        isOpen={streamPicker.open}
+        onClose={() => setStreamPicker({ open: false })}
+        title={
+          streamPicker.seasonNum !== undefined
+            ? `${media.name || media.title} S${streamPicker.seasonNum} E${streamPicker.episodeNum}`
+            : media.title || media.name || 'Unknown'
+        }
+        mediaType={media.media_type}
+        mediaId={media.id}
+        seasonNum={streamPicker.seasonNum}
+        episodeNum={streamPicker.episodeNum}
+        vidAngelSlug={streamPicker.seasonNum === undefined ? vidAngelSlug : null}
+        externalPlayerEnabled={externalPlayerEnabled}
+        tvSupportEnabled={tvSupportEnabled}
+        onSendToTv={sendToTv}
       />
     </div>
   );
