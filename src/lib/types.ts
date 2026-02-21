@@ -45,6 +45,7 @@ export interface Media {
   date_added?: string;
   lastChecked?: number;
   isEdited?: boolean;
+  isFavorite?: boolean;
   seasons?: SeasonSummary[];
   next_episode_to_air?: {
     air_date: string;
@@ -212,6 +213,7 @@ export interface UserState {
   sort?: SortOption;
   showWatched?: boolean;
   showEditedOnly?: boolean;
+  showFavoritesOnly?: boolean;
   isSearchFocused?: boolean;
   onboardingCompleted?: boolean;
   editedStatusMap: Record<string, boolean>;

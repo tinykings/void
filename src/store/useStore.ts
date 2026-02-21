@@ -49,6 +49,8 @@ interface StoreState extends UserState {
   
   toggleWatchlist: (media: Media) => Promise<void>;
   toggleWatched: (media: Media, rating?: number) => Promise<void>;
+  toggleFavorite: (media: Media) => Promise<void>;
+  setShowFavoritesOnly: (show: boolean) => void;
   
   setSession: (sessionId: string, accountId: number) => void;
   setLists: (watchlist: Media[], watched: Media[]) => void;
@@ -113,7 +115,10 @@ export const useStore = create<StoreState>()(
             }));
           };
 
-          const allIncomingRated = assignDateAdded([...ratedMovies, ...ratedTv]);
+          const allIncomingRated = assignDateAdded([...ratedMovies, ...ratedTv].map(item => ({
+            ...item,
+            isFavorite: (item as any).rating >= 8,
+          })));
           const allIncomingWatchlist = assignDateAdded([...wlMovies, ...wlTv]);
 
           const mergeMetadata = (newItem: Media) => {
@@ -126,6 +131,7 @@ export const useStore = create<StoreState>()(
                 lastChecked: oldItem.lastChecked,
                 next_episode_to_air: oldItem.next_episode_to_air,
                 status: oldItem.status || newItem.status,
+                isFavorite: newItem.isFavorite ?? oldItem.isFavorite,
               };
             }
             return newItem;
@@ -222,6 +228,7 @@ export const useStore = create<StoreState>()(
         sort: 'added',
         showWatched: false,
         showEditedOnly: false,
+        showFavoritesOnly: false,
         isSearchFocused: false,
         onboardingCompleted: false,
         editedStatusMap: {},
@@ -258,6 +265,8 @@ export const useStore = create<StoreState>()(
         setShowWatched: (showWatched) => set({ showWatched }),
         
         setShowEditedOnly: (showEditedOnly) => set({ showEditedOnly }),
+
+        setShowFavoritesOnly: (showFavoritesOnly) => set({ showFavoritesOnly }),
         
         setIsSearchFocused: (isSearchFocused) => set({ isSearchFocused }),
 
@@ -494,7 +503,7 @@ export const useStore = create<StoreState>()(
         toggleWatched: async (media, rating) => {
           const { apiKey, tmdbSessionId, tmdbAccountId, watched, watchlist } = get();
           const inWatched = watched.some((m) => m.id === media.id && m.media_type === media.media_type);
-          
+
           if (inWatched && !rating) {
             set({ watched: watched.filter((m) => !(m.id === media.id && m.media_type === media.media_type)) });
             if (apiKey && tmdbSessionId && tmdbAccountId) {
@@ -506,12 +515,34 @@ export const useStore = create<StoreState>()(
               watchlist: watchlist.filter((m) => !(m.id === media.id && m.media_type === media.media_type))
             });
             if (apiKey && tmdbSessionId && tmdbAccountId) {
-              try { 
+              try {
                 await rateMedia(apiKey, tmdbSessionId, media.id, media.media_type, rating || 1);
                 // Also remove from watchlist on TMDB when marking as watched
                 await toggleWatchlistStatus(apiKey, tmdbSessionId, tmdbAccountId, media.id, media.media_type, false);
               } catch (err) { console.error(err); }
             }
+          }
+        },
+
+        toggleFavorite: async (media) => {
+          const { apiKey, tmdbSessionId, tmdbAccountId, watched } = get();
+          const item = watched.find((m) => m.id === media.id && m.media_type === media.media_type);
+          if (!item) return;
+
+          const newIsFavorite = !item.isFavorite;
+          set({
+            watched: watched.map((m) =>
+              m.id === media.id && m.media_type === media.media_type
+                ? { ...m, isFavorite: newIsFavorite }
+                : m
+            ),
+          });
+
+          if (apiKey && tmdbSessionId && tmdbAccountId) {
+            try {
+              // 4 stars (value 8 on TMDB) = favorite, 1 star (value 2 on TMDB) = watched only
+              await rateMedia(apiKey, tmdbSessionId, media.id, media.media_type, newIsFavorite ? 4 : 1);
+            } catch (err) { console.error(err); }
           }
         }
       };
