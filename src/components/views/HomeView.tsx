@@ -410,6 +410,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                 onClick={() => {
                   startTransition(() => setShowWatched(!showWatched));
                   showStatus(showWatched ? 'Watchlist' : 'Watched');
+                  window.scrollTo(0, 0);
                 }}
                 className={clsx(
                   "flex items-center justify-center w-10 h-10 rounded-xl transition-all",
@@ -458,6 +459,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                 onFilterChange={(f) => {
                   startTransition(() => setFilter(f));
                   showStatus(f === 'movie' ? 'Movies' : 'TV Shows');
+                  window.scrollTo(0, 0);
                 }}
               />
             </div>
