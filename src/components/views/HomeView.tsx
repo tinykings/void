@@ -244,77 +244,137 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   const isLoading = searchLoading || (showTrending ? trendingLoading : isPending);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 pb-24 relative">
-      <div className="flex flex-col gap-6 mb-8 pt-6">
-        <div className="flex flex-col gap-4 w-full">
-          {/* Top Row: Search (Expands) */}
-          <div className="relative w-full z-20">
-            <SearchIcon 
-              className={clsx(
-                "absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-300",
-                isSearchFocused ? "text-brand-cyan scale-110" : "text-brand-silver"
-              )} 
-              size={isSearchFocused ? 22 : 18} 
-            />
-            <input
-              type="text"
-              value={query}
-              onFocus={() => startTransition(() => setIsSearchFocused(true))}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Search movies, shows..."
-              className={clsx(
-                "w-full pl-12 pr-20 bg-brand-bg blueprint-border rounded-2xl transition-all duration-300 outline-none font-medium text-white placeholder:text-brand-silver/50",
-                isSearchFocused 
-                  ? "py-5 text-lg shadow-[0_0_30px_rgba(34,211,238,0.15)] ring-1 ring-brand-cyan/30" 
-                  : "py-3 text-sm shadow-sm"
-              )}
-            />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              {query.trim().length >= 2 && (
-                <button 
-                  onClick={() => handleSearch(query)}
-                  className="p-2 bg-brand-cyan text-brand-bg rounded-xl shadow-lg hover:bg-brand-cyan/80 transition-all active:scale-95"
-                  title="Search"
+    <div className="max-w-7xl mx-auto px-4 pt-6 pb-[240px] relative">
+      {(isSearching || showTrending) && (
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
+          <div className="flex flex-col md:flex-row md:items-center gap-4 w-full md:w-auto">
+            <div className="flex items-center gap-2">
+              {isSearching ? <SearchIcon className="text-brand-cyan" size={20} /> : <div className="w-2 h-6 bg-brand-cyan rounded-full" />}
+              <h1 className="text-xl font-black italic tracking-tighter text-white uppercase">
+                {isSearching ? (searchLoading ? 'Searching...' : (searchResults.length > 0 ? `Results for "${query}"` : 'Type and press Enter to search')) : 'Popular Right Now'}
+              </h1>
+            </div>
+
+            {vidAngelEnabled && (
+              <button
+                onClick={() => {
+                  startTransition(() => setShowEditedOnly(!showEditedOnly));
+                  showStatus(showEditedOnly ? 'All' : 'Edited Only');
+                }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
+                  showEditedOnly
+                    ? 'bg-amber-500/20 text-amber-400 blueprint-border'
+                    : 'bg-brand-bg/50 text-brand-silver blueprint-border'
+                }`}
+              >
+                <ShieldCheck size={14} className={showEditedOnly ? 'fill-current' : ''} />
+                EDITED
+              </button>
+            )}
+          </div>
+          {(showTrending || isSearching) && (
+            <button
+              onClick={() => startTransition(() => {
+                setQuery('');
+                setSearchResults([]);
+                setIsSearchFocused(false);
+                if (searchAbortController.current) {
+                  searchAbortController.current.abort();
+                }
+              })}
+              className="flex items-center gap-2 px-6 py-3 bg-brand-bg/80 blueprint-border text-brand-cyan rounded-xl font-bold hover:bg-brand-cyan/10 transition-all shadow-[0_0_15px_rgba(34,211,238,0.1)] active:scale-95 uppercase tracking-wider text-sm whitespace-nowrap"
+            >
+              <ArrowLeft size={18} />
+              Return to Library
+            </button>
+          )}
+        </div>
+      )}
+
+      {error && !isSearching && (
+        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-xl flex items-start gap-3 mb-6 border border-red-100 dark:border-red-900/30">
+          <AlertCircle size={20} className="mt-0.5 shrink-0" />
+          <p className="text-sm font-medium">{error}</p>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          {[...Array(12)].map((_, i) => (
+            <MediaCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : (
+        <>
+          {displayMedia.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {displayMedia.map((item, index) => (
+                <div
+                  key={`${item.media_type}-${item.id}`}
+                  ref={index === displayMedia.length - 1 ? lastItemRef : null}
                 >
-                  <ArrowRight size={16} />
-                </button>
-              )}
-              {(query || isSearchFocused) && (
-                <button 
-                  onClick={() => {
-                    startTransition(() => {
-                      setQuery('');
-                      setSearchResults([]);
-                      setIsSearchFocused(false);
-                      if (searchAbortController.current) {
-                        searchAbortController.current.abort();
-                      }
-                    });
-                  }}
-                  className="p-2 text-brand-silver hover:text-white transition-colors"
-                >
-                  <X size={20} />
-                </button>
+                  <MediaCard
+                    media={{
+                      ...item,
+                      isEdited: editedStatusMap[`${item.media_type}-${item.id}`]
+                    }}
+                    showBadge={showEditedOnly}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20 text-brand-silver">
+              {isSearching ? (
+                <p className="font-medium text-lg">
+                  {searchLoading ? 'Searching...' : `No results found for "${query}"`}
+                </p>
+              ) : showTrending ? (
+                <p>No trending content found.</p>
+              ) : (
+                <div className="flex flex-col items-center gap-4">
+                  <p className="text-lg font-medium text-white">Your list is empty</p>
+                  <p className="text-sm text-brand-silver max-w-xs mx-auto">
+                    Search for movies and shows to add them to your watchlist.
+                  </p>
+                  <button
+                    onClick={() => setIsSearchFocused(true)}
+                    className="mt-4 text-brand-cyan font-bold uppercase tracking-wider text-xs border-b border-brand-cyan/30 pb-1 hover:border-brand-cyan transition-colors"
+                  >
+                    Browse Popular
+                  </button>
+                </div>
               )}
             </div>
+          )}
+        </>
+      )}
+
+      {/* Fixed Bottom Bar — order from bottom: search → filter tabs → sort controls → notification */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-brand-bg/95 backdrop-blur-md border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col items-center gap-3">
+
+          {/* Notification text — top of bar, just below posters */}
+          <div
+            aria-live="polite"
+            className={clsx(
+              "text-xs font-semibold tracking-widest uppercase text-brand-cyan/70 transition-all duration-300 h-4",
+              statusLabel && !statusFading
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-1 pointer-events-none"
+            )}
+          >
+            {statusLabel}
           </div>
 
-          {/* Bottom Row: Filter Tabs & Controls */}
+          {/* Sort controls + FilterTabs — collapse when search is focused */}
           <div className={clsx(
-            "flex flex-col items-center gap-4 transition-all duration-300",
-            isSearchFocused ? "opacity-0 -translate-y-2 pointer-events-none h-0 overflow-hidden" : "opacity-100 translate-y-0 h-auto"
+            "flex flex-col items-center gap-3 w-full transition-all duration-300",
+            isSearchFocused
+              ? "opacity-0 translate-y-2 pointer-events-none h-0 overflow-hidden"
+              : "opacity-100 translate-y-0 h-auto"
           )}>
-            <div className="w-full max-w-sm">
-              <FilterTabs 
-                currentFilter={filter || 'movie'} 
-                onFilterChange={(f) => {
-                startTransition(() => setFilter(f));
-                showStatus(f === 'movie' ? 'Movies' : 'TV Shows');
-              }}
-              />
-            </div>
-
+            {/* Sort / filter controls */}
             <div className="flex items-center gap-2 glass-effect p-1 rounded-2xl">
               {vidAngelEnabled && (
                 <button
@@ -324,8 +384,8 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                   }}
                   className={clsx(
                     "flex items-center justify-center w-10 h-10 rounded-xl transition-all",
-                    showEditedOnly 
-                      ? 'bg-amber-500 text-white shadow-lg' 
+                    showEditedOnly
+                      ? 'bg-amber-500 text-white shadow-lg'
                       : 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'
                   )}
                   title="Edited Only"
@@ -333,15 +393,15 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                   <ShieldCheck size={20} className={showEditedOnly ? 'fill-current' : ''} />
                 </button>
               )}
-              
+
               <div className="w-px h-5 bg-white/5 mx-0.5" />
 
               <SortControl
                 currentSort={sort || 'added'}
                 onSortChange={(s) => {
-                startTransition(() => setSort(s));
-                showStatus(s === 'added' ? 'Recently Added' : s === 'title' ? 'Title A–Z' : 'Release Date');
-              }}
+                  startTransition(() => setSort(s));
+                  showStatus(s === 'added' ? 'Recently Added' : s === 'title' ? 'Title A–Z' : 'Release Date');
+                }}
               />
 
               <div className="w-px h-5 bg-white/5 mx-0.5" />
@@ -391,126 +451,73 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               </button>
             </div>
 
-            {/* Transient view label */}
-            <div
-              aria-live="polite"
-              className={clsx(
-                "text-xs font-semibold tracking-widest uppercase text-brand-cyan/70 transition-all duration-300 h-4",
-                statusLabel && !statusFading
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-1 pointer-events-none"
-              )}
-            >
-              {statusLabel}
+            {/* Movies / TV Shows filter tabs */}
+            <div className="w-full max-w-sm">
+              <FilterTabs
+                currentFilter={filter || 'movie'}
+                onFilterChange={(f) => {
+                  startTransition(() => setFilter(f));
+                  showStatus(f === 'movie' ? 'Movies' : 'TV Shows');
+                }}
+              />
             </div>
           </div>
+
+          {/* Search bar — always visible at the very bottom */}
+          <div className="relative w-full z-20">
+            <SearchIcon
+              className={clsx(
+                "absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-300",
+                isSearchFocused ? "text-brand-cyan scale-110" : "text-brand-silver"
+              )}
+              size={isSearchFocused ? 22 : 18}
+            />
+            <input
+              type="text"
+              value={query}
+              onFocus={() => startTransition(() => setIsSearchFocused(true))}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Search movies, shows..."
+              className={clsx(
+                "w-full pl-12 pr-20 bg-brand-bg blueprint-border rounded-2xl transition-all duration-300 outline-none font-medium text-white placeholder:text-brand-silver/50",
+                isSearchFocused
+                  ? "py-5 text-lg shadow-[0_0_30px_rgba(34,211,238,0.15)] ring-1 ring-brand-cyan/30"
+                  : "py-3 text-sm shadow-sm"
+              )}
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {query.trim().length >= 2 && (
+                <button
+                  onClick={() => handleSearch(query)}
+                  className="p-2 bg-brand-cyan text-brand-bg rounded-xl shadow-lg hover:bg-brand-cyan/80 transition-all active:scale-95"
+                  title="Search"
+                >
+                  <ArrowRight size={16} />
+                </button>
+              )}
+              {(query || isSearchFocused) && (
+                <button
+                  onClick={() => {
+                    startTransition(() => {
+                      setQuery('');
+                      setSearchResults([]);
+                      setIsSearchFocused(false);
+                      if (searchAbortController.current) {
+                        searchAbortController.current.abort();
+                      }
+                    });
+                  }}
+                  className="p-2 text-brand-silver hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              )}
+            </div>
+          </div>
+
         </div>
       </div>
-
-      {(isSearching || showTrending) && (
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
-          <div className="flex flex-col md:flex-row md:items-center gap-4 w-full md:w-auto">
-            <div className="flex items-center gap-2">
-              {isSearching ? <SearchIcon className="text-brand-cyan" size={20} /> : <div className="w-2 h-6 bg-brand-cyan rounded-full" />}
-              <h1 className="text-xl font-black italic tracking-tighter text-white uppercase">
-                {isSearching ? (searchLoading ? 'Searching...' : (searchResults.length > 0 ? `Results for "${query}"` : 'Type and press Enter to search')) : 'Popular Right Now'}
-              </h1>
-            </div>
-            
-            {vidAngelEnabled && (
-              <button
-                onClick={() => {
-                  startTransition(() => setShowEditedOnly(!showEditedOnly));
-                  showStatus(showEditedOnly ? 'All' : 'Edited Only');
-                }}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
-                  showEditedOnly 
-                    ? 'bg-amber-500/20 text-amber-400 blueprint-border' 
-                    : 'bg-brand-bg/50 text-brand-silver blueprint-border'
-                }`}
-              >
-                <ShieldCheck size={14} className={showEditedOnly ? 'fill-current' : ''} />
-                EDITED
-              </button>
-            )}
-          </div>
-          {(showTrending || isSearching) && (
-            <button 
-              onClick={() => startTransition(() => {
-                setQuery('');
-                setSearchResults([]);
-                setIsSearchFocused(false);
-                if (searchAbortController.current) {
-                  searchAbortController.current.abort();
-                }
-              })}
-              className="flex items-center gap-2 px-6 py-3 bg-brand-bg/80 blueprint-border text-brand-cyan rounded-xl font-bold hover:bg-brand-cyan/10 transition-all shadow-[0_0_15px_rgba(34,211,238,0.1)] active:scale-95 uppercase tracking-wider text-sm whitespace-nowrap"
-            >
-              <ArrowLeft size={18} />
-              Return to Library
-            </button>
-          )}
-        </div>
-      )}
-
-      {error && !isSearching && (
-        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-xl flex items-start gap-3 mb-6 border border-red-100 dark:border-red-900/30">
-          <AlertCircle size={20} className="mt-0.5 shrink-0" />
-          <p className="text-sm font-medium">{error}</p>
-        </div>
-      )}
-
-      {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {[...Array(12)].map((_, i) => (
-            <MediaCardSkeleton key={i} />
-          ))}
-        </div>
-      ) : (
-        <>
-          {displayMedia.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-              {displayMedia.map((item, index) => (
-                <div 
-                  key={`${item.media_type}-${item.id}`}
-                  ref={index === displayMedia.length - 1 ? lastItemRef : null}
-                >
-                  <MediaCard 
-                    media={{
-                      ...item,
-                      isEdited: editedStatusMap[`${item.media_type}-${item.id}`]
-                    }} 
-                    showBadge={showEditedOnly}
-                  />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-20 text-brand-silver">
-              {isSearching ? (
-                <p className="font-medium text-lg">
-                   {searchLoading ? 'Searching...' : `No results found for "${query}"`}
-                </p>
-              ) : showTrending ? (
-                <p>No trending content found.</p>
-              ) : (
-                <div className="flex flex-col items-center gap-4">
-                  <p className="text-lg font-medium text-white">Your list is empty</p>
-                  <p className="text-sm text-brand-silver max-w-xs mx-auto">
-                    Search for movies and shows to add them to your watchlist.
-                  </p>
-                  <button 
-                    onClick={() => setIsSearchFocused(true)}
-                    className="mt-4 text-brand-cyan font-bold uppercase tracking-wider text-xs border-b border-brand-cyan/30 pb-1 hover:border-brand-cyan transition-colors"
-                  >
-                    Browse Popular
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </>
-      )}
     </div>
   );
 };
