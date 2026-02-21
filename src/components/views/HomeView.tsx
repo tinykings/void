@@ -351,8 +351,8 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
       )}
 
       {/* Fixed Bottom Bar — order from bottom: search → filter tabs → sort controls → notification */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-brand-bg/95 backdrop-blur-md border-t border-white/5">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col items-center gap-3">
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-brand-bg/40 backdrop-blur-xl border-t border-white/[0.04]">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col items-center gap-2">
 
           {/* Notification text — top of bar, just below posters */}
           <div
