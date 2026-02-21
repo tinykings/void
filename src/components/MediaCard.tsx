@@ -5,7 +5,7 @@ import { Media } from '@/lib/types';
 import { getImageUrl } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { useAppContext } from '@/context/AppContext';
-import { Plus, Check, Trash2, Star, Bookmark, Heart } from 'lucide-react';
+import { Plus, Check, Trash2, Star, Bookmark, Heart, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
@@ -94,7 +94,16 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
         }
       });
     } else {
-      toggleWatchlist(media);
+      setModalConfig({
+        isOpen: true,
+        title: 'Add to Watchlist',
+        message: `Add "${title}" to your watchlist?`,
+        type: 'info',
+        confirmText: 'Add to List',
+        onConfirm: () => {
+          toggleWatchlist(media);
+        }
+      });
     }
   };
 
@@ -180,13 +189,14 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
               <button
                 onClick={handleWatchlistClick}
                 className={clsx(
-                  "flex-1 py-1.5 rounded-md flex items-center justify-center transition-colors text-[10px] font-bold",
+                  "flex-1 py-1.5 rounded-md flex items-center justify-center transition-colors blueprint-border",
                   inWatchlist
-                    ? "bg-brand-cyan/20 text-brand-cyan blueprint-border"
-                    : "bg-brand-bg/50 text-brand-silver blueprint-border hover:bg-brand-bg hover:text-white"
+                    ? "bg-brand-cyan/20 text-brand-cyan"
+                    : "bg-brand-bg/50 text-brand-silver hover:bg-brand-bg hover:text-white"
                 )}
+                title={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
               >
-                LIST
+                <Bookmark size={12} className={inWatchlist ? 'fill-current' : ''} />
               </button>
               {inWatched && (
                 <button
@@ -205,13 +215,14 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
               <button
                 onClick={handleWatchedClick}
                 className={clsx(
-                  "flex-1 py-1.5 rounded-md flex items-center justify-center transition-colors text-[10px] font-bold",
+                  "flex-1 py-1.5 rounded-md flex items-center justify-center transition-colors blueprint-border",
                   inWatched
-                    ? "bg-green-500/20 text-green-400 blueprint-border"
-                    : "bg-brand-bg/50 text-brand-silver blueprint-border hover:bg-brand-bg hover:text-white"
+                    ? "bg-green-500/20 text-green-400"
+                    : "bg-brand-bg/50 text-brand-silver hover:bg-brand-bg hover:text-white"
                 )}
+                title={inWatched ? "Remove from watched" : "Mark as watched"}
               >
-                {inWatched ? 'WATCHED' : 'WATCH'}
+                {inWatched ? <Check size={12} /> : <Eye size={12} />}
               </button>
             </div>
           )}
