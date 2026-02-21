@@ -173,12 +173,10 @@ export default function DetailsView() {
         confirmText: 'Remove',
         onConfirm: () => {
           toggleWatchlist(media);
-          toast.success('Removed from watchlist');
         }
       });
     } else {
       toggleWatchlist(media);
-      toast.success('Added to watchlist');
     }
   };
 
@@ -192,7 +190,6 @@ export default function DetailsView() {
         confirmText: 'Remove',
         onConfirm: () => {
           toggleWatched(media);
-          toast.success('Removed from history');
         }
       });
     } else {
@@ -204,7 +201,6 @@ export default function DetailsView() {
         confirmText: 'Mark Watched',
         onConfirm: () => {
           toggleWatched(media);
-          toast.success('Marked as watched');
         }
       });
     }
