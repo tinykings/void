@@ -313,12 +313,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               
               <div className="w-px h-5 bg-white/5 mx-0.5" />
 
-              <div className="px-1">
-                <SortControl 
-                  currentSort={sort || 'added'} 
-                  onSortChange={(s) => startTransition(() => setSort(s))} 
-                />
-              </div>
+              <SortControl
+                currentSort={sort || 'added'}
+                onSortChange={(s) => startTransition(() => setSort(s))}
+              />
 
               <div className="w-px h-5 bg-white/5 mx-0.5" />
 
