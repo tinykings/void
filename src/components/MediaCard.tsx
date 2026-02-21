@@ -8,7 +8,6 @@ import { useAppContext } from '@/context/AppContext';
 import { Plus, Check, Trash2, Star, Bookmark } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
-import { toast } from 'sonner';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { vidAngelObserver } from '@/lib/observerManager';
 
@@ -89,12 +88,10 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
         confirmText: 'Remove',
         onConfirm: () => {
           toggleWatchlist(media);
-          toast.success('Removed from watchlist');
         }
       });
     } else {
       toggleWatchlist(media);
-      toast.success('Added to watchlist');
     }
   };
 
@@ -108,7 +105,6 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
         confirmText: 'Remove',
         onConfirm: () => {
           toggleWatched(media);
-          toast.success('Removed from history');
         }
       });
     } else {
@@ -120,7 +116,6 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
         confirmText: 'Mark Watched',
         onConfirm: () => {
           toggleWatched(media);
-          toast.success('Marked as watched');
         }
       });
     }
