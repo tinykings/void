@@ -42,7 +42,25 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   } = useAppContext();
   
   const [isPending, startTransition] = useTransition();
-  
+
+  // Status label (sort/filter feedback)
+  const [statusLabel, setStatusLabel] = useState<string | null>(null);
+  const [statusFading, setStatusFading] = useState(false);
+  const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showStatus = useCallback((label: string) => {
+    if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+    setStatusLabel(label);
+    setStatusFading(false);
+    statusTimerRef.current = setTimeout(() => {
+      setStatusFading(true);
+      statusTimerRef.current = setTimeout(() => {
+        setStatusLabel(null);
+        setStatusFading(false);
+      }, 400);
+    }, 1600);
+  }, []);
+
   // Trending State
   const [trending, setTrending] = useState<Media[]>([]);
   const [trendingLoading, setTrendingLoading] = useState(false);
@@ -146,6 +164,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
       if (searchAbortController.current) {
         searchAbortController.current.abort();
       }
+      if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
     };
   }, []);
 
@@ -289,16 +308,20 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
             <div className="w-full max-w-sm">
               <FilterTabs 
                 currentFilter={filter || 'movie'} 
-                onFilterChange={(f) => startTransition(() => {
-                  setFilter(f);
-                })} 
+                onFilterChange={(f) => {
+                startTransition(() => setFilter(f));
+                showStatus(f === 'movie' ? 'Movies' : 'TV Shows');
+              }}
               />
             </div>
 
             <div className="flex items-center gap-2 glass-effect p-1 rounded-2xl">
               {vidAngelEnabled && (
                 <button
-                  onClick={() => startTransition(() => setShowEditedOnly(!showEditedOnly))}
+                  onClick={() => {
+                    startTransition(() => setShowEditedOnly(!showEditedOnly));
+                    showStatus(showEditedOnly ? 'All' : 'Edited Only');
+                  }}
                   className={clsx(
                     "flex items-center justify-center w-10 h-10 rounded-xl transition-all",
                     showEditedOnly 
@@ -315,15 +338,19 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
               <SortControl
                 currentSort={sort || 'added'}
-                onSortChange={(s) => startTransition(() => setSort(s))}
+                onSortChange={(s) => {
+                startTransition(() => setSort(s));
+                showStatus(s === 'added' ? 'Recently Added' : s === 'title' ? 'Title A–Z' : 'Release Date');
+              }}
               />
 
               <div className="w-px h-5 bg-white/5 mx-0.5" />
 
               <button
-                onClick={() => startTransition(() => {
-                  setShowWatched(!showWatched);
-                })}
+                onClick={() => {
+                  startTransition(() => setShowWatched(!showWatched));
+                  showStatus(showWatched ? 'Watchlist' : 'Watched');
+                }}
                 className={clsx(
                   "flex items-center justify-center w-10 h-10 rounded-xl transition-all",
                   showWatched
@@ -337,7 +364,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
               {showWatched && (
                 <button
-                  onClick={() => startTransition(() => setShowFavoritesOnly(!showFavoritesOnly))}
+                  onClick={() => {
+                    startTransition(() => setShowFavoritesOnly(!showFavoritesOnly));
+                    showStatus(showFavoritesOnly ? 'All Watched' : 'Favorites');
+                  }}
                   className={clsx(
                     "flex items-center justify-center w-10 h-10 rounded-xl transition-all",
                     showFavoritesOnly
@@ -360,6 +390,19 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                 <Settings size={20} />
               </button>
             </div>
+
+            {/* Transient view label */}
+            <div
+              aria-live="polite"
+              className={clsx(
+                "text-xs font-semibold tracking-widest uppercase text-brand-cyan/70 transition-all duration-300 h-4",
+                statusLabel && !statusFading
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-1 pointer-events-none"
+              )}
+            >
+              {statusLabel}
+            </div>
           </div>
         </div>
       </div>
@@ -376,7 +419,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
             
             {vidAngelEnabled && (
               <button
-                onClick={() => startTransition(() => setShowEditedOnly(!showEditedOnly))}
+                onClick={() => {
+                  startTransition(() => setShowEditedOnly(!showEditedOnly));
+                  showStatus(showEditedOnly ? 'All' : 'Edited Only');
+                }}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
                   showEditedOnly 
                     ? 'bg-amber-500/20 text-amber-400 blueprint-border' 
