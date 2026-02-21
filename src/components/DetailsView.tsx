@@ -6,7 +6,7 @@ import { useAppContext } from '@/context/AppContext';
 import { getMediaDetails, getWatchProviders, getImageUrl, getContentRating, getSeasonDetails, getMediaVideos, getMediaCredits, getPersonCredits } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { Media, WatchProvidersResponse, WatchProvider, SeasonDetails, Video, SeasonSummary, CastMember } from '@/lib/types';
-import { ChevronLeft, Plus, Check, Trash2, Play, Star, Calendar, ChevronDown, User as UserIcon } from 'lucide-react';
+import { ChevronLeft, Check, Play, Star, Calendar, ChevronDown, User as UserIcon, Bookmark, Eye } from 'lucide-react';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
@@ -175,7 +175,16 @@ export default function DetailsView() {
         }
       });
     } else {
-      toggleWatchlist(media);
+      setModalConfig({
+        isOpen: true,
+        title: 'Add to Watchlist',
+        message: `Add "${title}" to your watchlist?`,
+        type: 'info',
+        confirmText: 'Add to List',
+        onConfirm: () => {
+          toggleWatchlist(media);
+        }
+      });
     }
   };
 
@@ -299,7 +308,7 @@ export default function DetailsView() {
                       : "bg-brand-cyan text-brand-bg shadow-lg shadow-brand-cyan/20 hover:bg-brand-cyan/90"
                   )}
                 >
-                  {inWatchlist ? <Trash2 size={18} /> : <Plus size={18} />}
+                  <Bookmark size={18} className={inWatchlist ? 'fill-current' : ''} />
                   <span>{inWatchlist ? 'Remove' : 'Watchlist'}</span>
                 </button>
 
@@ -312,7 +321,7 @@ export default function DetailsView() {
                       : "bg-brand-bg/50 blueprint-border text-brand-silver hover:bg-brand-bg hover:text-white"
                   )}
                 >
-                  <Check size={18} />
+                  {inWatched ? <Check size={18} /> : <Eye size={18} />}
                   <span>{inWatched ? 'Watched' : 'Mark Watched'}</span>
                 </button>
               </div>
