@@ -244,7 +244,52 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   const isLoading = searchLoading || (showTrending ? trendingLoading : isPending);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 pt-6 pb-[240px] relative">
+    <div className="max-w-7xl mx-auto px-4 pt-6 pb-[160px] relative">
+      {/* Search field at top — visible when search is open */}
+      {isSearchFocused && (
+        <div className="relative w-full z-20 mb-6">
+          <SearchIcon
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-cyan scale-110 transition-all duration-300"
+            size={22}
+          />
+          <input
+            type="text"
+            value={query}
+            autoFocus
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Search movies, shows..."
+            className="w-full pl-12 pr-20 bg-brand-bg blueprint-border rounded-2xl transition-all duration-300 outline-none font-medium text-white placeholder:text-brand-silver/50 py-5 text-lg shadow-[0_0_30px_rgba(34,211,238,0.15)] ring-1 ring-brand-cyan/30"
+          />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {query.trim().length >= 2 && (
+              <button
+                onClick={() => handleSearch(query)}
+                className="p-2 bg-brand-cyan text-brand-bg rounded-xl shadow-lg hover:bg-brand-cyan/80 transition-all active:scale-95"
+                title="Search"
+              >
+                <ArrowRight size={16} />
+              </button>
+            )}
+            <button
+              onClick={() => {
+                startTransition(() => {
+                  setQuery('');
+                  setSearchResults([]);
+                  setIsSearchFocused(false);
+                  if (searchAbortController.current) {
+                    searchAbortController.current.abort();
+                  }
+                });
+              }}
+              className="p-2 text-brand-silver hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {(isSearching || showTrending) && (
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
           <div className="flex flex-col md:flex-row md:items-center gap-4 w-full md:w-auto">
@@ -350,7 +395,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
         </>
       )}
 
-      {/* Fixed Bottom Bar — order from bottom: search → filter tabs → sort controls */}
+      {/* Fixed Bottom Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-brand-bg/40 backdrop-blur-xl border-t border-white/[0.04]">
         {/* Floating status pill — pops up above the bar */}
         <div
@@ -367,13 +412,8 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
         <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col items-center gap-2">
 
-          {/* Sort controls + FilterTabs — collapse when search is focused */}
-          <div className={clsx(
-            "flex flex-col items-center gap-3 w-full transition-all duration-300",
-            isSearchFocused
-              ? "opacity-0 translate-y-2 pointer-events-none h-0 overflow-hidden"
-              : "opacity-100 translate-y-0 h-auto"
-          )}>
+          {/* Sort controls + FilterTabs */}
+          <div className="flex flex-col items-center gap-3 w-full">
             {/* Sort / filter controls */}
             <div className="flex items-center gap-2 glass-effect p-1 rounded-2xl">
               {vidAngelEnabled && (
@@ -450,6 +490,34 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               >
                 <Settings size={20} />
               </button>
+
+              <div className="w-px h-5 bg-white/5 mx-0.5" />
+
+              <button
+                onClick={() => {
+                  if (isSearchFocused) {
+                    startTransition(() => {
+                      setQuery('');
+                      setSearchResults([]);
+                      setIsSearchFocused(false);
+                      if (searchAbortController.current) {
+                        searchAbortController.current.abort();
+                      }
+                    });
+                  } else {
+                    startTransition(() => setIsSearchFocused(true));
+                  }
+                }}
+                className={clsx(
+                  "flex items-center justify-center w-10 h-10 rounded-xl transition-all",
+                  isSearchFocused
+                    ? 'bg-brand-cyan/20 text-brand-cyan'
+                    : 'text-brand-silver hover:text-brand-cyan hover:bg-white/5'
+                )}
+                title={isSearchFocused ? "Close Search" : "Search"}
+              >
+                {isSearchFocused ? <X size={20} /> : <SearchIcon size={20} />}
+              </button>
             </div>
 
             {/* Movies / TV Shows filter tabs */}
@@ -462,59 +530,6 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                   window.scrollTo(0, 0);
                 }}
               />
-            </div>
-          </div>
-
-          {/* Search bar — always visible at the very bottom */}
-          <div className="relative w-full z-20">
-            <SearchIcon
-              className={clsx(
-                "absolute left-4 top-1/2 -translate-y-1/2 transition-all duration-300",
-                isSearchFocused ? "text-brand-cyan scale-110" : "text-brand-silver"
-              )}
-              size={isSearchFocused ? 22 : 18}
-            />
-            <input
-              type="text"
-              value={query}
-              onFocus={() => startTransition(() => setIsSearchFocused(true))}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Search movies, shows..."
-              className={clsx(
-                "w-full pl-12 pr-20 bg-brand-bg blueprint-border rounded-2xl transition-all duration-300 outline-none font-medium text-white placeholder:text-brand-silver/50",
-                isSearchFocused
-                  ? "py-5 text-lg shadow-[0_0_30px_rgba(34,211,238,0.15)] ring-1 ring-brand-cyan/30"
-                  : "py-3 text-sm shadow-sm"
-              )}
-            />
-            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              {query.trim().length >= 2 && (
-                <button
-                  onClick={() => handleSearch(query)}
-                  className="p-2 bg-brand-cyan text-brand-bg rounded-xl shadow-lg hover:bg-brand-cyan/80 transition-all active:scale-95"
-                  title="Search"
-                >
-                  <ArrowRight size={16} />
-                </button>
-              )}
-              {(query || isSearchFocused) && (
-                <button
-                  onClick={() => {
-                    startTransition(() => {
-                      setQuery('');
-                      setSearchResults([]);
-                      setIsSearchFocused(false);
-                      if (searchAbortController.current) {
-                        searchAbortController.current.abort();
-                      }
-                    });
-                  }}
-                  className="p-2 text-brand-silver hover:text-white transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              )}
             </div>
           </div>
 
