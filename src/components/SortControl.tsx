@@ -1,7 +1,6 @@
 import React from 'react';
 import { Clock, AlignLeft, Calendar } from 'lucide-react';
 import { SortOption } from '@/lib/types';
-import { clsx } from 'clsx';
 
 interface SortControlProps {
   currentSort: SortOption;
@@ -15,23 +14,21 @@ const SORT_OPTIONS: { value: SortOption; icon: React.ReactNode; title: string }[
 ];
 
 export const SortControl = ({ currentSort, onSortChange }: SortControlProps) => {
+  const currentIndex = SORT_OPTIONS.findIndex(o => o.value === currentSort);
+  const current = SORT_OPTIONS[currentIndex];
+  const nextIndex = (currentIndex + 1) % SORT_OPTIONS.length;
+
+  const handleClick = () => {
+    onSortChange(SORT_OPTIONS[nextIndex].value);
+  };
+
   return (
-    <>
-      {SORT_OPTIONS.map(({ value, icon, title }) => (
-        <button
-          key={value}
-          onClick={() => onSortChange(value)}
-          className={clsx(
-            "flex items-center justify-center w-10 h-10 rounded-xl transition-all",
-            currentSort === value
-              ? 'bg-brand-cyan/20 text-brand-cyan'
-              : 'text-brand-silver hover:text-white hover:bg-white/5'
-          )}
-          title={title}
-        >
-          {icon}
-        </button>
-      ))}
-    </>
+    <button
+      onClick={handleClick}
+      className="flex items-center justify-center w-10 h-10 rounded-xl transition-all bg-brand-cyan/20 text-brand-cyan hover:bg-brand-cyan/30"
+      title={current.title}
+    >
+      {current.icon}
+    </button>
   );
 };
