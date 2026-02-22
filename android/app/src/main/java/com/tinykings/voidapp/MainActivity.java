@@ -1,4 +1,4 @@
-package com.tinykings.void;
+package com.tinykings.voidapp;
 
 import com.getcapacitor.BridgeActivity;
 
