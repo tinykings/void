@@ -56,6 +56,7 @@ jobs:
           BUILD_TOOLS=$(ls "$ANDROID_SDK_ROOT/build-tools" | sort -V | tail -1)
           "$ANDROID_SDK_ROOT/build-tools/$BUILD_TOOLS/apksigner" sign \
             --ks keystore.jks \
+            --ks-type JKS \
             --ks-key-alias "$KEY_ALIAS" \
             --ks-pass "pass:$STORE_PASSWORD" \
             --key-pass "pass:$KEY_PASSWORD" \
