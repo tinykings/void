@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@capacitor/android": "8.1.0",
+    "@capacitor/cli": "8.1.0",
+    "@capacitor/core": "8.1.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.26.1",
     "idb-keyval": "^6.2.2",

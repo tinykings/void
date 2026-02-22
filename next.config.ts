@@ -5,9 +5,9 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  // If you are deploying to a subdirectory (e.g. https://<username>.github.io/<repo-name>/),
-  // you need to uncomment the following line and replace <repo-name> with your repository name.
-  basePath: '/void',
+  // GITHUB_PAGES is set in the web deploy workflow; omitting it (e.g. for Android/Capacitor builds)
+  // produces an empty basePath so assets resolve correctly inside the WebView.
+  basePath: process.env.GITHUB_PAGES ? '/void' : '',
 };
 
 export default nextConfig;
