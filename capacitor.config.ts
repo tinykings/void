@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.tinykings.void',
+  appId: 'com.tinykings.voidapp',
   appName: 'VOID',
   webDir: 'out',
   server: {
