@@ -64,7 +64,14 @@ jobs:
             android/app/build/outputs/apk/release/app-release-unsigned.apk
           rm keystore.jks
 
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: void-release
+          path: android/app/build/outputs/apk/release/app-release-signed.apk
+
       - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: android/app/build/outputs/apk/release/app-release-signed.apk
