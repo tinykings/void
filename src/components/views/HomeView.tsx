@@ -93,8 +93,13 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     setVisibleItemsCount(itemsPerPage);
   }, [filter, sort, showWatched, showEditedOnly, showFavoritesOnly, isSearchFocused, query]);
 
-  // Reset Edited filter when switching views or searching
+  // Reset Edited filter when switching views or searching (but not on initial mount)
+  const isInitialMount = useRef(true);
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     setShowEditedOnly(false);
   }, [isSearchFocused, query, setShowEditedOnly]);
 
