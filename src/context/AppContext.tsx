@@ -37,19 +37,6 @@ interface AppContextType extends UserState {
   isSearchFocused: boolean;
   setIsSearchFocused: (focused: boolean) => void;
 
-  // Gist Backup
-  gistBackupEnabled: boolean;
-  setGistBackupEnabled: (enabled: boolean) => void;
-  backupToGist: () => Promise<void>;
-  lastBackupTime?: number;
-
-  // TV Support
-  tvSupportEnabled: boolean;
-  tvGistId?: string;
-  tvGistToken?: string;
-  setTvSupportEnabled: (enabled: boolean) => void;
-  setTvGistConfig: (id: string, token: string) => void;
-  sendToTv: (url: string, title: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -129,27 +116,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, [store.isLoaded]);
 
-  // Gist backup loop
-  useEffect(() => {
-    if (!store.isLoaded) return;
-
-    const tryBackup = () => {
-      if (!store.gistBackupEnabled || !store.tvGistId || !store.tvGistToken) return;
-      const elapsed = Date.now() - (store.lastBackupTime || 0);
-      if (elapsed >= 24 * 60 * 60 * 1000) {
-        store.backupToGist();
-      }
-    };
-
-    const timeout = setTimeout(tryBackup, 10000); // check shortly after load
-    const interval = setInterval(tryBackup, 60 * 60 * 1000); // then every 60 min
-
-    return () => {
-      clearTimeout(timeout);
-      clearInterval(interval);
-    };
-  }, [store.isLoaded, store.gistBackupEnabled, store.tvGistId, store.tvGistToken, store.lastBackupTime]);
-
   // Derive selectedExternalPlayer
   const selectedExternalPlayer = store.selectedExternalPlayerId
     ? externalPlayerOptions.find(opt => opt.id === store.selectedExternalPlayerId) || null
@@ -195,16 +161,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     onboardingCompleted: store.onboardingCompleted || false,
     setOnboardingCompleted: store.setOnboardingCompleted,
     setIsSearchFocused: store.setIsSearchFocused,
-    gistBackupEnabled: store.gistBackupEnabled || false,
-    setGistBackupEnabled: store.setGistBackupEnabled,
-    backupToGist: store.backupToGist,
-    lastBackupTime: store.lastBackupTime,
-    tvSupportEnabled: store.tvSupportEnabled || false,
-    tvGistId: store.tvGistId,
-    tvGistToken: store.tvGistToken,
-    setTvSupportEnabled: store.setTvSupportEnabled,
-    setTvGistConfig: store.setTvGistConfig,
-    sendToTv: store.sendToTv,
   };
 
   return (

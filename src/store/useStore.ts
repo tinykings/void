@@ -55,14 +55,6 @@ interface StoreState extends UserState {
   setSession: (sessionId: string, accountId: number) => void;
   setLists: (watchlist: Media[], watched: Media[]) => void;
 
-  // Gist Backup
-  setGistBackupEnabled: (enabled: boolean) => void;
-  backupToGist: () => Promise<void>;
-
-  // TV Support
-  setTvSupportEnabled: (enabled: boolean) => void;
-  setTvGistConfig: (id: string, token: string) => void;
-  sendToTv: (url: string, title: string) => Promise<void>;
 }
 
 export const useStore = create<StoreState>()(
@@ -232,11 +224,6 @@ export const useStore = create<StoreState>()(
         isSearchFocused: false,
         onboardingCompleted: false,
         editedStatusMap: {},
-        lastBackupTime: undefined,
-        gistBackupEnabled: false,
-        tvSupportEnabled: false,
-        tvGistId: undefined,
-        tvGistToken: undefined,
         isLoaded: false,
         isSyncing: false,
 
@@ -291,82 +278,6 @@ export const useStore = create<StoreState>()(
 
         setSession: (tmdbSessionId, tmdbAccountId) => set({ tmdbSessionId, tmdbAccountId }),
         setLists: (watchlist, watched) => set({ watchlist, watched }),
-
-        setGistBackupEnabled: (gistBackupEnabled) => set({ gistBackupEnabled }),
-
-        backupToGist: async () => {
-          const { tvGistId, tvGistToken, gistBackupEnabled, watchlist, watched } = get();
-          if (!gistBackupEnabled || !tvGistId || !tvGistToken) return;
-
-          const formatItem = (m: Media) => {
-            const title = m.title || m.name || 'Unknown';
-            const year = (m.release_date || m.first_air_date || '').slice(0, 4);
-            return `- ${title}${year ? ` (${year})` : ''} [${m.media_type}]`;
-          };
-
-          const now = new Date();
-          const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-          const content = [
-            `VOID Backup — ${dateStr}`,
-            '',
-            `WATCHLIST (${watchlist.length})`,
-            ...watchlist.map(formatItem),
-            '',
-            `LIBRARY (${watched.length})`,
-            ...watched.map(formatItem),
-          ].join('\n');
-
-          try {
-            const res = await fetch(`https://api.github.com/gists/${tvGistId}`, {
-              method: 'PATCH',
-              headers: {
-                'Authorization': `Bearer ${tvGistToken}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                files: { 'void-backup.txt': { content } },
-              }),
-            });
-            if (!res.ok) throw new Error(`GitHub API responded ${res.status}`);
-            set({ lastBackupTime: Date.now() });
-            toast.success('Backup saved to GitHub Gist');
-          } catch (err: any) {
-            console.error('Gist backup failed:', err);
-            toast.error(`Backup failed: ${err.message}`);
-          }
-        },
-
-        setTvSupportEnabled: (tvSupportEnabled) => set({ tvSupportEnabled }),
-
-        setTvGistConfig: (tvGistId, tvGistToken) => set({ tvGistId, tvGistToken }),
-
-        sendToTv: async (url: string, title: string) => {
-          const { tvGistId, tvGistToken } = get();
-          if (!tvGistId || !tvGistToken) {
-            toast.error('TV gist not configured. Check settings.');
-            return;
-          }
-
-          const content = JSON.stringify({ url, title, timestamp: Date.now() });
-
-          try {
-            const res = await fetch(`https://api.github.com/gists/${tvGistId}`, {
-              method: 'PATCH',
-              headers: {
-                'Authorization': `Bearer ${tvGistToken}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                files: { 'void-tv-queue.json': { content } },
-              }),
-            });
-            if (!res.ok) throw new Error(`GitHub API responded ${res.status}`);
-            toast.success(`Sent "${title}" to TV`);
-          } catch (err: any) {
-            console.error('Send to TV failed:', err);
-            toast.error(`Send to TV failed: ${err.message}`);
-          }
-        },
 
         loginWithTMDB: async () => {
           const { apiKey } = get();
