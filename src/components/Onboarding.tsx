@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { Key, User, ShieldCheck, Play, ArrowRight, Check, ExternalLink } from 'lucide-react';
-import { externalPlayerOptions } from '@/lib/types';
 import { validateApiKey } from '@/lib/tmdb';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
@@ -21,13 +20,12 @@ import {
 } from 'lucide-react';
 
 export const Onboarding = () => {
-  const { 
-    apiKey, setApiKey, 
-    loginWithTMDB, tmdbSessionId, 
+  const {
+    apiKey, setApiKey,
+    loginWithTMDB, tmdbSessionId,
     vidAngelEnabled, setVidAngelEnabled,
     externalPlayerEnabled, toggleExternalPlayerEnabled,
-    selectedExternalPlayer, setSelectedExternalPlayerId,
-    setOnboardingCompleted 
+    setOnboardingCompleted
   } = useAppContext();
 
   const [step, setStep] = useState(apiKey ? 2 : 1);
@@ -213,40 +211,18 @@ export const Onboarding = () => {
               Optionally enable direct play links using third-party streaming providers.
             </p>
             
-            <div className="space-y-3">
-              <button
-                onClick={() => {
-                  toggleExternalPlayerEnabled();
-                  // Note: toggleExternalPlayerEnabled logic handles selecting first provider if none selected
-                }}
-                className={clsx(
-                  "w-full py-4 rounded-xl font-black transition-all flex items-center justify-center gap-3 uppercase tracking-widest border",
-                  externalPlayerEnabled 
-                    ? "bg-rose-600 border-rose-600 text-white shadow-[0_0_20px_rgba(225,29,72,0.2)]" 
-                    : "bg-transparent border-white/10 text-brand-silver hover:border-white/20"
-                )}
-              >
-                {externalPlayerEnabled ? <CheckIcon size={20} /> : null}
-                {externalPlayerEnabled ? 'Enabled' : 'Enable Player Links'}
-              </button>
-
-              {externalPlayerEnabled && (
-                <select
-                  value={selectedExternalPlayer?.id || ''}
-                  onChange={(e) => {
-                    setSelectedExternalPlayerId(e.target.value);
-                    const name = externalPlayerOptions.find(o => o.id === e.target.value)?.name;
-                    toast.info(`Player set to ${name}`);
-                  }}
-                  className="w-full p-4 rounded-xl bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all font-bold text-sm"
-                >
-                  <option value="" disabled className="bg-brand-bg">Select a provider</option>
-                  {externalPlayerOptions.map(opt => (
-                    <option key={opt.id} value={opt.id} className="bg-brand-bg">{opt.name}</option>
-                  ))}
-                </select>
+            <button
+              onClick={toggleExternalPlayerEnabled}
+              className={clsx(
+                "w-full py-4 rounded-xl font-black transition-all flex items-center justify-center gap-3 uppercase tracking-widest border",
+                externalPlayerEnabled
+                  ? "bg-rose-600 border-rose-600 text-white shadow-[0_0_20px_rgba(225,29,72,0.2)]"
+                  : "bg-transparent border-white/10 text-brand-silver hover:border-white/20"
               )}
-            </div>
+            >
+              {externalPlayerEnabled ? <CheckIcon size={20} /> : null}
+              {externalPlayerEnabled ? 'Enabled' : 'Enable Player Links'}
+            </button>
 
             <div className="flex gap-3 pt-4">
               <button onClick={prevStep} className="flex-1 py-4 text-brand-silver font-bold uppercase tracking-widest text-xs">Back</button>
