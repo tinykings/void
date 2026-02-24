@@ -302,8 +302,8 @@ export default function DetailsView() {
                   className={clsx(
                     "flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm",
                     inWatchlist
-                      ? "bg-brand-bg/80 blueprint-border text-white hover:bg-brand-bg"
-                      : "bg-brand-cyan text-brand-bg shadow-lg shadow-brand-cyan/20 hover:bg-brand-cyan/90"
+                      ? "bg-brand-cyan/20 blueprint-border text-brand-cyan"
+                      : "bg-brand-bg/50 blueprint-border text-brand-silver hover:bg-brand-bg hover:text-white"
                   )}
                 >
                   <Bookmark size={18} className={inWatchlist ? 'fill-current' : ''} />
