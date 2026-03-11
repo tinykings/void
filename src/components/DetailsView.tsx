@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { getMediaDetails, getWatchProviders, getImageUrl, getContentRating, getSeasonDetails, getMediaVideos, getMediaCredits, getPersonCredits } from '@/lib/tmdb';
+import { getMediaDetails, getWatchProviders, getImageUrl, getContentRating, getSeasonDetails, getMediaVideos, getMediaCredits, getPersonCredits, getUSReleaseDate } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { Media, WatchProvidersResponse, WatchProvider, SeasonDetails, Video, SeasonSummary, CastMember } from '@/lib/types';
 import { ChevronLeft, Check, Play, Star, Calendar, ChevronDown, User as UserIcon, Bookmark, Eye } from 'lucide-react';
@@ -30,6 +30,7 @@ export default function DetailsView() {
 
   const [media, setMedia] = useState<Media | null>(null);
   const [rating, setRating] = useState<string | null>(null);
+  const [usReleaseDate, setUsReleaseDate] = useState<string | null>(null);
   const [providers, setProviders] = useState<WatchProvidersResponse | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [cast, setCast] = useState<CastMember[]>([]);
@@ -106,9 +107,10 @@ export default function DetailsView() {
         getWatchProviders(parseInt(id), type, apiKey),
         getContentRating(parseInt(id), type, apiKey),
         getMediaVideos(parseInt(id), type, apiKey),
-        getMediaCredits(parseInt(id), type, apiKey)
+        getMediaCredits(parseInt(id), type, apiKey),
+        getUSReleaseDate(parseInt(id), type, apiKey)
       ])
-        .then(async ([mediaData, providerData, ratingData, videoData, creditsData]) => {
+        .then(async ([mediaData, providerData, ratingData, videoData, creditsData, usDate]) => {
           if (mediaData.media_type === 'tv' && mediaData.seasons && mediaData.seasons.length > 0) {
             const regularSeasons = mediaData.seasons.filter((s: SeasonSummary) => s.season_number > 0);
             const latestSeason = regularSeasons.length > 0 
@@ -120,6 +122,7 @@ export default function DetailsView() {
           setMedia(mediaData);
           setProviders(providerData);
           setRating(ratingData);
+          setUsReleaseDate(usDate);
           setCast(creditsData.cast.slice(0, 4));
           
           const trailers = videoData.results
@@ -156,7 +159,8 @@ export default function DetailsView() {
   const vidAngelAvailable = !!vidAngelSlug;
 
   const title = media.title || media.name;
-  const year = (media.release_date || media.first_air_date)?.split('-')[0];
+  const displayDate = media.media_type === 'movie' ? usReleaseDate : (media.first_air_date || usReleaseDate);
+  const year = displayDate?.split('-')[0];
   const userRegion = 'US'; 
   const localProviders = providers?.results?.[userRegion];
 
@@ -275,7 +279,7 @@ export default function DetailsView() {
           <div className="flex-1 min-w-0">
             <h1 className="text-3xl md:text-5xl font-black leading-tight mb-4 text-white drop-shadow-[0_0_15px_rgba(34,211,238,0.2)] uppercase italic tracking-tighter">{title}</h1>
             <div className="flex flex-wrap items-center justify-center gap-3 text-xs md:text-sm font-bold text-brand-silver uppercase tracking-wider">
-              <span className="flex items-center gap-1"><Calendar size={14} /> {year}</span>
+              <span className="flex items-center gap-1"><Calendar size={14} /> {displayDate || year}</span>
               <span className="flex items-center gap-1"><Star size={14} className="text-brand-cyan fill-brand-cyan" /> {media.vote_average.toFixed(1)}</span>
               <span className="bg-brand-bg/50 blueprint-border px-2 py-0.5 rounded uppercase">{media.media_type}</span>
               {media.media_type === 'tv' && media.status && (

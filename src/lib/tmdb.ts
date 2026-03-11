@@ -48,6 +48,23 @@ export const getMediaDetails = async (id: number, type: 'movie' | 'tv', apiKey: 
   return { ...data, media_type: type };
 };
 
+export const getUSReleaseDate = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<string | null> => {
+  try {
+    if (type === 'movie') {
+      const data: ReleaseDatesResponse = await fetchFromTMDB(`/movie/${id}/release_dates`, apiKey);
+      const usRelease = data.results?.find((r: ReleaseDatesResult) => r.iso_3166_1 === 'US');
+      const releaseDate = usRelease?.release_dates?.find((d: ReleaseDate) => d.type === 3 || d.type === 2);
+      return releaseDate?.release_date?.split('T')[0] || null;
+    } else {
+      const data: Media = await fetchFromTMDB(`/tv/${id}`, apiKey);
+      return data.first_air_date || null;
+    }
+  } catch (error) {
+    console.error("Error fetching release date:", error);
+    return null;
+  }
+};
+
 export const getWatchProviders = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<WatchProvidersResponse> => {
   return fetchFromTMDB(`/${type}/${id}/watch/providers`, apiKey);
 };
