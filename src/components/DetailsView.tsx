@@ -273,253 +273,254 @@ export default function DetailsView() {
         <ChevronLeft size={24} />
       </button>
 
-      <div className="pb-4 pt-8">
-
-        <div className="max-w-4xl mx-auto px-2 sm:px-6 flex flex-row items-start gap-4 md:gap-8">
-          {media.poster_path && (
-            <img
-              src={getImageUrl(media.poster_path, 'w500')}
-              alt=""
-              className="w-24 md:w-48 lg:w-56 rounded-xl shadow-2xl shadow-brand-cyan/10 blueprint-border shrink-0"
-            />
-          )}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl md:text-4xl lg:text-5xl font-black leading-tight mb-4 text-white drop-shadow-[0_0_15px_rgba(34,211,238,0.2)] uppercase italic tracking-tighter">{title}</h1>
-            <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm font-bold text-brand-silver uppercase tracking-wider mb-4">
-            <span className="flex items-center gap-1"><Calendar size={14} /> {displayDate || year}</span>
-            <span className="flex items-center gap-1"><Star size={14} className="text-brand-cyan fill-brand-cyan" /> {media.vote_average.toFixed(1)}</span>
-            {media.media_type === 'tv' && media.status && (
-              <span className="bg-brand-bg/50 blueprint-border px-2 py-0.5 rounded">{media.status}</span>
+      <div className="pb-20 pt-8">
+        <div className="max-w-4xl mx-auto px-2 sm:px-6">
+          <div className="flex flex-row items-start gap-4 md:gap-8">
+            {media.poster_path && (
+              <img
+                src={getImageUrl(media.poster_path, 'w500')}
+                alt=""
+                className="w-24 md:w-48 lg:w-56 rounded-xl shadow-2xl shadow-brand-cyan/10 blueprint-border shrink-0"
+              />
             )}
-            {rating && (
-              <span className="bg-brand-bg/50 blueprint-border px-2 py-0.5 rounded border border-white/5">{rating}</span>
-            )}
-          </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl md:text-4xl lg:text-5xl font-black leading-tight mb-4 text-white drop-shadow-[0_0_15px_rgba(34,211,238,0.2)] uppercase italic tracking-tighter">{title}</h1>
+              <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm font-bold text-brand-silver uppercase tracking-wider mb-4">
+              <span className="flex items-center gap-1"><Calendar size={14} /> {displayDate || year}</span>
+              <span className="flex items-center gap-1"><Star size={14} className="text-brand-cyan fill-brand-cyan" /> {media.vote_average.toFixed(1)}</span>
+              {media.media_type === 'tv' && media.status && (
+                <span className="bg-brand-bg/50 blueprint-border px-2 py-0.5 rounded">{media.status}</span>
+              )}
+              {rating && (
+                <span className="bg-brand-bg/50 blueprint-border px-2 py-0.5 rounded border border-white/5">{rating}</span>
+              )}
+            </div>
 
-          {media.next_episode_to_air && (
-              <div className="mt-4 px-4 py-2 bg-brand-cyan/10 blueprint-border rounded-xl inline-block mx-auto md:mx-0">
-                <p className="text-xs md:text-sm font-bold text-brand-cyan">
-                  NEXT EPISODE: {new Date(media.next_episode_to_air.air_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                  <span className="ml-2 opacity-75 font-medium">(S{media.next_episode_to_air.season_number} E{media.next_episode_to_air.episode_number})</span>
-                </p>
-              </div>
-            )}
-
-            <div className="flex flex-col gap-3 mt-6">
-              <div className="flex flex-wrap gap-2">
-                <div className="relative">
-                  <button
-                    onClick={() => setShowWatchlistMenu(!showWatchlistMenu)}
-                    className={clsx(
-                      "py-2 px-3 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm",
-                      inWatchlist || inWatched
-                        ? "bg-brand-cyan/20 blueprint-border text-brand-cyan"
-                        : "bg-brand-bg/50 blueprint-border text-brand-silver hover:bg-brand-bg hover:text-white"
-                    )}
-                  >
-                    <Bookmark size={16} className={(inWatchlist || inWatched) ? 'fill-current' : ''} />
-                    <span>{inWatched ? 'Watched' : 'Watchlist'}</span>
-                  </button>
-                  
-                  {showWatchlistMenu && (
-                    <div className="absolute top-full left-0 right-0 mt-2 py-2 rounded-xl bg-brand-bg blueprint-border shadow-xl z-20">
-                      <button
-                        onClick={() => {
-                          if (!inWatchlist) {
-                            toggleWatchlist(media);
-                          }
-                          setShowWatchlistMenu(false);
-                        }}
-                        className={clsx(
-                          "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
-                          inWatchlist
-                            ? "text-brand-cyan"
-                            : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                        )}
-                      >
-                        <Bookmark size={16} className={inWatchlist ? 'fill-current' : ''} />
-                        Watchlist
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (!inWatched) {
-                            toggleWatched(media);
-                          }
-                          setShowWatchlistMenu(false);
-                        }}
-                        className={clsx(
-                          "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
-                          inWatched
-                            ? "text-green-400"
-                            : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                        )}
-                      >
-                        {inWatched ? <Check size={16} className="fill-current" /> : <Eye size={16} />}
-                        Watched
-                      </button>
-                    </div>
-                  )}
+            {media.next_episode_to_air && (
+                <div className="mt-4 px-4 py-2 bg-brand-cyan/10 blueprint-border rounded-xl inline-block mx-auto md:mx-0">
+                  <p className="text-xs md:text-sm font-bold text-brand-cyan">
+                    NEXT EPISODE: {new Date(media.next_episode_to_air.air_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    <span className="ml-2 opacity-75 font-medium">(S{media.next_episode_to_air.season_number} E{media.next_episode_to_air.episode_number})</span>
+                  </p>
                 </div>
+              )}
 
-                <div className="flex gap-2">
-                  {inWatched && (
+              <div className="flex flex-col gap-3 mt-6">
+                <div className="flex flex-wrap gap-2">
+                  <div className="relative">
                     <button
-                      onClick={() => toggleFavorite(media)}
+                      onClick={() => setShowWatchlistMenu(!showWatchlistMenu)}
                       className={clsx(
-                        "py-2 px-3 rounded-xl flex items-center justify-center font-bold transition-all active:scale-95 text-sm",
-                        isFavorite
-                          ? "bg-red-500/20 blueprint-border text-red-400"
-                          : "bg-brand-bg/50 blueprint-border text-brand-silver hover:bg-brand-bg hover:text-red-400"
+                        "py-2 px-3 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm",
+                        inWatchlist || inWatched
+                          ? "bg-brand-cyan/20 blueprint-border text-brand-cyan"
+                          : "bg-brand-bg/50 blueprint-border text-brand-silver hover:bg-brand-bg hover:text-white"
                       )}
-                      title={isFavorite ? "Remove from favorites" : "Mark as favorite"}
                     >
-                      <Heart size={16} className={isFavorite ? 'fill-current' : ''} />
+                      <Bookmark size={16} className={(inWatchlist || inWatched) ? 'fill-current' : ''} />
+                      <span>{inWatched ? 'Watched' : 'Watchlist'}</span>
                     </button>
-                  )}
+                    
+                    {showWatchlistMenu && (
+                      <div className="absolute top-full left-0 right-0 mt-2 py-2 rounded-xl bg-brand-bg blueprint-border shadow-xl z-20">
+                        <button
+                          onClick={() => {
+                            if (!inWatchlist) {
+                              toggleWatchlist(media);
+                            }
+                            setShowWatchlistMenu(false);
+                          }}
+                          className={clsx(
+                            "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
+                            inWatchlist
+                              ? "text-brand-cyan"
+                              : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                          )}
+                        >
+                          <Bookmark size={16} className={inWatchlist ? 'fill-current' : ''} />
+                          Watchlist
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (!inWatched) {
+                              toggleWatched(media);
+                            }
+                            setShowWatchlistMenu(false);
+                          }}
+                          className={clsx(
+                            "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
+                            inWatched
+                              ? "text-green-400"
+                              : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                          )}
+                        >
+                          {inWatched ? <Check size={16} className="fill-current" /> : <Eye size={16} />}
+                          Watched
+                        </button>
+                      </div>
+                    )}
+                  </div>
 
-                  {(externalPlayerEnabled || vidAngelAvailable) && (
-                    <button
-                      onClick={() => setStreamPicker({ open: true })}
-                      className="py-2 px-3 rounded-xl flex items-center justify-center font-bold transition-all active:scale-95 text-sm bg-green-500 text-brand-bg shadow-lg shadow-green-500/20 hover:bg-green-500/90"
-                    >
-                      <Play size={16} className="fill-brand-bg" />
-                    </button>
-                  )}
+                  <div className="flex gap-2">
+                    {inWatched && (
+                      <button
+                        onClick={() => toggleFavorite(media)}
+                        className={clsx(
+                          "py-2 px-3 rounded-xl flex items-center justify-center font-bold transition-all active:scale-95 text-sm",
+                          isFavorite
+                            ? "bg-red-500/20 blueprint-border text-red-400"
+                            : "bg-brand-bg/50 blueprint-border text-brand-silver hover:bg-brand-bg hover:text-red-400"
+                        )}
+                        title={isFavorite ? "Remove from favorites" : "Mark as favorite"}
+                      >
+                        <Heart size={16} className={isFavorite ? 'fill-current' : ''} />
+                      </button>
+                    )}
+
+                    {(externalPlayerEnabled || vidAngelAvailable) && (
+                      <button
+                        onClick={() => setStreamPicker({ open: true })}
+                        className="py-2 px-3 rounded-xl flex items-center justify-center font-bold transition-all active:scale-95 text-sm bg-green-500 text-brand-bg shadow-lg shadow-green-500/20 hover:bg-green-500/90"
+                      >
+                        <Play size={16} className="fill-brand-bg" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <section className="mt-8">
-          <h2 className="text-lg font-bold mb-2 uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Overview</h2>
-          <p className="text-brand-silver leading-relaxed text-lg mb-4">
-            {media.overview || 'No overview available.'}
-          </p>
-          
-          {localProviders?.flatrate && localProviders.flatrate.length > 0 && (
-            <div className="flex flex-wrap gap-3 justify-center md:justify-start">
-              {localProviders.flatrate.map((p) => (
-                <ProviderIcon key={p.provider_id} provider={p} />
-              ))}
-            </div>
-          )}
-        </section>
-
-        {media.media_type === 'tv' && media.seasons && (
           <section className="mt-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Episodes</h2>
-              <div className="relative">
-                <select
-                  value={selectedSeasonNumber}
-                  onChange={(e) => setSelectedSeasonNumber(Number(e.target.value))}
-                  className="appearance-none bg-brand-bg blueprint-border text-white font-bold py-2 pl-4 pr-10 rounded-lg outline-none focus:ring-1 focus:ring-brand-cyan cursor-pointer"
-                >
-                  {media.seasons.map((s) => (
-                    <option key={s.id} value={s.season_number} className="bg-brand-bg">{s.name}</option>
-                  ))}
-                </select>
-                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-silver pointer-events-none" />
+            <h2 className="text-lg font-bold mb-2 uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Overview</h2>
+            <p className="text-brand-silver leading-relaxed text-lg mb-4">
+              {media.overview || 'No overview available.'}
+            </p>
+            
+            {localProviders?.flatrate && localProviders.flatrate.length > 0 && (
+              <div className="flex flex-wrap gap-3 justify-center md:justify-start">
+                {localProviders.flatrate.map((p) => (
+                  <ProviderIcon key={p.provider_id} provider={p} />
+                ))}
               </div>
-            </div>
+            )}
+          </section>
 
-            <div className="space-y-4">
-              {seasonDetails ? seasonDetails.episodes.map((ep) => (
-                <div key={ep.id} className="flex gap-3 p-3 sm:p-4 sm:gap-4 rounded-xl bg-brand-bg/50 blueprint-border">
-                  <div className="w-24 sm:w-32 aspect-video rounded-lg overflow-hidden bg-brand-bg shrink-0 relative group blueprint-border">
-                    {ep.still_path ? (
-                      <img src={getImageUrl(ep.still_path)} alt={ep.name} className="w-full h-full object-cover" loading="lazy" />
+          {media.media_type === 'tv' && media.seasons && (
+            <section className="mt-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Episodes</h2>
+                <div className="relative">
+                  <select
+                    value={selectedSeasonNumber}
+                    onChange={(e) => setSelectedSeasonNumber(Number(e.target.value))}
+                    className="appearance-none bg-brand-bg blueprint-border text-white font-bold py-2 pl-4 pr-10 rounded-lg outline-none focus:ring-1 focus:ring-brand-cyan cursor-pointer"
+                  >
+                    {media.seasons.map((s) => (
+                      <option key={s.id} value={s.season_number} className="bg-brand-bg">{s.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-silver pointer-events-none" />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {seasonDetails ? seasonDetails.episodes.map((ep) => (
+                  <div key={ep.id} className="flex gap-3 p-3 sm:p-4 sm:gap-4 rounded-xl bg-brand-bg/50 blueprint-border">
+                    <div className="w-24 sm:w-32 aspect-video rounded-lg overflow-hidden bg-brand-bg shrink-0 relative group blueprint-border">
+                      {ep.still_path ? (
+                        <img src={getImageUrl(ep.still_path)} alt={ep.name} className="w-full h-full object-cover" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-brand-silver">
+                          <Play size={24} />
+                        </div>
+                      )}
+                      
+                      {externalPlayerEnabled && (
+                        <button
+                          onClick={() => setStreamPicker({ open: true, seasonNum: ep.season_number, episodeNum: ep.episode_number })}
+                          title={`Stream S${ep.season_number} E${ep.episode_number}`}
+                          className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-brand-cyan/20 transition-colors"
+                        >
+                          <Play size={24} className="text-white/80 group-hover:text-brand-cyan fill-current" />
+                        </button>
+                      )}
+
+                      <div className="absolute bottom-1 right-1 bg-brand-bg/80 text-white text-[8px] sm:text-[10px] font-bold px-1 rounded pointer-events-none blueprint-border">
+                        S{ep.season_number} E{ep.episode_number}
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0 py-0.5 sm:py-1">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-0.5 sm:gap-4 mb-1">
+                        <h3 className="font-bold text-white truncate text-sm sm:text-base" title={ep.name}>{ep.name}</h3>
+                        <span className="text-[10px] sm:text-xs font-medium text-brand-silver whitespace-nowrap">
+                          {ep.air_date ? new Date(ep.air_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'TBA'}
+                        </span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-brand-silver line-clamp-2 leading-relaxed">
+                        {ep.overview || 'No overview available.'}
+                      </p>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="py-8 text-center text-brand-silver animate-pulse">Loading episodes...</div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {cast.length > 0 && (
+            <section className="mt-8">
+              <h2 className="text-lg font-bold mb-4 uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Top Cast</h2>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                {cast.map((actor) => (
+                  <button
+                    key={actor.id}
+                    onClick={() => handleActorClick(actor)}
+                    className="relative aspect-[3/4] rounded-xl overflow-hidden bg-brand-bg/50 blueprint-border hover:bg-brand-bg transition-all group active:scale-95"
+                  >
+                    {actor.profile_path ? (
+                      <img
+                        src={getImageUrl(actor.profile_path, 'w185')}
+                        alt={actor.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-brand-silver">
-                        <Play size={24} />
+                      <div className="w-full h-full flex flex-col items-center justify-center text-brand-silver bg-brand-bg">
+                        <UserIcon size={24} className="mb-1 opacity-20" />
                       </div>
                     )}
                     
-                    {externalPlayerEnabled && (
-                      <button
-                        onClick={() => setStreamPicker({ open: true, seasonNum: ep.season_number, episodeNum: ep.episode_number })}
-                        title={`Stream S${ep.season_number} E${ep.episode_number}`}
-                        className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-brand-cyan/20 transition-colors"
-                      >
-                        <Play size={24} className="text-white/80 group-hover:text-brand-cyan fill-current" />
-                      </button>
-                    )}
-
-                    <div className="absolute bottom-1 right-1 bg-brand-bg/80 text-white text-[8px] sm:text-[10px] font-bold px-1 rounded pointer-events-none blueprint-border">
-                      S{ep.season_number} E{ep.episode_number}
+                    {/* Bottom Info Box Overlay */}
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-6">
+                      <p className="text-[10px] sm:text-xs font-black text-white leading-tight mb-0.5 uppercase italic tracking-tighter truncate">{actor.name}</p>
+                      <p className="text-[8px] text-brand-cyan font-bold uppercase tracking-widest truncate opacity-80">{actor.character}</p>
                     </div>
-                  </div>
-                  <div className="flex-1 min-w-0 py-0.5 sm:py-1">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-0.5 sm:gap-4 mb-1">
-                      <h3 className="font-bold text-white truncate text-sm sm:text-base" title={ep.name}>{ep.name}</h3>
-                      <span className="text-[10px] sm:text-xs font-medium text-brand-silver whitespace-nowrap">
-                        {ep.air_date ? new Date(ep.air_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'TBA'}
-                      </span>
-                    </div>
-                    <p className="text-xs sm:text-sm text-brand-silver line-clamp-2 leading-relaxed">
-                      {ep.overview || 'No overview available.'}
-                    </p>
-                  </div>
-                </div>
-              )) : (
-                <div className="py-8 text-center text-brand-silver animate-pulse">Loading episodes...</div>
-              )}
-            </div>
-          </section>
-        )}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
 
-        {cast.length > 0 && (
-          <section className="mt-8">
-            <h2 className="text-lg font-bold mb-4 uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Top Cast</h2>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-              {cast.map((actor) => (
-                <button
-                  key={actor.id}
-                  onClick={() => handleActorClick(actor)}
-                  className="relative aspect-[3/4] rounded-xl overflow-hidden bg-brand-bg/50 blueprint-border hover:bg-brand-bg transition-all group active:scale-95"
-                >
-                  {actor.profile_path ? (
-                    <img
-                      src={getImageUrl(actor.profile_path, 'w185')}
-                      alt={actor.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+          {videos.length > 0 && (
+            <section className="mt-8">
+              <h2 className="text-lg font-bold mb-4 uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Trailers</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {videos.map((video) => (
+                  <div key={video.id} className="aspect-video rounded-xl overflow-hidden bg-black shadow-lg blueprint-border">
+                    <iframe
+                      className="w-full h-full"
+                      src={`https://www.youtube.com/embed/${video.key}`}
+                      title={video.name}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
                     />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-brand-silver bg-brand-bg">
-                      <UserIcon size={24} className="mb-1 opacity-20" />
-                    </div>
-                  )}
-                  
-                  {/* Bottom Info Box Overlay */}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-2 pt-6">
-                    <p className="text-[10px] sm:text-xs font-black text-white leading-tight mb-0.5 uppercase italic tracking-tighter truncate">{actor.name}</p>
-                    <p className="text-[8px] text-brand-cyan font-bold uppercase tracking-widest truncate opacity-80">{actor.character}</p>
                   </div>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {videos.length > 0 && (
-          <section className="mt-8">
-            <h2 className="text-lg font-bold mb-4 uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Trailers</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {videos.map((video) => (
-                <div key={video.id} className="aspect-video rounded-xl overflow-hidden bg-black shadow-lg blueprint-border">
-                  <iframe
-                    className="w-full h-full"
-                    src={`https://www.youtube.com/embed/${video.key}`}
-                    title={video.name}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
       </div>
 
       <ConfirmationModal
