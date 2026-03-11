@@ -81,6 +81,46 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   const itemsPerPage = 24;
   const observer = useRef<IntersectionObserver | null>(null);
 
+  const isSearching = searchResults.length > 0 || searchLoading || (query.length > 0 && isSearchFocused);
+  const showTrending = isSearchFocused && searchResults.length === 0 && !searchLoading;
+  const showLibrary = !isSearchFocused && query.length === 0;
+
+  // Combine and process library media
+  const baseLibraryMedia = useMemo(() => {
+    const combined = showWatched ? watched : watchlist;
+    return combined.filter(m => m.media_type === (filter || 'movie'));
+  }, [watchlist, watched, filter, showWatched]);
+
+  const libraryMedia = useMemo(() => {
+    let filtered = [...baseLibraryMedia];
+
+    if (showEditedOnly) {
+      // Show items that are confirmed edited OR haven't been checked yet
+      filtered = filtered.filter(m => editedStatusMap[`${m.media_type}-${m.id}`] !== false);
+    }
+    
+    if (showFavoritesOnly) {
+      filtered = filtered.filter(m => m.isFavorite);
+    }
+
+    return sortMedia(filtered, sort || 'added');
+  }, [baseLibraryMedia, sort, showEditedOnly, editedStatusMap, showFavoritesOnly, showWatched]);
+
+  const fullList = useMemo(() => {
+    let list = searchResults.length > 0 
+      ? searchResults 
+      : (showTrending ? trending : libraryMedia);
+
+    if (showEditedOnly && (isSearching || showTrending)) {
+      list = list.filter(m => editedStatusMap[`${m.media_type}-${m.id}`] !== false);
+    }
+    return list;
+  }, [searchResults, trending, libraryMedia, showEditedOnly, isSearching, showTrending, editedStatusMap]);
+    
+  const displayMedia = useMemo(() => fullList.slice(0, visibleItemsCount), [fullList, visibleItemsCount]);
+
+  const isLoading = searchLoading || (showTrending ? trendingLoading : isPending);
+
   const lastItemRef = useCallback((node: HTMLDivElement) => {
     if (observer.current) observer.current.disconnect();
     observer.current = new IntersectionObserver(entries => {
@@ -112,27 +152,6 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
       setShowFavoritesOnly(false);
     }
   }, [showWatched, setShowFavoritesOnly]);
-
-  // Combine and process library media
-  const baseLibraryMedia = useMemo(() => {
-    const combined = showWatched ? watched : watchlist;
-    return combined.filter(m => m.media_type === (filter || 'movie'));
-  }, [watchlist, watched, filter, showWatched]);
-
-  const libraryMedia = useMemo(() => {
-    let filtered = [...baseLibraryMedia];
-
-    if (showEditedOnly) {
-      // Show items that are confirmed edited OR haven't been checked yet
-      filtered = filtered.filter(m => editedStatusMap[`${m.media_type}-${m.id}`] !== false);
-    }
-
-    if (showFavoritesOnly && showWatched) {
-      filtered = filtered.filter(m => m.isFavorite);
-    }
-
-    return sortMedia(filtered, (sort || 'added'));
-  }, [baseLibraryMedia, sort, showEditedOnly, editedStatusMap, showFavoritesOnly, showWatched]);
 
   // Fetch Trending when search is focused
   useEffect(() => {
@@ -232,27 +251,50 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     );
   }
 
-  const isSearching = searchResults.length > 0 || searchLoading || (query.length > 0 && isSearchFocused);
-  const showTrending = isSearchFocused && searchResults.length === 0 && !searchLoading;
-  const showLibrary = !isSearchFocused && query.length === 0;
-
-  const fullList = useMemo(() => {
-    let list = searchResults.length > 0 
-      ? searchResults 
-      : (showTrending ? trending : libraryMedia);
-
-    if (showEditedOnly && (isSearching || showTrending)) {
-      list = list.filter(m => editedStatusMap[`${m.media_type}-${m.id}`] !== false);
-    }
-    return list;
-  }, [searchResults, trending, libraryMedia, showEditedOnly, isSearching, showTrending, editedStatusMap]);
-    
-  const displayMedia = useMemo(() => fullList.slice(0, visibleItemsCount), [fullList, visibleItemsCount]);
-    
-  const isLoading = searchLoading || (showTrending ? trendingLoading : isPending);
-
   return (
-    <div className="max-w-7xl mx-auto px-4 pt-6 pb-[160px] relative">
+    <div className="max-w-7xl mx-auto px-4 pt-20 pb-[160px] relative">
+      {/* Fixed Top Header */}
+      <div className="fixed top-0 left-0 right-0 z-40 bg-brand-bg/40 backdrop-blur-xl border-b border-white/[0.04]">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-center">
+          <div className="flex items-center justify-center w-full max-w-sm">
+            <div className="flex p-1 bg-brand-bg/50 blueprint-border rounded-xl flex-1 transition-colors duration-300">
+              <button
+                onClick={() => {
+                  startTransition(() => setShowWatched(false));
+                  showStatus('Watchlist');
+                  window.scrollTo(0, 0);
+                }}
+                className={clsx(
+                  "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-bold transition-all",
+                  !showWatched 
+                    ? "bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
+                    : "text-brand-silver hover:text-white"
+                )}
+              >
+                <Bookmark size={16} />
+                Watchlist
+              </button>
+              <button
+                onClick={() => {
+                  startTransition(() => setShowWatched(true));
+                  showStatus('Watched');
+                  window.scrollTo(0, 0);
+                }}
+                className={clsx(
+                  "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-bold transition-all",
+                  showWatched 
+                    ? "bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
+                    : "text-brand-silver hover:text-white"
+                )}
+              >
+                <CheckCircle2 size={16} />
+                Watched
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Search field at top — visible when search is open */}
       {isSearchFocused && (
         <div className="relative w-full z-20 mb-6">
@@ -300,7 +342,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
       {/* Floating Buttons */}
       {showLibrary && !isSearchFocused && (
-        <div className="fixed top-20 right-4 z-30 flex flex-col items-center">
+        <div className="fixed top-24 right-4 z-30 flex flex-col items-center">
           {/* Favorites Button (only in Watched view) */}
           {showWatched && (
             <button
@@ -521,50 +563,9 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
           {statusLabel}
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col items-center gap-2">
-
-          {/* Sort controls + FilterTabs */}
-          <div className="flex flex-col items-center gap-3 w-full">
-            {/* Watchlist / History Tabs */}
-            <div className="flex items-center justify-center w-full max-w-sm">
-              <div className="flex p-1 bg-brand-bg/50 blueprint-border rounded-xl flex-1 transition-colors duration-300">
-                <button
-                  onClick={() => {
-                    startTransition(() => setShowWatched(false));
-                    showStatus('Watchlist');
-                    window.scrollTo(0, 0);
-                  }}
-                  className={clsx(
-                    "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-bold transition-all",
-                    !showWatched 
-                      ? "bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
-                      : "text-brand-silver hover:text-white"
-                  )}
-                >
-                  <Bookmark size={16} />
-                  Watchlist
-                </button>
-                <button
-                  onClick={() => {
-                    startTransition(() => setShowWatched(true));
-                    showStatus('Watched');
-                    window.scrollTo(0, 0);
-                  }}
-                  className={clsx(
-                    "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-bold transition-all",
-                    showWatched 
-                      ? "bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
-                      : "text-brand-silver hover:text-white"
-                  )}
-                >
-                  <CheckCircle2 size={16} />
-                  Watched
-                </button>
-              </div>
-            </div>
-
-            {/* Movies / TV Shows filter tabs */}
-            <div className="flex items-center justify-between w-full max-w-sm">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col items-center">
+          {/* Movies / TV Shows filter tabs */}
+          <div className="flex items-center justify-between w-full max-w-sm">
               <button
                 onClick={onGoToSettings}
                 className="flex items-center justify-center w-10 h-10 rounded-xl text-brand-silver hover:text-brand-cyan hover:bg-white/5 transition-all"
@@ -605,9 +606,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               >
                 {isSearchFocused ? <X size={20} /> : <SearchIcon size={20} />}
               </button>
-            </div>
           </div>
-
         </div>
       </div>
     </div>
