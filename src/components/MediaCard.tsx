@@ -157,14 +157,6 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
               <span className="text-sm font-medium">{title}</span>
             </div>
           )}
-
-          {showBadge && isEdited && (
-            <div className="absolute top-2 left-2 z-10">
-              <div className="bg-amber-500/90 backdrop-blur-sm text-white text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded shadow-lg border border-white/30" title="Available on VidAngel">
-                Edited
-              </div>
-            </div>
-          )}
         </Link>
       </div>
 
