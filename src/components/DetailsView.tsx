@@ -6,7 +6,7 @@ import { useAppContext } from '@/context/AppContext';
 import { getMediaDetails, getWatchProviders, getImageUrl, getContentRating, getSeasonDetails, getMediaVideos, getMediaCredits, getPersonCredits, getUSReleaseDate } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { Media, WatchProvidersResponse, WatchProvider, SeasonDetails, Video, SeasonSummary, CastMember } from '@/lib/types';
-import { ChevronLeft, Check, Play, Star, Calendar, ChevronDown, User as UserIcon, Bookmark, Eye, Heart } from 'lucide-react';
+import { ChevronLeft, Check, Play, Star, Calendar, ChevronDown, User as UserIcon, Bookmark, Eye, Heart, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
@@ -322,18 +322,16 @@ export default function DetailsView() {
                     </button>
                     
                     {showWatchlistMenu && (
-                      <div className="absolute top-full left-0 right-0 mt-2 py-2 rounded-xl bg-brand-bg blueprint-border shadow-xl z-20">
+                      <div className="absolute top-full left-0 right-0 mt-2 py-2 rounded-xl bg-brand-bg blueprint-border shadow-xl z-20 min-w-[140px]">
                         <button
                           onClick={() => {
-                            if (!inWatchlist) {
-                              toggleWatchlist(media);
-                            }
+                            handleWatchlistToggle();
                             setShowWatchlistMenu(false);
                           }}
                           className={clsx(
                             "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
                             inWatchlist
-                              ? "text-brand-cyan"
+                              ? "text-brand-cyan bg-brand-cyan/5"
                               : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
                           )}
                         >
@@ -342,21 +340,36 @@ export default function DetailsView() {
                         </button>
                         <button
                           onClick={() => {
-                            if (!inWatched) {
-                              toggleWatched(media);
-                            }
+                            handleWatchedToggle();
                             setShowWatchlistMenu(false);
                           }}
                           className={clsx(
                             "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
                             inWatched
-                              ? "text-green-400"
+                              ? "text-green-400 bg-green-400/5"
                               : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
                           )}
                         >
                           {inWatched ? <Check size={16} className="fill-current" /> : <Eye size={16} />}
                           Watched
                         </button>
+
+                        {(inWatchlist || inWatched) && (
+                          <>
+                            <div className="h-px bg-white/5 my-1" />
+                            <button
+                              onClick={() => {
+                                if (inWatchlist) handleWatchlistToggle();
+                                else if (inWatched) handleWatchedToggle();
+                                setShowWatchlistMenu(false);
+                              }}
+                              className="w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                            >
+                              <Trash2 size={16} />
+                              Remove
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>

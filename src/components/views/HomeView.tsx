@@ -3,14 +3,12 @@
 import { useEffect, useState, useMemo, useTransition, useCallback, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { getTrending, searchMedia } from '@/lib/tmdb';
-import { checkVidAngelAvailability } from '@/lib/vidangel';
-import { Media, FilterType, SortOption } from '@/lib/types';
+import { Media } from '@/lib/types';
 import { MediaCard } from '@/components/MediaCard';
 import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
 import { FilterTabs } from '@/components/FilterTabs';
-import { SortControl } from '@/components/SortControl';
 import { sortMedia } from '@/lib/sort';
-import { AlertCircle, Settings, Search as SearchIcon, X, Eye, ArrowLeft, ArrowRight, ShieldCheck, Bookmark, CheckCircle2, Heart, SlidersHorizontal, Check } from 'lucide-react';
+import { AlertCircle, Settings, Search as SearchIcon, X, ArrowLeft, ArrowRight, ShieldCheck, Bookmark, CheckCircle2, Heart, SlidersHorizontal, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface HomeViewProps {
@@ -266,172 +264,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-2 pt-24 pb-[160px] relative">
-      {/* Fixed Top Header */}
-      {!isSearchFocused && (
-        <div className="fixed top-0 left-0 right-0 z-40 bg-brand-bg/40 backdrop-blur-xl border-b border-white/[0.04] pt-[30px]">
-          <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-center relative">
-            <div className="flex items-center justify-center w-full max-w-[280px]">
-              <div className="flex p-1 bg-brand-bg/50 blueprint-border rounded-xl flex-1 transition-colors duration-300">
-                <button
-                  onClick={() => {
-                    startTransition(() => setShowWatched(false));
-                    showStatus('Watchlist');
-                    window.scrollTo(0, 0);
-                  }}
-                  className={clsx(
-                    "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all",
-                    !showWatched 
-                      ? "bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
-                      : "text-brand-silver hover:text-white"
-                  )}
-                >
-                  <Bookmark size={14} />
-                  Watchlist
-                </button>
-                <button
-                  onClick={() => {
-                    startTransition(() => setShowWatched(true));
-                    showStatus('Watched');
-                    window.scrollTo(0, 0);
-                  }}
-                  className={clsx(
-                    "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all",
-                    showWatched 
-                      ? "bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
-                      : "text-brand-silver hover:text-white"
-                  )}
-                >
-                  <CheckCircle2 size={14} />
-                  Watched
-                </button>
-              </div>
-            </div>
-
-            {/* Sort Menu in Header */}
-            {showLibrary && (
-              <div className="absolute right-4">
-                <button
-                  onClick={() => setShowSortMenu(!showSortMenu)}
-                  className={clsx(
-                    "flex items-center justify-center w-9 h-9 rounded-xl transition-all",
-                    showSortMenu 
-                      ? "bg-brand-cyan/10 text-brand-cyan" 
-                      : "bg-brand-bg/50 blueprint-border text-brand-silver hover:text-brand-cyan"
-                  )}
-                  title="Sort & Filter"
-                >
-                  <SlidersHorizontal size={18} />
-                </button>
-
-                {showSortMenu && (
-                  <div className="absolute top-full right-0 mt-2 py-2 w-48 rounded-xl bg-brand-bg blueprint-border shadow-xl z-20">
-                    <button
-                      onClick={() => {
-                        startTransition(() => setSort('added'));
-                        showStatus('Recently Added');
-                        setShowSortMenu(false);
-                      }}
-                      className={clsx(
-                        "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
-                        (sort || 'added') === 'added'
-                          ? "text-brand-cyan"
-                          : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                      )}
-                    >
-                      Recently Added
-                    </button>
-                    <button
-                      onClick={() => {
-                        startTransition(() => setSort('title'));
-                        showStatus('Title A–Z');
-                        setShowSortMenu(false);
-                      }}
-                      className={clsx(
-                        "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
-                        sort === 'title'
-                          ? "text-brand-cyan"
-                          : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                      )}
-                    >
-                      Title
-                    </button>
-                    <button
-                      onClick={() => {
-                        startTransition(() => setSort('release'));
-                        showStatus('Release Date');
-                        setShowSortMenu(false);
-                      }}
-                      className={clsx(
-                        "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
-                        sort === 'release'
-                          ? "text-brand-cyan"
-                          : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                      )}
-                    >
-                      Release Date
-                    </button>
-
-                    {(vidAngelEnabled || showWatched) && <div className="h-px bg-white/5 my-1" />}
-
-                    {showWatched && (
-                      <button
-                        onClick={() => {
-                          startTransition(() => {
-                            const newValue = !showFavoritesOnly;
-                            setShowFavoritesOnly(newValue);
-                            if (newValue) setShowEditedOnly(false);
-                            showStatus(newValue ? 'Favorites' : 'Showing All');
-                          });
-                          setShowSortMenu(false);
-                        }}
-                        className={clsx(
-                          "w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors",
-                          showFavoritesOnly
-                            ? "text-red-500 bg-red-500/5"
-                            : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Heart size={16} className={showFavoritesOnly ? 'fill-current' : ''} />
-                          Favorites
-                        </div>
-                        {showFavoritesOnly && <Check size={14} className="text-red-500" />}
-                      </button>
-                    )}
-
-                    {vidAngelEnabled && (
-                      <button
-                        onClick={() => {
-                          startTransition(() => {
-                            const newValue = !showEditedOnly;
-                            setShowEditedOnly(newValue);
-                            if (newValue) setShowFavoritesOnly(false);
-                            showStatus(newValue ? 'Edited' : 'Showing All');
-                          });
-                          setShowSortMenu(false);
-                        }}
-                        className={clsx(
-                          "w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors",
-                          showEditedOnly
-                            ? "text-amber-500 bg-amber-500/5"
-                            : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <ShieldCheck size={16} className={showEditedOnly ? 'fill-current' : ''} />
-                          Edited
-                        </div>
-                        {showEditedOnly && <Check size={14} className="text-amber-500" />}
-                      </button>
-                    )}                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
+    <div className="max-w-7xl mx-auto px-2 pt-[30px] pb-[180px] relative">
       {/* Search field at top — visible when search is open */}
       {isSearchFocused && (
         <div className="relative w-full z-20 mb-6 mt-[30px]">
@@ -602,57 +435,221 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
             {persistentStatus || statusLabel}
           </div>
 
-          <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-center relative">
-            {/* Settings button on the left */}
-            <div className="absolute left-4">
-              <button
-                onClick={onGoToSettings}
-                className="flex items-center justify-center w-9 h-9 rounded-xl bg-brand-bg/50 blueprint-border text-brand-silver hover:text-brand-cyan transition-all"
-                title="Settings"
-              >
-                <Settings size={18} />
-              </button>
+          <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col items-center gap-3 relative">
+            {/* Row 1: Primary Navigation + Sort */}
+            <div className="flex items-center justify-center w-full relative">
+              {/* Watchlist / History Tabs (Centered) */}
+              <div className="flex p-1 bg-brand-bg/50 blueprint-border rounded-xl w-[240px] transition-colors duration-300">
+                <button
+                  onClick={() => {
+                    startTransition(() => setShowWatched(false));
+                    showStatus('Watchlist');
+                    window.scrollTo(0, 0);
+                  }}
+                  className={clsx(
+                    "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all",
+                    !showWatched 
+                      ? "bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
+                      : "text-brand-silver hover:text-white"
+                  )}
+                >
+                  <Bookmark size={14} />
+                  Watchlist
+                </button>
+                <button
+                  onClick={() => {
+                    startTransition(() => setShowWatched(true));
+                    showStatus('Watched');
+                    window.scrollTo(0, 0);
+                  }}
+                  className={clsx(
+                    "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all",
+                    showWatched 
+                      ? "bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
+                      : "text-brand-silver hover:text-white"
+                  )}
+                >
+                  <CheckCircle2 size={14} />
+                  Watched
+                </button>
+              </div>
+
+              {/* Sort Menu (Absolutely positioned to the right of the centered toggle) */}
+              {showLibrary && (
+                <div className="absolute right-0">
+                  <button
+                    onClick={() => setShowSortMenu(!showSortMenu)}
+                    className={clsx(
+                      "flex items-center justify-center w-9 h-9 rounded-xl transition-all",
+                      showSortMenu 
+                        ? "bg-brand-cyan/10 text-brand-cyan" 
+                        : "bg-brand-bg/50 blueprint-border text-brand-silver hover:text-brand-cyan"
+                    )}
+                    title="Sort & Filter"
+                  >
+                    <SlidersHorizontal size={18} />
+                  </button>
+
+                  {showSortMenu && (
+                    <div className="absolute bottom-full right-0 mb-2 py-2 w-48 rounded-xl bg-brand-bg blueprint-border shadow-xl z-20">
+                      <button
+                        onClick={() => {
+                          startTransition(() => setSort('added'));
+                          showStatus('Recently Added');
+                          setShowSortMenu(false);
+                        }}
+                        className={clsx(
+                          "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
+                          (sort || 'added') === 'added'
+                            ? "text-brand-cyan"
+                            : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                        )}
+                      >
+                        Recently Added
+                      </button>
+                      <button
+                        onClick={() => {
+                          startTransition(() => setSort('title'));
+                          showStatus('Title A–Z');
+                          setShowSortMenu(false);
+                        }}
+                        className={clsx(
+                          "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
+                          sort === 'title'
+                            ? "text-brand-cyan"
+                            : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                        )}
+                      >
+                        Title
+                      </button>
+                      <button
+                        onClick={() => {
+                          startTransition(() => setSort('release'));
+                          showStatus('Release Date');
+                          setShowSortMenu(false);
+                        }}
+                        className={clsx(
+                          "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
+                          sort === 'release'
+                            ? "text-brand-cyan"
+                            : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                        )}
+                      >
+                        Release Date
+                      </button>
+
+                      {(vidAngelEnabled || showWatched) && <div className="h-px bg-white/5 my-1" />}
+
+                      {showWatched && (
+                        <button
+                          onClick={() => {
+                            startTransition(() => {
+                              const newValue = !showFavoritesOnly;
+                              setShowFavoritesOnly(newValue);
+                              if (newValue) setShowEditedOnly(false);
+                              showStatus(newValue ? 'Favorites' : 'Showing All');
+                            });
+                            setShowSortMenu(false);
+                          }}
+                          className={clsx(
+                            "w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors",
+                            showFavoritesOnly
+                              ? "text-red-500 bg-red-500/5"
+                              : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Heart size={16} className={showFavoritesOnly ? 'fill-current' : ''} />
+                            Favorites
+                          </div>
+                          {showFavoritesOnly && <Check size={14} className="text-red-500" />}
+                        </button>
+                      )}
+
+                      {vidAngelEnabled && (
+                        <button
+                          onClick={() => {
+                            startTransition(() => {
+                              const newValue = !showEditedOnly;
+                              setShowEditedOnly(newValue);
+                              if (newValue) setShowFavoritesOnly(false);
+                              showStatus(newValue ? 'Edited' : 'Showing All');
+                            });
+                            setShowSortMenu(false);
+                          }}
+                          className={clsx(
+                            "w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors",
+                            showEditedOnly
+                              ? "text-amber-500 bg-amber-500/5"
+                              : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            <ShieldCheck size={16} className={showEditedOnly ? 'fill-current' : ''} />
+                            Edited
+                          </div>
+                          {showEditedOnly && <Check size={14} className="text-amber-500" />}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Movies / TV Shows filter tabs */}
-            <div className="flex items-center justify-center w-full max-w-sm">
-              <FilterTabs
-                currentFilter={filter || 'movie'}
-                onFilterChange={(f) => {
-                  startTransition(() => setFilter(f));
-                  showStatus(f === 'movie' ? 'Movies' : 'TV Shows');
-                  window.scrollTo(0, 0);
-                }}
-              />
-            </div>
+            {/* Row 2: Secondary Filter + App Controls */}
+            <div className="flex items-center justify-center w-full relative">
+              {/* Settings button on the far left */}
+              <div className="absolute left-0">
+                <button
+                  onClick={onGoToSettings}
+                  className="flex items-center justify-center w-9 h-9 rounded-xl bg-brand-bg/50 blueprint-border text-brand-silver hover:text-brand-cyan transition-all"
+                  title="Settings"
+                >
+                  <Settings size={18} />
+                </button>
+              </div>
 
-            {/* Search button on the right */}
-            <div className="absolute right-4">
-              <button
-                onClick={() => {
-                  if (isSearchFocused) {
-                    startTransition(() => {
-                      setQuery('');
-                      setSearchResults([]);
-                      setIsSearchFocused(false);
-                      if (searchAbortController.current) {
-                        searchAbortController.current.abort();
-                      }
-                    });
-                  } else {
-                    startTransition(() => setIsSearchFocused(true));
-                  }
-                }}
-                className={clsx(
-                  "flex items-center justify-center w-9 h-9 rounded-xl transition-all shrink-0",
-                  isSearchFocused
-                    ? 'bg-brand-cyan/10 text-brand-cyan'
-                    : 'bg-brand-bg/50 blueprint-border text-brand-silver hover:text-brand-cyan'
-                )}
-                title={isSearchFocused ? "Close Search" : "Search"}
-              >
-                {isSearchFocused ? <X size={18} /> : <SearchIcon size={18} />}
-              </button>
+              {/* Movies / TV Shows filter tabs (centered) */}
+              <div className="flex items-center justify-center w-full max-w-sm">
+                <FilterTabs
+                  currentFilter={filter || 'movie'}
+                  onFilterChange={(f) => {
+                    startTransition(() => setFilter(f));
+                    showStatus(f === 'movie' ? 'Movies' : 'TV Shows');
+                    window.scrollTo(0, 0);
+                  }}
+                />
+              </div>
+
+              {/* Search button on the far right */}
+              <div className="absolute right-0">
+                <button
+                  onClick={() => {
+                    if (isSearchFocused) {
+                      startTransition(() => {
+                        setQuery('');
+                        setSearchResults([]);
+                        setIsSearchFocused(false);
+                        if (searchAbortController.current) {
+                          searchAbortController.current.abort();
+                        }
+                      });
+                    } else {
+                      startTransition(() => setIsSearchFocused(true));
+                    }
+                  }}
+                  className={clsx(
+                    "flex items-center justify-center w-9 h-9 rounded-xl transition-all shrink-0",
+                    isSearchFocused
+                      ? 'bg-brand-cyan/10 text-brand-cyan'
+                      : 'bg-brand-bg/50 blueprint-border text-brand-silver hover:text-brand-cyan'
+                  )}
+                  title={isSearchFocused ? "Close Search" : "Search"}
+                >
+                  {isSearchFocused ? <X size={18} /> : <SearchIcon size={18} />}
+                </button>
+              </div>
             </div>
           </div>
         </div>
