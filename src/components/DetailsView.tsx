@@ -253,10 +253,10 @@ export default function DetailsView() {
   };
 
   return (
-    <div className="pb-4">
+    <>
       {/* Blurred Background */}
       {media.poster_path && (
-        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
           <img 
             src={getImageUrl(media.poster_path, 'w780')} 
             alt="" 
@@ -266,16 +266,14 @@ export default function DetailsView() {
         </div>
       )}
 
-      <div className="relative pt-20 md:pt-24 pb-8">
-        <div className="absolute top-4 left-4 z-20">
-          <button
-            onClick={() => router.push('/')}
-            className="inline-flex items-center gap-2 px-4 py-2 glass-effect rounded-xl text-white font-bold shadow-xl hover:bg-brand-bg transition-all active:scale-95"
-          >
-            <ChevronLeft size={20} />
-            <span>Back</span>
-          </button>
-        </div>
+      <button
+        onClick={() => router.push('/')}
+        className="fixed top-4 left-4 z-50 p-2 rounded-full bg-black/50 text-white/80 hover:text-white transition-all active:scale-95"
+      >
+        <ChevronLeft size={24} />
+      </button>
+
+      <div className="pb-4 pt-8">
 
         <div className="max-w-4xl mx-auto px-2 sm:px-6 flex flex-row items-start gap-4 md:gap-8">
           {media.poster_path && (
@@ -557,7 +555,7 @@ export default function DetailsView() {
         vidAngelSlug={streamPicker.seasonNum === undefined ? vidAngelSlug : null}
         externalPlayerEnabled={externalPlayerEnabled}
       />
-    </div>
+    </>
   );
 }
 
