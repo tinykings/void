@@ -497,7 +497,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
       )}
 
       {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
           {[...Array(12)].map((_, i) => (
             <MediaCardSkeleton key={i} />
           ))}
@@ -505,7 +505,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
       ) : (
         <>
           {displayMedia.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
               {displayMedia.map((item, index) => (
                 <div
                   key={`${item.media_type}-${item.id}`}
