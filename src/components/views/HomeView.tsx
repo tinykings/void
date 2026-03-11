@@ -588,23 +588,24 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
       )}
 
       {/* Fixed Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-brand-bg/40 backdrop-blur-xl border-t border-white/[0.04] pb-safe">
-        {/* Floating status pill — pops up above the bar */}
-        <div
-          aria-live="polite"
-          className={clsx(
-            "absolute left-1/2 -translate-x-1/2 bottom-full mb-3 px-4 py-1.5 rounded-full bg-brand-bg/80 backdrop-blur-md border border-brand-cyan/20 text-xs font-semibold tracking-widest uppercase text-brand-cyan whitespace-nowrap transition-all duration-300 pointer-events-none",
-            (persistentStatus || (statusLabel && !statusFading))
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-3"
-          )}
-        >
-          {persistentStatus || statusLabel}
-        </div>
+      {!isSearchFocused && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-brand-bg/40 backdrop-blur-xl border-t border-white/[0.04] pb-safe">
+          {/* Floating status pill — pops up above the bar */}
+          <div
+            aria-live="polite"
+            className={clsx(
+              "absolute left-1/2 -translate-x-1/2 bottom-full mb-3 px-4 py-1.5 rounded-full bg-brand-bg/80 backdrop-blur-md border border-brand-cyan/20 text-xs font-semibold tracking-widest uppercase text-brand-cyan whitespace-nowrap transition-all duration-300 pointer-events-none",
+              (persistentStatus || (statusLabel && !statusFading))
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-3"
+            )}
+          >
+            {persistentStatus || statusLabel}
+          </div>
 
-        <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col items-center">
-          {/* Movies / TV Shows filter tabs */}
-          <div className="flex items-center justify-between w-full max-w-sm">
+          <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-center relative">
+            {/* Settings button on the left */}
+            <div className="absolute left-4">
               <button
                 onClick={onGoToSettings}
                 className="flex items-center justify-center w-9 h-9 rounded-xl bg-brand-bg/50 blueprint-border text-brand-silver hover:text-brand-cyan transition-all"
@@ -612,6 +613,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               >
                 <Settings size={18} />
               </button>
+            </div>
+
+            {/* Movies / TV Shows filter tabs */}
+            <div className="flex items-center justify-center w-full max-w-sm">
               <FilterTabs
                 currentFilter={filter || 'movie'}
                 onFilterChange={(f) => {
@@ -620,6 +625,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                   window.scrollTo(0, 0);
                 }}
               />
+            </div>
+
+            {/* Search button on the right */}
+            <div className="absolute right-4">
               <button
                 onClick={() => {
                   if (isSearchFocused) {
@@ -645,9 +654,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               >
                 {isSearchFocused ? <X size={18} /> : <SearchIcon size={18} />}
               </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
