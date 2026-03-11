@@ -72,7 +72,6 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
   const isFavorite = watchedItem?.isFavorite || false;
 
   const title = media.title || media.name;
-  const year = (media.release_date || media.first_air_date)?.split('-')[0];
 
   const prefetchBackdrop = () => {
     if (media.backdrop_path) {
@@ -135,10 +134,10 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
 
   return (
     <>
-      <div ref={cardRef} className="relative group bg-brand-bg blueprint-border rounded-xl overflow-hidden shadow-sm flex flex-col h-full transition-colors duration-300">
+      <div ref={cardRef} className="relative group bg-brand-bg rounded-xl overflow-hidden transition-colors duration-300">
         <Link 
           href={`/details?type=${media.media_type}&id=${media.id}`} 
-          className="block relative aspect-[2/3] bg-brand-bg/50 overflow-hidden shrink-0"
+          className="block relative aspect-[2/3] bg-brand-bg/50 overflow-hidden shrink-0 blueprint-border"
           onMouseEnter={prefetchBackdrop}
           onTouchStart={prefetchBackdrop}
           onClick={(e) => {
@@ -150,7 +149,7 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
             <img
               src={getImageUrl(media.poster_path)}
               alt={title}
-              className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+              className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300 rounded-xl shadow-2xl shadow-brand-cyan/10"
               loading="lazy"
             />
           ) : (
@@ -167,21 +166,6 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
             </div>
           )}
         </Link>
-
-        <div className="p-3 flex flex-col flex-1">
-          <div className="mb-2">
-            <h3 className="text-sm font-bold truncate leading-tight mb-0.5 text-white" title={title}>{title}</h3>
-            <p className="text-[10px] text-brand-silver font-medium uppercase tracking-tighter">{year}</p>
-            {media.next_episode_to_air && (
-              <p className="text-[10px] font-bold text-brand-cyan mt-1 flex items-center gap-1">
-                Next: {new Date(media.next_episode_to_air.air_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                <span className="opacity-75 font-normal">
-                  (S{media.next_episode_to_air.season_number}E{media.next_episode_to_air.episode_number})
-                </span>
-              </p>
-            )}
-          </div>
-        </div>
       </div>
 
       <ConfirmationModal
