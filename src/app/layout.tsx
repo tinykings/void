@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "Void",
   },
 };
@@ -29,6 +29,7 @@ export const viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: "#030712",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -41,7 +42,7 @@ export default function RootLayout({
       <body className={`${inter.className} bg-brand-bg text-foreground min-h-screen transition-colors duration-300`}>
         <AppProvider>
           <OfflineGuard>
-            <main className="w-full min-h-screen pb-12 pt-4 px-0 transition-colors duration-300">
+            <main className="w-full min-h-screen pb-12 px-0 transition-colors duration-300">
               {children}
             </main>
           </OfflineGuard>
