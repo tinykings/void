@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { Media } from '@/lib/types';
 import { getImageUrl } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { useAppContext } from '@/context/AppContext';
-import { Plus, Trash2, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
@@ -27,11 +27,27 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
     toggleFavorite,
     vidAngelEnabled,
     editedStatusMap,
-    setMediaEditedStatus
+    setMediaEditedStatus,
+    sort
   } = useAppContext();
   
   const cardRef = useRef<HTMLDivElement>(null);
   const isEdited = editedStatusMap[`${media.media_type}-${media.id}`];
+
+  const daysUntilRelease = useMemo(() => {
+    if (sort !== 'release') return null;
+    const releaseDateStr = media.release_date || media.first_air_date;
+    if (!releaseDateStr) return null;
+    
+    const releaseDate = new Date(releaseDateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const diffTime = releaseDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays > 0 ? diffDays : null;
+  }, [sort, media.release_date, media.first_air_date]);
 
   // Modal State
   const [modalConfig, setModalConfig] = useState<{
@@ -155,6 +171,14 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
           ) : (
             <div className="w-full h-full flex items-center justify-center p-4 text-center text-brand-silver bg-brand-bg/80">
               <span className="text-sm font-medium">{title}</span>
+            </div>
+          )}
+
+          {daysUntilRelease !== null && (
+            <div className="absolute top-2 left-2 z-10">
+              <div className="bg-brand-bg/60 backdrop-blur-md text-brand-cyan text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded shadow-lg border border-brand-cyan/30">
+                {daysUntilRelease} {daysUntilRelease === 1 ? 'day' : 'days'}
+              </div>
             </div>
           )}
         </Link>
