@@ -266,11 +266,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-2 pt-20 pb-[160px] relative mt-safe">
+    <div className="max-w-7xl mx-auto px-2 pt-24 pb-[160px] relative">
       {/* Fixed Top Header */}
       {!isSearchFocused && (
-        <div className="fixed top-0 left-0 right-0 z-40 bg-brand-bg/40 backdrop-blur-xl border-b border-white/[0.04]">
-          <div className="h-safe-top w-full" />
+        <div className="fixed top-0 left-0 right-0 z-40 bg-brand-bg/40 backdrop-blur-xl border-b border-white/[0.04] pt-[30px]">
           <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-center relative">
             <div className="flex items-center justify-center w-full max-w-[280px]">
               <div className="flex p-1 bg-brand-bg/50 blueprint-border rounded-xl flex-1 transition-colors duration-300">
@@ -435,7 +434,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
       {/* Search field at top — visible when search is open */}
       {isSearchFocused && (
-        <div className="relative w-full z-20 mb-6">
+        <div className="relative w-full z-20 mb-6 mt-[30px]">
           <SearchIcon
             className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-cyan scale-110 transition-all duration-300"
             size={22}
@@ -589,7 +588,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
       {/* Fixed Bottom Bar */}
       {!isSearchFocused && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-brand-bg/40 backdrop-blur-xl border-t border-white/[0.04] pb-safe">
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-brand-bg/40 backdrop-blur-xl border-t border-white/[0.04]">
           {/* Floating status pill — pops up above the bar */}
           <div
             aria-live="polite"
