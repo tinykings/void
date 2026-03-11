@@ -41,7 +41,7 @@ export default function RootLayout({
       <body className={`${inter.className} bg-brand-bg text-foreground min-h-screen transition-colors duration-300`}>
         <AppProvider>
           <OfflineGuard>
-            <main className="container mx-auto min-h-screen pb-12 pt-4 px-2 sm:px-3 lg:px-4 transition-colors duration-300">
+            <main className="w-full min-h-screen pb-12 pt-4 px-0 transition-colors duration-300">
               {children}
             </main>
           </OfflineGuard>

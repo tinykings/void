@@ -252,7 +252,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 pt-20 pb-[160px] relative">
+    <div className="max-w-7xl mx-auto px-2 pt-20 pb-[160px] relative">
       {/* Fixed Top Header */}
       <div className="fixed top-0 left-0 right-0 z-40 bg-brand-bg/40 backdrop-blur-xl border-b border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-4 py-3 flex justify-center">
@@ -497,7 +497,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
       )}
 
       {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
           {[...Array(12)].map((_, i) => (
             <MediaCardSkeleton key={i} />
           ))}
@@ -505,7 +505,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
       ) : (
         <>
           {displayMedia.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
               {displayMedia.map((item, index) => (
                 <div
                   key={`${item.media_type}-${item.id}`}
