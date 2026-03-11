@@ -362,18 +362,20 @@ export default function DetailsView() {
                   )}
                 </div>
 
-                <button
-                  onClick={() => toggleFavorite(media)}
-                  className={clsx(
-                    "py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm",
-                    isFavorite
-                      ? "bg-red-500/20 blueprint-border text-red-400"
-                      : "bg-brand-bg/50 blueprint-border text-brand-silver hover:bg-brand-bg hover:text-red-400"
-                  )}
-                  title={isFavorite ? "Remove from favorites" : "Mark as favorite"}
-                >
-                  <Heart size={18} className={isFavorite ? 'fill-current' : ''} />
-                </button>
+                {inWatched && (
+                  <button
+                    onClick={() => toggleFavorite(media)}
+                    className={clsx(
+                      "py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm",
+                      isFavorite
+                        ? "bg-red-500/20 blueprint-border text-red-400"
+                        : "bg-brand-bg/50 blueprint-border text-brand-silver hover:bg-brand-bg hover:text-red-400"
+                    )}
+                    title={isFavorite ? "Remove from favorites" : "Mark as favorite"}
+                  >
+                    <Heart size={18} className={isFavorite ? 'fill-current' : ''} />
+                  </button>
+                )}
               </div>
 
               {(externalPlayerEnabled || vidAngelAvailable) && (
