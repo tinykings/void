@@ -268,12 +268,12 @@ export default function DetailsView() {
 
       <button
         onClick={() => router.push('/')}
-        className="fixed top-4 left-4 z-50 p-2 rounded-full bg-black/50 text-white/80 hover:text-white transition-all active:scale-95"
+        className="fixed top-4 left-4 z-50 p-2 rounded-full bg-black/50 text-white/80 hover:text-white transition-all active:scale-95 mt-safe"
       >
         <ChevronLeft size={24} />
       </button>
 
-      <div className="pb-20 pt-8">
+      <div className="pb-20 pt-8 mt-safe">
         <div className="max-w-4xl mx-auto px-2 sm:px-6">
           <div className="flex flex-row items-start gap-4 md:gap-8">
             {media.poster_path && (

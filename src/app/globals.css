@@ -51,6 +51,18 @@ body {
   padding-top: env(safe-area-inset-top);
 }
 
+.mt-safe {
+  margin-top: env(safe-area-inset-top);
+}
+
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom);
+}
+
+.h-safe-top {
+  height: env(safe-area-inset-top);
+}
+
 /* Hide scrollbar for Chrome, Safari and Opera */
 *::-webkit-scrollbar {
   display: none !important;

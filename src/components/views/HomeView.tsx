@@ -252,162 +252,165 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-2 pt-20 pb-[160px] relative">
+    <div className="max-w-7xl mx-auto px-2 pt-20 pb-[160px] relative mt-safe">
       {/* Fixed Top Header */}
-      <div className="fixed top-0 left-0 right-0 z-40 bg-brand-bg/40 backdrop-blur-xl border-b border-white/[0.04]">
-        <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-center relative">
-          <div className="flex items-center justify-center w-full max-w-[280px]">
-            <div className="flex p-1 bg-brand-bg/50 blueprint-border rounded-xl flex-1 transition-colors duration-300">
-              <button
-                onClick={() => {
-                  startTransition(() => setShowWatched(false));
-                  showStatus('Watchlist');
-                  window.scrollTo(0, 0);
-                }}
-                className={clsx(
-                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all",
-                  !showWatched 
-                    ? "bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
-                    : "text-brand-silver hover:text-white"
-                )}
-              >
-                <Bookmark size={14} />
-                Watchlist
-              </button>
-              <button
-                onClick={() => {
-                  startTransition(() => setShowWatched(true));
-                  showStatus('Watched');
-                  window.scrollTo(0, 0);
-                }}
-                className={clsx(
-                  "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all",
-                  showWatched 
-                    ? "bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
-                    : "text-brand-silver hover:text-white"
-                )}
-              >
-                <CheckCircle2 size={14} />
-                Watched
-              </button>
+      {!isSearchFocused && (
+        <div className="fixed top-0 left-0 right-0 z-40 bg-brand-bg/40 backdrop-blur-xl border-b border-white/[0.04]">
+          <div className="h-safe-top w-full" />
+          <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-center relative">
+            <div className="flex items-center justify-center w-full max-w-[280px]">
+              <div className="flex p-1 bg-brand-bg/50 blueprint-border rounded-xl flex-1 transition-colors duration-300">
+                <button
+                  onClick={() => {
+                    startTransition(() => setShowWatched(false));
+                    showStatus('Watchlist');
+                    window.scrollTo(0, 0);
+                  }}
+                  className={clsx(
+                    "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all",
+                    !showWatched 
+                      ? "bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
+                      : "text-brand-silver hover:text-white"
+                  )}
+                >
+                  <Bookmark size={14} />
+                  Watchlist
+                </button>
+                <button
+                  onClick={() => {
+                    startTransition(() => setShowWatched(true));
+                    showStatus('Watched');
+                    window.scrollTo(0, 0);
+                  }}
+                  className={clsx(
+                    "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all",
+                    showWatched 
+                      ? "bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
+                      : "text-brand-silver hover:text-white"
+                  )}
+                >
+                  <CheckCircle2 size={14} />
+                  Watched
+                </button>
+              </div>
             </div>
+
+            {/* Sort Menu in Header */}
+            {showLibrary && (
+              <div className="absolute right-4">
+                <button
+                  onClick={() => setShowSortMenu(!showSortMenu)}
+                  className={clsx(
+                    "flex items-center justify-center w-9 h-9 rounded-xl transition-all",
+                    showSortMenu 
+                      ? "bg-brand-cyan/10 text-brand-cyan" 
+                      : "bg-brand-bg/50 blueprint-border text-brand-silver hover:text-brand-cyan"
+                  )}
+                  title="Sort & Filter"
+                >
+                  <SlidersHorizontal size={18} />
+                </button>
+
+                {showSortMenu && (
+                  <div className="absolute top-full right-0 mt-2 py-2 w-48 rounded-xl bg-brand-bg blueprint-border shadow-xl z-20">
+                    <button
+                      onClick={() => {
+                        startTransition(() => setSort('added'));
+                        showStatus('Recently Added');
+                        setShowSortMenu(false);
+                      }}
+                      className={clsx(
+                        "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
+                        (sort || 'added') === 'added'
+                          ? "text-brand-cyan"
+                          : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                      )}
+                    >
+                      Recently Added
+                    </button>
+                    <button
+                      onClick={() => {
+                        startTransition(() => setSort('title'));
+                        showStatus('Title A–Z');
+                        setShowSortMenu(false);
+                      }}
+                      className={clsx(
+                        "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
+                        sort === 'title'
+                          ? "text-brand-cyan"
+                          : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                      )}
+                    >
+                      Title
+                    </button>
+                    <button
+                      onClick={() => {
+                        startTransition(() => setSort('release'));
+                        showStatus('Release Date');
+                        setShowSortMenu(false);
+                      }}
+                      className={clsx(
+                        "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
+                        sort === 'release'
+                          ? "text-brand-cyan"
+                          : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                      )}
+                    >
+                      Release Date
+                    </button>
+
+                    {(vidAngelEnabled || showWatched) && <div className="h-px bg-white/5 my-1" />}
+
+                    {showWatched && (
+                      <button
+                        onClick={() => {
+                          startTransition(() => setShowFavoritesOnly(!showFavoritesOnly));
+                          showStatus(showFavoritesOnly ? 'Showing All' : 'Favorites');
+                          setShowSortMenu(false);
+                        }}
+                        className={clsx(
+                          "w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors",
+                          showFavoritesOnly
+                            ? "text-red-500 bg-red-500/5"
+                            : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Heart size={16} className={showFavoritesOnly ? 'fill-current' : ''} />
+                          Favorites
+                        </div>
+                        {showFavoritesOnly && <Check size={14} className="text-red-500" />}
+                      </button>
+                    )}
+
+                    {vidAngelEnabled && (
+                      <button
+                        onClick={() => {
+                          startTransition(() => setShowEditedOnly(!showEditedOnly));
+                          showStatus(showEditedOnly ? 'Showing All' : 'Edited Only');
+                          setShowSortMenu(false);
+                        }}
+                        className={clsx(
+                          "w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors",
+                          showEditedOnly
+                            ? "text-amber-500 bg-amber-500/5"
+                            : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck size={16} className={showEditedOnly ? 'fill-current' : ''} />
+                          Edited
+                        </div>
+                        {showEditedOnly && <Check size={14} className="text-amber-500" />}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-
-          {/* Sort Menu in Header */}
-          {showLibrary && !isSearchFocused && (
-            <div className="absolute right-4">
-              <button
-                onClick={() => setShowSortMenu(!showSortMenu)}
-                className={clsx(
-                  "flex items-center justify-center w-9 h-9 rounded-xl transition-all",
-                  showSortMenu 
-                    ? "bg-brand-cyan/10 text-brand-cyan" 
-                    : "bg-brand-bg/50 blueprint-border text-brand-silver hover:text-brand-cyan"
-                )}
-                title="Sort & Filter"
-              >
-                <SlidersHorizontal size={18} />
-              </button>
-
-              {showSortMenu && (
-                <div className="absolute top-full right-0 mt-2 py-2 w-48 rounded-xl bg-brand-bg blueprint-border shadow-xl z-20">
-                  <button
-                    onClick={() => {
-                      startTransition(() => setSort('added'));
-                      showStatus('Recently Added');
-                      setShowSortMenu(false);
-                    }}
-                    className={clsx(
-                      "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
-                      (sort || 'added') === 'added'
-                        ? "text-brand-cyan"
-                        : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                    )}
-                  >
-                    Recently Added
-                  </button>
-                  <button
-                    onClick={() => {
-                      startTransition(() => setSort('title'));
-                      showStatus('Title A–Z');
-                      setShowSortMenu(false);
-                    }}
-                    className={clsx(
-                      "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
-                      sort === 'title'
-                        ? "text-brand-cyan"
-                        : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                    )}
-                  >
-                    Title
-                  </button>
-                  <button
-                    onClick={() => {
-                      startTransition(() => setSort('release'));
-                      showStatus('Release Date');
-                      setShowSortMenu(false);
-                    }}
-                    className={clsx(
-                      "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
-                      sort === 'release'
-                        ? "text-brand-cyan"
-                        : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                    )}
-                  >
-                    Release Date
-                  </button>
-
-                  {(vidAngelEnabled || showWatched) && <div className="h-px bg-white/5 my-1" />}
-
-                  {showWatched && (
-                    <button
-                      onClick={() => {
-                        startTransition(() => setShowFavoritesOnly(!showFavoritesOnly));
-                        showStatus(showFavoritesOnly ? 'Showing All' : 'Favorites');
-                        setShowSortMenu(false);
-                      }}
-                      className={clsx(
-                        "w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors",
-                        showFavoritesOnly
-                          ? "text-red-500 bg-red-500/5"
-                          : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Heart size={16} className={showFavoritesOnly ? 'fill-current' : ''} />
-                        Favorites
-                      </div>
-                      {showFavoritesOnly && <Check size={14} className="text-red-500" />}
-                    </button>
-                  )}
-
-                  {vidAngelEnabled && (
-                    <button
-                      onClick={() => {
-                        startTransition(() => setShowEditedOnly(!showEditedOnly));
-                        showStatus(showEditedOnly ? 'Showing All' : 'Edited Only');
-                        setShowSortMenu(false);
-                      }}
-                      className={clsx(
-                        "w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors",
-                        showEditedOnly
-                          ? "text-amber-500 bg-amber-500/5"
-                          : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <ShieldCheck size={16} className={showEditedOnly ? 'fill-current' : ''} />
-                        Edited
-                      </div>
-                      {showEditedOnly && <Check size={14} className="text-amber-500" />}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
         </div>
-      </div>
+      )}
 
       {/* Search field at top — visible when search is open */}
       {isSearchFocused && (
@@ -560,7 +563,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
       )}
 
       {/* Fixed Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-brand-bg/40 backdrop-blur-xl border-t border-white/[0.04]">
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-brand-bg/40 backdrop-blur-xl border-t border-white/[0.04] pb-safe">
         {/* Floating status pill — pops up above the bar */}
         <div
           aria-live="polite"
