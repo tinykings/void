@@ -298,9 +298,28 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
         </div>
       )}
 
-      {/* Floating Sort Button */}
+      {/* Floating Buttons */}
       {showLibrary && !isSearchFocused && (
-        <div className="fixed top-20 right-4 z-30">
+        <div className="fixed top-20 right-4 z-30 flex flex-col items-center">
+          {/* Favorites Button (only in Watched view) */}
+          {showWatched && (
+            <button
+              onClick={() => {
+                startTransition(() => setShowFavoritesOnly(!showFavoritesOnly));
+                showStatus(showFavoritesOnly ? 'All Watched' : 'Favorites');
+              }}
+              className={clsx(
+                "flex items-center justify-center w-10 h-10 rounded-full mb-2 transition-all shadow-lg",
+                showFavoritesOnly
+                  ? 'bg-red-500 text-white'
+                  : 'bg-black/50 backdrop-blur-sm text-red-500 hover:bg-black/70'
+              )}
+              title={showFavoritesOnly ? "Show all watched" : "Show favorites only"}
+            >
+              <Heart size={20} className={showFavoritesOnly ? 'fill-current' : ''} />
+            </button>
+          )}
+
           <div className="relative">
             <button
               onClick={() => setShowSortMenu(!showSortMenu)}
@@ -506,64 +525,42 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
           {/* Sort controls + FilterTabs */}
           <div className="flex flex-col items-center gap-3 w-full">
-            {/* Sort / filter controls */}
-            <div className="flex items-center gap-2 glass-effect p-1 rounded-2xl">
-              {vidAngelEnabled && (
+            {/* Watchlist / History Tabs */}
+            <div className="flex items-center justify-center w-full max-w-sm">
+              <div className="flex p-1 bg-brand-bg/50 blueprint-border rounded-xl flex-1 transition-colors duration-300">
                 <button
                   onClick={() => {
-                    startTransition(() => setShowEditedOnly(!showEditedOnly));
-                    showStatus(showEditedOnly ? 'All' : 'Edited Only');
+                    startTransition(() => setShowWatched(false));
+                    showStatus('Watchlist');
+                    window.scrollTo(0, 0);
                   }}
                   className={clsx(
-                    "flex items-center justify-center w-10 h-10 rounded-xl transition-all",
-                    showEditedOnly
-                      ? 'bg-amber-500 text-white shadow-lg'
-                      : 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20'
+                    "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-bold transition-all",
+                    !showWatched 
+                      ? "bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
+                      : "text-brand-silver hover:text-white"
                   )}
-                  title="Edited Only"
                 >
-                  <ShieldCheck size={20} className={showEditedOnly ? 'fill-current' : ''} />
+                  <Bookmark size={16} />
+                  Watchlist
                 </button>
-              )}
-
-              <div className="w-px h-5 bg-white/5 mx-0.5" />
-
-              <button
-                onClick={() => {
-                  startTransition(() => setShowWatched(!showWatched));
-                  showStatus(showWatched ? 'Watchlist' : 'Watched');
-                  window.scrollTo(0, 0);
-                }}
-                className={clsx(
-                  "flex items-center justify-center w-10 h-10 rounded-xl transition-all",
-                  showWatched
-                    ? 'bg-green-500/20 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.15)]'
-                    : 'bg-brand-cyan/10 text-brand-cyan hover:bg-brand-cyan/20'
-                )}
-                title={showWatched ? "Switch to Watchlist" : "Switch to History"}
-              >
-                {showWatched ? <CheckCircle2 size={20} /> : <Bookmark size={20} />}
-              </button>
-
-              {showWatched && (
                 <button
                   onClick={() => {
-                    startTransition(() => setShowFavoritesOnly(!showFavoritesOnly));
-                    showStatus(showFavoritesOnly ? 'All Watched' : 'Favorites');
+                    startTransition(() => setShowWatched(true));
+                    showStatus('Watched');
+                    window.scrollTo(0, 0);
                   }}
                   className={clsx(
-                    "flex items-center justify-center w-10 h-10 rounded-xl transition-all",
-                    showFavoritesOnly
-                      ? 'bg-red-500/20 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.15)]'
-                      : 'text-brand-silver hover:text-red-400 hover:bg-white/5'
+                    "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-bold transition-all",
+                    showWatched 
+                      ? "bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
+                      : "text-brand-silver hover:text-white"
                   )}
-                  title={showFavoritesOnly ? "Show all watched" : "Show favorites only"}
                 >
-                  <Heart size={20} className={showFavoritesOnly ? 'fill-current' : ''} />
+                  <CheckCircle2 size={16} />
+                  Watched
                 </button>
-              )}
-
-              <div className="w-px h-5 bg-white/5 mx-0.5" />
+              </div>
             </div>
 
             {/* Movies / TV Shows filter tabs */}
