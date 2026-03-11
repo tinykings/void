@@ -248,21 +248,19 @@ export default function DetailsView() {
 
   return (
     <div className="pb-4">
-      {/* Cinematic Backdrop */}
-      <div className="relative w-full h-[30vh] md:h-[45vh] overflow-hidden bg-brand-bg">
-        {media.backdrop_path ? (
-          <>
-            <img 
-              src={getImageUrl(media.backdrop_path, 'w780')} 
-              alt="" 
-              className="w-full h-full object-cover opacity-60"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-brand-bg via-transparent to-transparent" />
-          </>
-        ) : (
-          <div className="w-full h-full bg-brand-cyan/10" />
-        )}
-        
+      {/* Blurred Background */}
+      {media.poster_path && (
+        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+          <img 
+            src={getImageUrl(media.poster_path, 'w780')} 
+            alt="" 
+            className="w-full h-full object-cover opacity-50 blur-xl"
+          />
+          <div className="absolute inset-0 bg-black/50" />
+        </div>
+      )}
+
+      <div className="relative pt-20 md:pt-24 pb-8">
         <div className="absolute top-4 left-4 z-20">
           <button
             onClick={() => router.push('/')}
@@ -272,25 +270,29 @@ export default function DetailsView() {
             <span>Back</span>
           </button>
         </div>
-      </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 -mt-12 md:-mt-16 relative z-10">
-        <div className="flex flex-col items-center text-center mb-8">
-          <div className="flex-1 min-w-0">
-            <h1 className="text-3xl md:text-5xl font-black leading-tight mb-4 text-white drop-shadow-[0_0_15px_rgba(34,211,238,0.2)] uppercase italic tracking-tighter">{title}</h1>
-            <div className="flex flex-wrap items-center justify-center gap-3 text-xs md:text-sm font-bold text-brand-silver uppercase tracking-wider">
-              <span className="flex items-center gap-1"><Calendar size={14} /> {displayDate || year}</span>
-              <span className="flex items-center gap-1"><Star size={14} className="text-brand-cyan fill-brand-cyan" /> {media.vote_average.toFixed(1)}</span>
-              <span className="bg-brand-bg/50 blueprint-border px-2 py-0.5 rounded uppercase">{media.media_type}</span>
-              {media.media_type === 'tv' && media.status && (
-                <span className="bg-brand-bg/50 blueprint-border px-2 py-0.5 rounded">{media.status}</span>
-              )}
-              {rating && (
-                <span className="bg-brand-bg/50 blueprint-border px-2 py-0.5 rounded border border-white/5">{rating}</span>
-              )}
-            </div>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 flex flex-col items-center">
+          {media.poster_path && (
+            <img
+              src={getImageUrl(media.poster_path, 'w500')}
+              alt=""
+              className="w-40 md:w-52 rounded-xl shadow-2xl shadow-brand-cyan/10 blueprint-border mb-4"
+            />
+          )}
+          <h1 className="text-3xl md:text-5xl font-black leading-tight mb-4 text-white drop-shadow-[0_0_15px_rgba(34,211,238,0.2)] uppercase italic tracking-tighter text-center">{title}</h1>
+          <div className="flex flex-wrap items-center justify-center gap-3 text-xs md:text-sm font-bold text-brand-silver uppercase tracking-wider">
+            <span className="flex items-center gap-1"><Calendar size={14} /> {displayDate || year}</span>
+            <span className="flex items-center gap-1"><Star size={14} className="text-brand-cyan fill-brand-cyan" /> {media.vote_average.toFixed(1)}</span>
+            <span className="bg-brand-bg/50 blueprint-border px-2 py-0.5 rounded uppercase">{media.media_type}</span>
+            {media.media_type === 'tv' && media.status && (
+              <span className="bg-brand-bg/50 blueprint-border px-2 py-0.5 rounded">{media.status}</span>
+            )}
+            {rating && (
+              <span className="bg-brand-bg/50 blueprint-border px-2 py-0.5 rounded border border-white/5">{rating}</span>
+            )}
+          </div>
 
-            {media.next_episode_to_air && (
+          {media.next_episode_to_air && (
               <div className="mt-4 px-4 py-2 bg-brand-cyan/10 blueprint-border rounded-xl inline-block mx-auto md:mx-0">
                 <p className="text-xs md:text-sm font-bold text-brand-cyan">
                   NEXT EPISODE: {new Date(media.next_episode_to_air.air_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
@@ -341,7 +343,6 @@ export default function DetailsView() {
               )}
             </div>
           </div>
-        </div>
 
         <section className="mt-8">
           <h2 className="text-lg font-bold mb-2 uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Overview</h2>
