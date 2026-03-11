@@ -10,7 +10,7 @@ import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
 import { FilterTabs } from '@/components/FilterTabs';
 import { SortControl } from '@/components/SortControl';
 import { sortMedia } from '@/lib/sort';
-import { AlertCircle, Settings, Search as SearchIcon, X, Eye, ArrowLeft, ArrowRight, ShieldCheck, Bookmark, CheckCircle2, Heart } from 'lucide-react';
+import { AlertCircle, Settings, Search as SearchIcon, X, Eye, ArrowLeft, ArrowRight, ShieldCheck, Bookmark, CheckCircle2, Heart, SlidersHorizontal } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface HomeViewProps {
@@ -72,6 +72,9 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   const searchAbortController = useRef<AbortController | null>(null);
   
   const [error, setError] = useState<string | null>(null);
+
+  // Sort dropdown state
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
   // Pagination for library
   const [visibleItemsCount, setVisibleItemsCount] = useState(24);
@@ -295,6 +298,90 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
         </div>
       )}
 
+      {/* Floating Sort Button */}
+      {showLibrary && !isSearchFocused && (
+        <div className="fixed top-20 right-4 z-30">
+          <div className="relative">
+            <button
+              onClick={() => setShowSortMenu(!showSortMenu)}
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm text-brand-cyan hover:bg-black/70 transition-all"
+              title="Sort"
+            >
+              <SlidersHorizontal size={20} />
+            </button>
+
+            {showSortMenu && (
+              <div className="absolute top-full right-0 mt-2 py-2 w-40 rounded-xl bg-brand-bg blueprint-border shadow-xl z-20">
+                <button
+                  onClick={() => {
+                    startTransition(() => setSort('added'));
+                    showStatus('Recently Added');
+                    setShowSortMenu(false);
+                  }}
+                  className={clsx(
+                    "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
+                    (sort || 'added') === 'added'
+                      ? "text-brand-cyan"
+                      : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                  )}
+                >
+                  Recently Added
+                </button>
+                <button
+                  onClick={() => {
+                    startTransition(() => setSort('title'));
+                    showStatus('Title A–Z');
+                    setShowSortMenu(false);
+                  }}
+                  className={clsx(
+                    "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
+                    sort === 'title'
+                      ? "text-brand-cyan"
+                      : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                  )}
+                >
+                  Title
+                </button>
+                <button
+                  onClick={() => {
+                    startTransition(() => setSort('release'));
+                    showStatus('Release Date');
+                    setShowSortMenu(false);
+                  }}
+                  className={clsx(
+                    "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
+                    sort === 'release'
+                      ? "text-brand-cyan"
+                      : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                  )}
+                >
+                  Release Date
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Floating Edited Button */}
+          {vidAngelEnabled && (
+            <button
+              onClick={() => {
+                startTransition(() => setShowEditedOnly(!showEditedOnly));
+                showStatus(showEditedOnly ? 'All' : 'Edited Only');
+              }}
+              className={clsx(
+                "flex items-center justify-center w-10 h-10 rounded-full mt-2 transition-all",
+                showEditedOnly
+                  ? 'bg-amber-500 text-white shadow-lg'
+                  : 'bg-black/50 backdrop-blur-sm text-amber-500 hover:bg-black/70'
+              )}
+              title="Edited Only"
+            >
+              <ShieldCheck size={20} className={showEditedOnly ? 'fill-current' : ''} />
+            </button>
+          )}
+        </div>
+      )}
+
       {(isSearching || showTrending) && (
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
           <div className="flex flex-col md:flex-row md:items-center gap-4 w-full md:w-auto">
@@ -441,16 +528,6 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
               <div className="w-px h-5 bg-white/5 mx-0.5" />
 
-              <SortControl
-                currentSort={sort || 'added'}
-                onSortChange={(s) => {
-                  startTransition(() => setSort(s));
-                  showStatus(s === 'added' ? 'Recently Added' : s === 'title' ? 'Title A–Z' : 'Release Date');
-                }}
-              />
-
-              <div className="w-px h-5 bg-white/5 mx-0.5" />
-
               <button
                 onClick={() => {
                   startTransition(() => setShowWatched(!showWatched));
@@ -487,7 +564,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               )}
 
               <div className="w-px h-5 bg-white/5 mx-0.5" />
+            </div>
 
+            {/* Movies / TV Shows filter tabs */}
+            <div className="flex items-center justify-between w-full max-w-sm">
               <button
                 onClick={onGoToSettings}
                 className="flex items-center justify-center w-10 h-10 rounded-xl text-brand-silver hover:text-brand-cyan hover:bg-white/5 transition-all"
@@ -495,9 +575,14 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               >
                 <Settings size={20} />
               </button>
-
-              <div className="w-px h-5 bg-white/5 mx-0.5" />
-
+              <FilterTabs
+                currentFilter={filter || 'movie'}
+                onFilterChange={(f) => {
+                  startTransition(() => setFilter(f));
+                  showStatus(f === 'movie' ? 'Movies' : 'TV Shows');
+                  window.scrollTo(0, 0);
+                }}
+              />
               <button
                 onClick={() => {
                   if (isSearchFocused) {
@@ -514,7 +599,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                   }
                 }}
                 className={clsx(
-                  "flex items-center justify-center w-10 h-10 rounded-xl transition-all",
+                  "flex items-center justify-center w-10 h-10 rounded-xl transition-all shrink-0",
                   isSearchFocused
                     ? 'bg-brand-cyan/20 text-brand-cyan'
                     : 'text-brand-silver hover:text-brand-cyan hover:bg-white/5'
@@ -523,18 +608,6 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               >
                 {isSearchFocused ? <X size={20} /> : <SearchIcon size={20} />}
               </button>
-            </div>
-
-            {/* Movies / TV Shows filter tabs */}
-            <div className="w-full max-w-sm">
-              <FilterTabs
-                currentFilter={filter || 'movie'}
-                onFilterChange={(f) => {
-                  startTransition(() => setFilter(f));
-                  showStatus(f === 'movie' ? 'Movies' : 'TV Shows');
-                  window.scrollTo(0, 0);
-                }}
-              />
             </div>
           </div>
 
