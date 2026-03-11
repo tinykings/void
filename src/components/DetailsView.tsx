@@ -277,16 +277,17 @@ export default function DetailsView() {
           </button>
         </div>
 
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 flex flex-col items-center">
+        <div className="max-w-4xl mx-auto px-2 sm:px-6 flex flex-row items-start gap-4 md:gap-8">
           {media.poster_path && (
             <img
               src={getImageUrl(media.poster_path, 'w500')}
               alt=""
-              className="w-40 md:w-52 rounded-xl shadow-2xl shadow-brand-cyan/10 blueprint-border mb-4"
+              className="w-24 md:w-48 lg:w-56 rounded-xl shadow-2xl shadow-brand-cyan/10 blueprint-border shrink-0"
             />
           )}
-          <h1 className="text-3xl md:text-5xl font-black leading-tight mb-4 text-white drop-shadow-[0_0_15px_rgba(34,211,238,0.2)] uppercase italic tracking-tighter text-center">{title}</h1>
-          <div className="flex flex-wrap items-center justify-center gap-3 text-xs md:text-sm font-bold text-brand-silver uppercase tracking-wider">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl md:text-4xl lg:text-5xl font-black leading-tight mb-4 text-white drop-shadow-[0_0_15px_rgba(34,211,238,0.2)] uppercase italic tracking-tighter">{title}</h1>
+            <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm font-bold text-brand-silver uppercase tracking-wider mb-4">
             <span className="flex items-center gap-1"><Calendar size={14} /> {displayDate || year}</span>
             <span className="flex items-center gap-1"><Star size={14} className="text-brand-cyan fill-brand-cyan" /> {media.vote_average.toFixed(1)}</span>
             {media.media_type === 'tv' && media.status && (
@@ -307,18 +308,18 @@ export default function DetailsView() {
             )}
 
             <div className="flex flex-col gap-3 mt-6">
-              <div className="flex flex-wrap gap-3">
-                <div className="relative flex-1">
+              <div className="flex flex-wrap gap-2">
+                <div className="relative">
                   <button
                     onClick={() => setShowWatchlistMenu(!showWatchlistMenu)}
                     className={clsx(
-                      "w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm",
+                      "py-2 px-3 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm",
                       inWatchlist || inWatched
                         ? "bg-brand-cyan/20 blueprint-border text-brand-cyan"
                         : "bg-brand-bg/50 blueprint-border text-brand-silver hover:bg-brand-bg hover:text-white"
                     )}
                   >
-                    <Bookmark size={18} className={(inWatchlist || inWatched) ? 'fill-current' : ''} />
+                    <Bookmark size={16} className={(inWatchlist || inWatched) ? 'fill-current' : ''} />
                     <span>{inWatched ? 'Watched' : 'Watchlist'}</span>
                   </button>
                   
@@ -362,35 +363,35 @@ export default function DetailsView() {
                   )}
                 </div>
 
-                {inWatched && (
-                  <button
-                    onClick={() => toggleFavorite(media)}
-                    className={clsx(
-                      "py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm",
-                      isFavorite
-                        ? "bg-red-500/20 blueprint-border text-red-400"
-                        : "bg-brand-bg/50 blueprint-border text-brand-silver hover:bg-brand-bg hover:text-red-400"
-                    )}
-                    title={isFavorite ? "Remove from favorites" : "Mark as favorite"}
-                  >
-                    <Heart size={18} className={isFavorite ? 'fill-current' : ''} />
-                  </button>
-                )}
-              </div>
+                <div className="flex gap-2">
+                  {inWatched && (
+                    <button
+                      onClick={() => toggleFavorite(media)}
+                      className={clsx(
+                        "py-2 px-3 rounded-xl flex items-center justify-center font-bold transition-all active:scale-95 text-sm",
+                        isFavorite
+                          ? "bg-red-500/20 blueprint-border text-red-400"
+                          : "bg-brand-bg/50 blueprint-border text-brand-silver hover:bg-brand-bg hover:text-red-400"
+                      )}
+                      title={isFavorite ? "Remove from favorites" : "Mark as favorite"}
+                    >
+                      <Heart size={16} className={isFavorite ? 'fill-current' : ''} />
+                    </button>
+                  )}
 
-              {(externalPlayerEnabled || vidAngelAvailable) && (
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setStreamPicker({ open: true })}
-                    className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm bg-brand-cyan text-brand-bg shadow-lg shadow-brand-cyan/20 hover:bg-brand-cyan/90"
-                  >
-                    <Play size={18} className="fill-brand-bg" />
-                    <span>Play</span>
-                  </button>
+                  {(externalPlayerEnabled || vidAngelAvailable) && (
+                    <button
+                      onClick={() => setStreamPicker({ open: true })}
+                      className="py-2 px-3 rounded-xl flex items-center justify-center font-bold transition-all active:scale-95 text-sm bg-green-500 text-brand-bg shadow-lg shadow-green-500/20 hover:bg-green-500/90"
+                    >
+                      <Play size={16} className="fill-brand-bg" />
+                    </button>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </div>
+        </div>
 
         <section className="mt-8">
           <h2 className="text-lg font-bold mb-2 uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Overview</h2>
