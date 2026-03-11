@@ -274,18 +274,18 @@ export default function DetailsView() {
       </button>
 
       <div className="pb-20 pt-8 mt-safe">
-        <div className="max-w-4xl mx-auto px-2 sm:px-6">
-          <div className="flex flex-row items-start gap-4 md:gap-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-10">
             {media.poster_path && (
               <img
                 src={getImageUrl(media.poster_path, 'w500')}
                 alt=""
-                className="w-24 md:w-48 lg:w-56 rounded-xl shadow-2xl shadow-brand-cyan/10 blueprint-border shrink-0"
+                className="w-48 sm:w-64 md:w-80 lg:w-[380px] rounded-2xl shadow-2xl shadow-brand-cyan/20 blueprint-border shrink-0"
               />
             )}
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl md:text-4xl lg:text-5xl font-black leading-tight mb-4 text-white drop-shadow-[0_0_15px_rgba(34,211,238,0.2)] uppercase italic tracking-tighter">{title}</h1>
-              <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm font-bold text-brand-silver uppercase tracking-wider mb-4">
+            <div className="flex-1 min-w-0 text-center md:text-left">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-black leading-tight mb-4 text-white drop-shadow-[0_0_15px_rgba(34,211,238,0.2)] uppercase italic tracking-tighter">{title}</h1>
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-xs md:text-sm font-bold text-brand-silver uppercase tracking-wider mb-6">
               <span className="flex items-center gap-1"><Calendar size={14} /> {displayDate || year}</span>
               <span className="flex items-center gap-1"><Star size={14} className="text-brand-cyan fill-brand-cyan" /> {media.vote_average.toFixed(1)}</span>
               {media.media_type === 'tv' && media.status && (
@@ -306,7 +306,7 @@ export default function DetailsView() {
               )}
 
               <div className="flex flex-col gap-3 mt-6">
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
                   <div className="relative">
                     <button
                       onClick={() => setShowWatchlistMenu(!showWatchlistMenu)}

@@ -28,11 +28,17 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
     vidAngelEnabled,
     editedStatusMap,
     setMediaEditedStatus,
-    sort
+    sort,
+    isSearchFocused
   } = useAppContext();
   
   const cardRef = useRef<HTMLDivElement>(null);
   const isEdited = editedStatusMap[`${media.media_type}-${media.id}`];
+
+  const inWatchlist = watchlist.some((m) => m.id === media.id && m.media_type === media.media_type);
+  const watchedItem = watched.find((m) => m.id === media.id && m.media_type === media.media_type);
+  const inWatched = !!watchedItem;
+  const isFavorite = watchedItem?.isFavorite || false;
 
   const daysUntilRelease = useMemo(() => {
     if (sort !== 'release') return null;
@@ -81,11 +87,6 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
 
     return () => vidAngelObserver.unobserve(element);
   }, [media.id, media.media_type, media.title, media.name, vidAngelEnabled, isEdited, setMediaEditedStatus, showBadge]);
-
-  const inWatchlist = watchlist.some((m) => m.id === media.id && m.media_type === media.media_type);
-  const watchedItem = watched.find((m) => m.id === media.id && m.media_type === media.media_type);
-  const inWatched = !!watchedItem;
-  const isFavorite = watchedItem?.isFavorite || false;
 
   const title = media.title || media.name;
 
@@ -178,6 +179,19 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
             <div className="absolute top-2 left-2 z-10">
               <div className="bg-brand-bg/60 backdrop-blur-md text-brand-cyan text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded shadow-lg border border-brand-cyan/30">
                 {daysUntilRelease} {daysUntilRelease === 1 ? 'day' : 'days'}
+              </div>
+            </div>
+          )}
+
+          {isSearchFocused && (inWatched || inWatchlist) && (
+            <div className="absolute top-2 right-2 z-10">
+              <div className={clsx(
+                "backdrop-blur-md text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded shadow-lg border",
+                inWatched 
+                  ? "bg-green-500/20 text-green-400 border-green-500/30" 
+                  : "bg-brand-cyan/20 text-brand-cyan border-brand-cyan/30"
+              )}>
+                {inWatched ? 'Watched' : 'Watchlist'}
               </div>
             </div>
           )}
