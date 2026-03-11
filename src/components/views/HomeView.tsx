@@ -10,7 +10,7 @@ import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
 import { FilterTabs } from '@/components/FilterTabs';
 import { SortControl } from '@/components/SortControl';
 import { sortMedia } from '@/lib/sort';
-import { AlertCircle, Settings, Search as SearchIcon, X, Eye, ArrowLeft, ArrowRight, ShieldCheck, Bookmark, CheckCircle2, Heart, SlidersHorizontal } from 'lucide-react';
+import { AlertCircle, Settings, Search as SearchIcon, X, Eye, ArrowLeft, ArrowRight, ShieldCheck, Bookmark, CheckCircle2, Heart, SlidersHorizontal, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface HomeViewProps {
@@ -343,25 +343,6 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
       {/* Floating Buttons */}
       {showLibrary && !isSearchFocused && (
         <div className="fixed top-24 right-4 z-30 flex flex-col items-center">
-          {/* Favorites Button (only in Watched view) */}
-          {showWatched && (
-            <button
-              onClick={() => {
-                startTransition(() => setShowFavoritesOnly(!showFavoritesOnly));
-                showStatus(showFavoritesOnly ? 'All Watched' : 'Favorites');
-              }}
-              className={clsx(
-                "flex items-center justify-center w-10 h-10 rounded-full mb-2 transition-all shadow-lg",
-                showFavoritesOnly
-                  ? 'bg-red-500 text-white'
-                  : 'bg-black/50 backdrop-blur-sm text-red-500 hover:bg-black/70'
-              )}
-              title={showFavoritesOnly ? "Show all watched" : "Show favorites only"}
-            >
-              <Heart size={20} className={showFavoritesOnly ? 'fill-current' : ''} />
-            </button>
-          )}
-
           <div className="relative">
             <button
               onClick={() => setShowSortMenu(!showSortMenu)}
@@ -418,28 +399,55 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                 >
                   Release Date
                 </button>
+
+                {(vidAngelEnabled || showWatched) && <div className="h-px bg-white/5 my-1" />}
+
+                {showWatched && (
+                  <button
+                    onClick={() => {
+                      startTransition(() => setShowFavoritesOnly(!showFavoritesOnly));
+                      showStatus(showFavoritesOnly ? 'All Watched' : 'Favorites');
+                      setShowSortMenu(false);
+                    }}
+                    className={clsx(
+                      "w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors",
+                      showFavoritesOnly
+                        ? "text-red-500 bg-red-500/5"
+                        : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Heart size={16} className={showFavoritesOnly ? 'fill-current' : ''} />
+                      Favorites
+                    </div>
+                    {showFavoritesOnly && <Check size={14} className="text-red-500" />}
+                  </button>
+                )}
+
+                {vidAngelEnabled && (
+                  <button
+                    onClick={() => {
+                      startTransition(() => setShowEditedOnly(!showEditedOnly));
+                      showStatus(showEditedOnly ? 'Showing All' : 'Edited Only');
+                      setShowSortMenu(false);
+                    }}
+                    className={clsx(
+                      "w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors",
+                      showEditedOnly
+                        ? "text-amber-500 bg-amber-500/5"
+                        : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck size={16} className={showEditedOnly ? 'fill-current' : ''} />
+                      Edited
+                    </div>
+                    {showEditedOnly && <Check size={14} className="text-amber-500" />}
+                  </button>
+                )}
               </div>
             )}
           </div>
-
-          {/* Floating Edited Button */}
-          {vidAngelEnabled && (
-            <button
-              onClick={() => {
-                startTransition(() => setShowEditedOnly(!showEditedOnly));
-                showStatus(showEditedOnly ? 'All' : 'Edited Only');
-              }}
-              className={clsx(
-                "flex items-center justify-center w-10 h-10 rounded-full mt-2 transition-all",
-                showEditedOnly
-                  ? 'bg-amber-500 text-white shadow-lg'
-                  : 'bg-black/50 backdrop-blur-sm text-amber-500 hover:bg-black/70'
-              )}
-              title="Edited Only"
-            >
-              <ShieldCheck size={20} className={showEditedOnly ? 'fill-current' : ''} />
-            </button>
-          )}
         </div>
       )}
 
