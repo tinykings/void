@@ -48,7 +48,21 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   const [statusFading, setStatusFading] = useState(false);
   const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const persistentStatus = useMemo(() => {
+    if (showFavoritesOnly) return 'Favorites';
+    if (showEditedOnly) return 'Edited';
+    return null;
+  }, [showFavoritesOnly, showEditedOnly]);
+
   const showStatus = useCallback((label: string) => {
+    // If it matches a persistent state, we don't need a timer
+    if (label === 'Favorites' || label === 'Edited') {
+      if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+      setStatusLabel(null);
+      setStatusFading(false);
+      return;
+    }
+
     if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
     setStatusLabel(label);
     setStatusFading(false);
@@ -364,8 +378,12 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                     {showWatched && (
                       <button
                         onClick={() => {
-                          startTransition(() => setShowFavoritesOnly(!showFavoritesOnly));
-                          showStatus(showFavoritesOnly ? 'Showing All' : 'Favorites');
+                          startTransition(() => {
+                            const newValue = !showFavoritesOnly;
+                            setShowFavoritesOnly(newValue);
+                            if (newValue) setShowEditedOnly(false);
+                            showStatus(newValue ? 'Favorites' : 'Showing All');
+                          });
                           setShowSortMenu(false);
                         }}
                         className={clsx(
@@ -386,8 +404,12 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                     {vidAngelEnabled && (
                       <button
                         onClick={() => {
-                          startTransition(() => setShowEditedOnly(!showEditedOnly));
-                          showStatus(showEditedOnly ? 'Showing All' : 'Edited Only');
+                          startTransition(() => {
+                            const newValue = !showEditedOnly;
+                            setShowEditedOnly(newValue);
+                            if (newValue) setShowFavoritesOnly(false);
+                            showStatus(newValue ? 'Edited' : 'Showing All');
+                          });
                           setShowSortMenu(false);
                         }}
                         className={clsx(
@@ -403,8 +425,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                         </div>
                         {showEditedOnly && <Check size={14} className="text-amber-500" />}
                       </button>
-                    )}
-                  </div>
+                    )}                  </div>
                 )}
               </div>
             )}
@@ -470,8 +491,12 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
             {vidAngelEnabled && (
               <button
                 onClick={() => {
-                  startTransition(() => setShowEditedOnly(!showEditedOnly));
-                  showStatus(showEditedOnly ? 'All' : 'Edited Only');
+                  startTransition(() => {
+                    const newValue = !showEditedOnly;
+                    setShowEditedOnly(newValue);
+                    if (newValue) setShowFavoritesOnly(false);
+                    showStatus(newValue ? 'Edited' : 'Showing All');
+                  });
                 }}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
                   showEditedOnly
@@ -569,12 +594,12 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
           aria-live="polite"
           className={clsx(
             "absolute left-1/2 -translate-x-1/2 bottom-full mb-3 px-4 py-1.5 rounded-full bg-brand-bg/80 backdrop-blur-md border border-brand-cyan/20 text-xs font-semibold tracking-widest uppercase text-brand-cyan whitespace-nowrap transition-all duration-300 pointer-events-none",
-            statusLabel && !statusFading
+            (persistentStatus || (statusLabel && !statusFading))
               ? "opacity-100 translate-y-0"
               : "opacity-0 translate-y-3"
           )}
         >
-          {statusLabel}
+          {persistentStatus || statusLabel}
         </div>
 
         <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col items-center">
@@ -582,10 +607,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
           <div className="flex items-center justify-between w-full max-w-sm">
               <button
                 onClick={onGoToSettings}
-                className="flex items-center justify-center w-10 h-10 rounded-xl text-brand-silver hover:text-brand-cyan hover:bg-white/5 transition-all"
+                className="flex items-center justify-center w-9 h-9 rounded-xl bg-brand-bg/50 blueprint-border text-brand-silver hover:text-brand-cyan transition-all"
                 title="Settings"
               >
-                <Settings size={20} />
+                <Settings size={18} />
               </button>
               <FilterTabs
                 currentFilter={filter || 'movie'}
@@ -611,14 +636,14 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                   }
                 }}
                 className={clsx(
-                  "flex items-center justify-center w-10 h-10 rounded-xl transition-all shrink-0",
+                  "flex items-center justify-center w-9 h-9 rounded-xl transition-all shrink-0",
                   isSearchFocused
-                    ? 'bg-brand-cyan/20 text-brand-cyan'
-                    : 'text-brand-silver hover:text-brand-cyan hover:bg-white/5'
+                    ? 'bg-brand-cyan/10 text-brand-cyan'
+                    : 'bg-brand-bg/50 blueprint-border text-brand-silver hover:text-brand-cyan'
                 )}
                 title={isSearchFocused ? "Close Search" : "Search"}
               >
-                {isSearchFocused ? <X size={20} /> : <SearchIcon size={20} />}
+                {isSearchFocused ? <X size={18} /> : <SearchIcon size={18} />}
               </button>
           </div>
         </div>
