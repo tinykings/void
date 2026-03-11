@@ -123,7 +123,7 @@ export default function DetailsView() {
           setProviders(providerData);
           setRating(ratingData);
           setUsReleaseDate(usDate);
-          setCast(creditsData.cast.slice(0, 4));
+          setCast(creditsData.cast.slice(0, 3));
           
           const trailers = videoData.results
             .filter((v: Video) => v.site === 'YouTube' && v.type === 'Trailer')
