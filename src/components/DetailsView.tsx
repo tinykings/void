@@ -51,6 +51,9 @@ export default function DetailsView() {
   // Stream picker state
   const [streamPicker, setStreamPicker] = useState<{ open: boolean; seasonNum?: number; episodeNum?: number }>({ open: false });
 
+  // Watchlist dropdown state
+  const [showWatchlistMenu, setShowWatchlistMenu] = useState(false);
+
   // Modal State
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
@@ -305,31 +308,59 @@ export default function DetailsView() {
 
             <div className="flex flex-col gap-3 mt-6">
               <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={handleWatchlistToggle}
-                  className={clsx(
-                    "flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm",
-                    inWatchlist
-                      ? "bg-brand-cyan/20 blueprint-border text-brand-cyan"
-                      : "bg-brand-bg/50 blueprint-border text-brand-silver hover:bg-brand-bg hover:text-white"
+                <div className="relative flex-1">
+                  <button
+                    onClick={() => setShowWatchlistMenu(!showWatchlistMenu)}
+                    className={clsx(
+                      "w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm",
+                      inWatchlist || inWatched
+                        ? "bg-brand-cyan/20 blueprint-border text-brand-cyan"
+                        : "bg-brand-bg/50 blueprint-border text-brand-silver hover:bg-brand-bg hover:text-white"
+                    )}
+                  >
+                    <Bookmark size={18} className={(inWatchlist || inWatched) ? 'fill-current' : ''} />
+                    <span>{inWatched ? 'Watched' : 'Watchlist'}</span>
+                  </button>
+                  
+                  {showWatchlistMenu && (
+                    <div className="absolute top-full left-0 right-0 mt-2 py-2 rounded-xl bg-brand-bg blueprint-border shadow-xl z-20">
+                      <button
+                        onClick={() => {
+                          if (!inWatchlist) {
+                            toggleWatchlist(media);
+                          }
+                          setShowWatchlistMenu(false);
+                        }}
+                        className={clsx(
+                          "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
+                          inWatchlist
+                            ? "text-brand-cyan"
+                            : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                        )}
+                      >
+                        <Bookmark size={16} className={inWatchlist ? 'fill-current' : ''} />
+                        Watchlist
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (!inWatched) {
+                            toggleWatched(media);
+                          }
+                          setShowWatchlistMenu(false);
+                        }}
+                        className={clsx(
+                          "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
+                          inWatched
+                            ? "text-green-400"
+                            : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                        )}
+                      >
+                        {inWatched ? <Check size={16} className="fill-current" /> : <Eye size={16} />}
+                        Watched
+                      </button>
+                    </div>
                   )}
-                >
-                  <Bookmark size={18} className={inWatchlist ? 'fill-current' : ''} />
-                  <span>{inWatchlist ? 'Remove' : 'Watchlist'}</span>
-                </button>
-
-                <button
-                  onClick={handleWatchedToggle}
-                  className={clsx(
-                    "flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm",
-                    inWatched
-                      ? "bg-green-500/20 blueprint-border text-green-400"
-                      : "bg-brand-bg/50 blueprint-border text-brand-silver hover:bg-brand-bg hover:text-white"
-                  )}
-                >
-                  {inWatched ? <Check size={18} /> : <Eye size={18} />}
-                  <span>{inWatched ? 'Watched' : 'Mark Watched'}</span>
-                </button>
+                </div>
 
                 <button
                   onClick={() => toggleFavorite(media)}
