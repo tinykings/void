@@ -6,7 +6,7 @@ import { useAppContext } from '@/context/AppContext';
 import { getMediaDetails, getWatchProviders, getImageUrl, getContentRating, getSeasonDetails, getMediaVideos, getMediaCredits, getPersonCredits, getUSReleaseDate } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { Media, WatchProvidersResponse, WatchProvider, SeasonDetails, Video, SeasonSummary, CastMember } from '@/lib/types';
-import { ChevronLeft, Check, Play, Star, Calendar, ChevronDown, User as UserIcon, Bookmark, Eye } from 'lucide-react';
+import { ChevronLeft, Check, Play, Star, Calendar, ChevronDown, User as UserIcon, Bookmark, Eye, Heart } from 'lucide-react';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
@@ -24,6 +24,7 @@ export default function DetailsView() {
     watched,
     toggleWatchlist,
     toggleWatched,
+    toggleFavorite,
     vidAngelEnabled,
     externalPlayerEnabled,
   } = useAppContext();
@@ -155,7 +156,9 @@ export default function DetailsView() {
   );
 
   const inWatchlist = watchlist.some((m) => m.id === media.id && m.media_type === media.media_type);
-  const inWatched = watched.some((m) => m.id === media.id && m.media_type === media.media_type);
+  const watchedItem = watched.find((m) => m.id === media.id && m.media_type === media.media_type);
+  const inWatched = !!watchedItem;
+  const isFavorite = watchedItem?.isFavorite || false;
   const vidAngelAvailable = !!vidAngelSlug;
 
   const title = media.title || media.name;
@@ -283,7 +286,6 @@ export default function DetailsView() {
           <div className="flex flex-wrap items-center justify-center gap-3 text-xs md:text-sm font-bold text-brand-silver uppercase tracking-wider">
             <span className="flex items-center gap-1"><Calendar size={14} /> {displayDate || year}</span>
             <span className="flex items-center gap-1"><Star size={14} className="text-brand-cyan fill-brand-cyan" /> {media.vote_average.toFixed(1)}</span>
-            <span className="bg-brand-bg/50 blueprint-border px-2 py-0.5 rounded uppercase">{media.media_type}</span>
             {media.media_type === 'tv' && media.status && (
               <span className="bg-brand-bg/50 blueprint-border px-2 py-0.5 rounded">{media.status}</span>
             )}
@@ -327,6 +329,19 @@ export default function DetailsView() {
                 >
                   {inWatched ? <Check size={18} /> : <Eye size={18} />}
                   <span>{inWatched ? 'Watched' : 'Mark Watched'}</span>
+                </button>
+
+                <button
+                  onClick={() => toggleFavorite(media)}
+                  className={clsx(
+                    "py-3 px-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all active:scale-95 text-sm",
+                    isFavorite
+                      ? "bg-red-500/20 blueprint-border text-red-400"
+                      : "bg-brand-bg/50 blueprint-border text-brand-silver hover:bg-brand-bg hover:text-red-400"
+                  )}
+                  title={isFavorite ? "Remove from favorites" : "Mark as favorite"}
+                >
+                  <Heart size={18} className={isFavorite ? 'fill-current' : ''} />
                 </button>
               </div>
 

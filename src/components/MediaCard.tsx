@@ -5,7 +5,7 @@ import { Media } from '@/lib/types';
 import { getImageUrl } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { useAppContext } from '@/context/AppContext';
-import { Plus, Check, Trash2, Star, Bookmark, Heart, Eye } from 'lucide-react';
+import { Plus, Trash2, Star } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
@@ -171,9 +171,7 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
         <div className="p-3 flex flex-col flex-1">
           <div className="mb-2">
             <h3 className="text-sm font-bold truncate leading-tight mb-0.5 text-white" title={title}>{title}</h3>
-            <p className="text-[10px] text-brand-silver font-medium uppercase tracking-tighter">
-              {media.media_type === 'movie' ? 'Movie' : 'TV'} • {year}
-            </p>
+            <p className="text-[10px] text-brand-silver font-medium uppercase tracking-tighter">{year}</p>
             {media.next_episode_to_air && (
               <p className="text-[10px] font-bold text-brand-cyan mt-1 flex items-center gap-1">
                 Next: {new Date(media.next_episode_to_air.air_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
@@ -183,49 +181,6 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
               </p>
             )}
           </div>
-          
-          {showActions && (
-            <div className="mt-auto flex gap-1">
-              <button
-                onClick={handleWatchlistClick}
-                className={clsx(
-                  "flex-1 py-1.5 rounded-md flex items-center justify-center transition-colors blueprint-border",
-                  inWatchlist
-                    ? "bg-brand-cyan/20 text-brand-cyan"
-                    : "bg-brand-bg/50 text-brand-silver hover:bg-brand-bg hover:text-white"
-                )}
-                title={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
-              >
-                <Bookmark size={12} className={inWatchlist ? 'fill-current' : ''} />
-              </button>
-              {inWatched && (
-                <button
-                  onClick={() => toggleFavorite(media)}
-                  className={clsx(
-                    "py-1.5 px-2 rounded-md flex items-center justify-center transition-colors blueprint-border",
-                    isFavorite
-                      ? "bg-red-500/20 text-red-400"
-                      : "bg-brand-bg/50 text-brand-silver hover:bg-brand-bg hover:text-red-400"
-                  )}
-                  title={isFavorite ? "Remove from favorites" : "Mark as favorite"}
-                >
-                  <Heart size={12} className={isFavorite ? 'fill-current' : ''} />
-                </button>
-              )}
-              <button
-                onClick={handleWatchedClick}
-                className={clsx(
-                  "flex-1 py-1.5 rounded-md flex items-center justify-center transition-colors blueprint-border",
-                  inWatched
-                    ? "bg-green-500/20 text-green-400"
-                    : "bg-brand-bg/50 text-brand-silver hover:bg-brand-bg hover:text-white"
-                )}
-                title={inWatched ? "Remove from watched" : "Mark as watched"}
-              >
-                {inWatched ? <Check size={12} /> : <Eye size={12} />}
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
