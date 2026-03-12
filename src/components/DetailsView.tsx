@@ -232,11 +232,11 @@ export default function DetailsView() {
     <>
       {/* Blurred Background */}
       {media.poster_path && (
-        <div className="fixed -top-4 -left-4 -right-4 -bottom-4 -z-10 overflow-hidden pointer-events-none">
+        <div className="fixed -top-8 -left-4 -right-4 -bottom-4 -z-10 overflow-hidden pointer-events-none">
           <img 
             src={getImageUrl(media.poster_path, 'w780')} 
             alt="" 
-            className="w-full h-full object-cover opacity-50 blur-2xl scale-110"
+            className="absolute top-0 left-0 w-full min-h-screen object-cover opacity-50 blur-2xl scale-110"
           />
           <div className="absolute inset-0 bg-black/60" />
         </div>
