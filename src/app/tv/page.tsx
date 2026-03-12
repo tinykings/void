@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Monitor, Wifi, WifiOff, ExternalLink, Settings } from 'lucide-react';
+import { Monitor, Wifi, WifiOff, ExternalLink, Settings, Play } from 'lucide-react';
 
 interface TvQueueItem {
   url: string;
@@ -25,64 +25,44 @@ function TvPageContent() {
     if (idFromUrl) {
       setGistId(idFromUrl);
       localStorage.setItem('void_tv_gist_id', idFromUrl);
-    } else {
-      const savedId = localStorage.getItem('void_tv_gist_id');
-      if (savedId) {
-        setGistId(savedId);
-      } else {
-        setStatus('not-configured');
-      }
+    }
+    
+    // Initial load from localStorage for Gist ID
+    const savedId = localStorage.getItem('void_tv_gist_id');
+    if (savedId && !idFromUrl) {
+      setGistId(savedId);
+    } else if (!idFromUrl && !savedId) {
+      setStatus('not-configured');
     }
 
-    // Load last processed timestamp to avoid re-triggering old items
-    const savedTimestamp = localStorage.getItem('void_tv_last_timestamp');
-    if (savedTimestamp) {
-      lastProcessedTimestamp.current = parseInt(savedTimestamp, 10);
-    }
+    // We don't load the last timestamp from localStorage here 
+    // so that opening the page always shows the "current" queued item.
   }, [searchParams]);
 
   const pollGist = useCallback(async () => {
     if (!gistId) return;
 
     try {
-      // Fetch public gist (no token needed for public gists)
       const res = await fetch(`https://api.github.com/gists/${gistId}?_=${Date.now()}`, {
         headers: {
           'Accept': 'application/vnd.github.v3+json',
         },
       });
 
-      if (!res.ok) {
-        if (res.status === 404) {
-          setStatus('error');
-        }
-        return;
-      }
+      if (!res.ok) return;
 
       const data = await res.json();
       const queueFile = data.files?.['void-tv-queue.json'];
-      if (!queueFile?.content) {
-        setStatus('waiting');
-        return;
-      }
+      if (!queueFile?.content) return;
 
       const parsed: TvQueueItem = JSON.parse(queueFile.content);
-      if (!parsed.url || !parsed.timestamp) {
-        setStatus('waiting');
-        return;
-      }
+      if (!parsed.url || !parsed.timestamp) return;
 
-      // Only process if this is a new item we haven't seen
+      // Only process if this is a new item we haven't seen in this session
       if (parsed.timestamp > lastProcessedTimestamp.current) {
         lastProcessedTimestamp.current = parsed.timestamp;
-        localStorage.setItem('void_tv_last_timestamp', parsed.timestamp.toString());
         setLastItem(parsed);
         setStatus('received');
-
-        // Navigate to the URL
-        window.location.href = parsed.url;
-      } else {
-        setStatus('waiting');
       }
     } catch (err) {
       console.error('TV poll error:', err);
@@ -92,15 +72,11 @@ function TvPageContent() {
   useEffect(() => {
     if (!gistId) return;
 
-    setStatus('waiting');
-    
-    // Start polling
+    // Start polling immediately
     pollGist();
-    pollInterval.current = setInterval(pollGist, 5000);
+    const interval = setInterval(pollGist, 5000);
 
-    return () => {
-      if (pollInterval.current) clearInterval(pollInterval.current);
-    };
+    return () => clearInterval(interval);
   }, [gistId, pollGist]);
 
   const handleConfigure = (e: React.FormEvent) => {
@@ -174,18 +150,29 @@ function TvPageContent() {
           )}
 
           {status === 'received' && lastItem && (
-            <div className="flex flex-col items-center gap-4">
-              <div className="w-20 h-20 rounded-2xl bg-green-500/20 blueprint-border flex items-center justify-center">
-                <ExternalLink size={40} className="text-green-400" />
+            <div className="flex flex-col items-center gap-6 animate-in zoom-in duration-300">
+              <div className="w-24 h-24 rounded-full bg-green-500/20 blueprint-border flex items-center justify-center shadow-[0_0_30px_rgba(34,197,94,0.2)]">
+                <Play size={48} className="text-green-400 fill-current ml-1" />
               </div>
-              <p className="text-white font-bold">{lastItem.title}</p>
-              <p className="text-brand-silver text-sm">Opening content...</p>
+              <div className="space-y-2">
+                <p className="text-white text-2xl font-black uppercase italic tracking-tighter">{lastItem.title}</p>
+                <p className="text-brand-silver text-sm uppercase tracking-widest font-bold">New Content Ready</p>
+              </div>
               <a
                 href={lastItem.url}
-                className="text-xs text-brand-cyan hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-6 bg-brand-cyan text-brand-bg font-black rounded-2xl uppercase tracking-[0.2em] text-xl hover:bg-brand-cyan/90 transition-all shadow-[0_0_40px_rgba(34,211,238,0.3)] active:scale-95 flex items-center justify-center gap-3"
               >
-                Click here if it doesn't open
+                <Play size={24} className="fill-brand-bg" />
+                Play Now
               </a>
+              <button 
+                onClick={() => setStatus('waiting')}
+                className="text-xs text-brand-silver/50 hover:text-brand-silver underline transition-colors mt-4"
+              >
+                Dismiss
+              </button>
             </div>
           )}
 
