@@ -78,15 +78,6 @@ export default function DetailsView() {
     window.scrollTo(0, 0);
     setSelectedSeasonNumber(1);
     setSeasonDetails(null);
-
-    // Set immersive theme color for Details
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', '#000000');
-
-    return () => {
-      // Revert to Home theme color on unmount
-      if (meta) meta.setAttribute('content', '#030712');
-    };
   }, [id]);
 
   useEffect(() => {
@@ -241,11 +232,11 @@ export default function DetailsView() {
     <>
       {/* Blurred Background */}
       {media.poster_path && (
-        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="fixed -top-px left-0 right-0 h-[100dvh] z-0 overflow-hidden pointer-events-none">
           <img 
             src={getImageUrl(media.poster_path, 'w780')} 
             alt="" 
-            className="w-full h-full object-cover opacity-50 blur-2xl scale-110"
+            className="w-full h-[100dvh] object-cover opacity-50 blur-2xl scale-110"
           />
           <div className="absolute inset-0 bg-black/60" />
         </div>
