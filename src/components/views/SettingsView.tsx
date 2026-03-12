@@ -74,7 +74,7 @@ export const SettingsView = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 pt-[46px]">
+    <div className="max-w-2xl mx-auto px-4 py-6 pt-4">
       <div className="flex items-center gap-4 mb-8">
         <button 
           onClick={() => router.replace('/?tab=home')}
