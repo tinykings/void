@@ -452,6 +452,20 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
         </>
       )}
 
+      {/* Floating Search Button */}
+      {!isSearchFocused && (
+        <button
+          onClick={() => startTransition(() => setIsSearchFocused(true))}
+          className={clsx(
+            "fixed bottom-36 right-4 z-40 w-11 h-11 bg-brand-bg/80 backdrop-blur-md blueprint-border text-brand-cyan rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.3)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-500 group",
+            !isFooterVisible ? "translate-y-[120px]" : "translate-y-0"
+          )}
+          title="Search"
+        >
+          <SearchIcon size={20} className="group-hover:rotate-12 transition-transform" />
+        </button>
+      )}
+
       {/* Fixed Bottom Bar */}
       {!isSearchFocused && (
         <div className={clsx(
@@ -472,8 +486,19 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
           </div>
 
           <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col items-center gap-3 relative">
-            {/* Row 1: Primary Navigation + Sort */}
+            {/* Row 1: Primary Navigation + Settings + Sort */}
             <div className="flex items-center justify-center w-full relative">
+              {/* Settings button on the far left */}
+              <div className="absolute left-0">
+                <button
+                  onClick={onGoToSettings}
+                  className="flex items-center justify-center w-9 h-9 rounded-xl bg-brand-bg/50 blueprint-border text-brand-silver hover:text-brand-cyan transition-all"
+                  title="Settings"
+                >
+                  <Settings size={18} />
+                </button>
+              </div>
+
               {/* Watchlist / History Tabs (Centered) */}
               <div className="flex p-1 bg-brand-bg/50 blueprint-border rounded-xl w-[240px] transition-colors duration-300">
                 <button
@@ -633,20 +658,8 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               )}
             </div>
 
-            {/* Row 2: Secondary Filter + App Controls */}
+            {/* Row 2: Secondary Filter (Centered) */}
             <div className="flex items-center justify-center w-full relative">
-              {/* Settings button on the far left */}
-              <div className="absolute left-0">
-                <button
-                  onClick={onGoToSettings}
-                  className="flex items-center justify-center w-9 h-9 rounded-xl bg-brand-bg/50 blueprint-border text-brand-silver hover:text-brand-cyan transition-all"
-                  title="Settings"
-                >
-                  <Settings size={18} />
-                </button>
-              </div>
-
-              {/* Movies / TV Shows filter tabs (centered) */}
               <div className="flex items-center justify-center w-full max-w-sm">
                 <FilterTabs
                   currentFilter={filter || 'movie'}
@@ -656,35 +669,6 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                     window.scrollTo(0, 0);
                   }}
                 />
-              </div>
-
-              {/* Search button on the far right */}
-              <div className="absolute right-0">
-                <button
-                  onClick={() => {
-                    if (isSearchFocused) {
-                      startTransition(() => {
-                        setQuery('');
-                        setSearchResults([]);
-                        setIsSearchFocused(false);
-                        if (searchAbortController.current) {
-                          searchAbortController.current.abort();
-                        }
-                      });
-                    } else {
-                      startTransition(() => setIsSearchFocused(true));
-                    }
-                  }}
-                  className={clsx(
-                    "flex items-center justify-center w-9 h-9 rounded-xl transition-all shrink-0",
-                    isSearchFocused
-                      ? 'bg-brand-cyan/10 text-brand-cyan'
-                      : 'bg-brand-bg/50 blueprint-border text-brand-silver hover:text-brand-cyan'
-                  )}
-                  title={isSearchFocused ? "Close Search" : "Search"}
-                >
-                  {isSearchFocused ? <X size={18} /> : <SearchIcon size={18} />}
-                </button>
               </div>
             </div>
           </div>
