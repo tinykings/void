@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { Key, Save, ExternalLink, RefreshCw, ArrowLeft, ShieldCheck, Play, User, LogOut, Download } from 'lucide-react';
+import { Key, Save, ExternalLink, RefreshCw, ArrowLeft, ShieldCheck, Play, User, LogOut } from 'lucide-react';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 
@@ -16,7 +16,6 @@ export const SettingsView = () => {
     tmdbSessionId, tmdbAccountId,
     vidAngelEnabled, setVidAngelEnabled,
     externalPlayerEnabled, toggleExternalPlayerEnabled,
-    setOnboardingCompleted,
   } = useAppContext();
 
   const [tempApiKey, setTempApiKey] = useState('');
@@ -59,18 +58,6 @@ export const SettingsView = () => {
   const handleLogout = () => {
     logoutTMDB();
     toast.info('Logged out of TMDB');
-  };
-
-  const handleUpdateApp = async () => {
-    if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(registrations.map(r => r.unregister()));
-    }
-    if ('caches' in window) {
-      const keys = await caches.keys();
-      await Promise.all(keys.map(k => caches.delete(k)));
-    }
-    window.location.reload();
   };
 
   return (
@@ -239,31 +226,10 @@ export const SettingsView = () => {
           {saved ? 'Saved Settings!' : 'Save All Settings'}
         </button>
 
-        <button
-          onClick={() => setOnboardingCompleted(false)}
-          className="w-full py-4 text-xs font-bold text-brand-silver hover:text-white transition-colors uppercase tracking-[0.2em]"
-        >
-          Open Setup Guide
-        </button>
-
-        <button
-          onClick={handleUpdateApp}
-          className="w-full py-4 text-xs font-bold text-brand-silver hover:text-white transition-colors uppercase tracking-[0.2em] flex items-center justify-center gap-2"
-        >
-          <Download size={14} />
-          Update App
-        </button>
-
         <section className="text-center pt-4">
           <p className="text-xs text-brand-silver/50">
             Void v1.2.2<br />
             Data provided by TMDB.
-          </p>
-          <p className="text-xs text-brand-silver/30 mt-2">
-            v1.2.2 — UI overhaul, persistent filters, and mobile safe-area fixes.<br />
-            v1.2.1 — Fixed 7-day check being bypassed during TMDB sync.<br />
-            v1.2.0 — TV shows in watch history now automatically move to<br />
-            your watchlist only when a new episode airs within 7 days.
           </p>
         </section>
       </div>
