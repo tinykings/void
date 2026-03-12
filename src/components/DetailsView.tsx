@@ -230,18 +230,6 @@ export default function DetailsView() {
 
   return (
     <>
-      {/* Blurred Background */}
-      {media.poster_path && (
-        <div className="fixed -top-12 -left-4 -right-4 -bottom-4 -z-10 overflow-hidden pointer-events-none">
-          <img 
-            src={getImageUrl(media.poster_path, 'w780')} 
-            alt="" 
-            className="absolute top-0 left-0 w-full h-[120%] object-cover opacity-50 blur-2xl scale-110"
-          />
-          <div className="absolute inset-0 bg-black/60" />
-        </div>
-      )}
-
       <button
         onClick={() => router.push('/')}
         className="fixed left-4 z-50 p-2 rounded-full bg-black/50 text-white/80 hover:text-white transition-all active:scale-95"
