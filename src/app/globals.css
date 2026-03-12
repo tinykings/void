@@ -27,6 +27,12 @@ html, body {
   padding: 0;
 }
 
+/* Eliminate iOS Safari safe-area gap at top of page */
+body {
+  padding-top: constant(safe-area-inset-top); /* older iOS fallback */
+  padding-top: env(safe-area-inset-top);
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
