@@ -249,7 +249,7 @@ export default function DetailsView() {
                 <img
                   src={getImageUrl(media.poster_path, 'w500')}
                   alt=""
-                  className="w-48 sm:w-64 md:w-80 lg:w-[380px] rounded-2xl shadow-2xl shadow-brand-cyan/20 blueprint-border shrink-0"
+                  className="w-32 sm:w-40 md:w-48 lg:w-[200px] rounded-2xl shadow-2xl shadow-brand-cyan/20 blueprint-border shrink-0"
                 />
                 <div className="absolute inset-0 bg-brand-cyan/0 group-hover:bg-brand-cyan/10 rounded-2xl transition-colors" />
               </button>
