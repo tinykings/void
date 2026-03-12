@@ -244,13 +244,13 @@ export default function DetailsView() {
 
       <button
         onClick={() => router.push('/')}
-        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
         className="fixed left-4 z-50 p-2 rounded-full bg-black/50 text-white/80 hover:text-white transition-all active:scale-95"
+        style={{ top: 'max(16px, env(safe-area-inset-top))' }}
       >
         <ChevronLeft size={24} />
       </button>
 
-      <div className="pb-20" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
+      <div className="pb-20" style={{ paddingTop: 'max(64px, calc(env(safe-area-inset-top) + 16px))' }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col items-center gap-6 md:gap-10">
             {media.poster_path && (
