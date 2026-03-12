@@ -6,7 +6,7 @@ import { useAppContext } from '@/context/AppContext';
 import { getMediaDetails, getWatchProviders, getImageUrl, getContentRating, getSeasonDetails, getMediaVideos, getMediaCredits, getPersonCredits, getUSReleaseDate } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { Media, WatchProvidersResponse, WatchProvider, SeasonDetails, Video, SeasonSummary, CastMember } from '@/lib/types';
-import { ChevronLeft, Check, Play, Star, Calendar, ChevronDown, User as UserIcon, Bookmark, Eye, Heart, Trash2 } from 'lucide-react';
+import { ChevronLeft, Check, Play, Star, Calendar, ChevronDown, User as UserIcon, Bookmark, Eye, Heart, Trash2, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
@@ -50,6 +50,9 @@ export default function DetailsView() {
 
   // Stream picker state
   const [streamPicker, setStreamPicker] = useState<{ open: boolean; seasonNum?: number; episodeNum?: number }>({ open: false });
+
+  // Fullscreen poster state
+  const [isFullscreenPosterOpen, setIsFullscreenPosterOpen] = useState(false);
 
   // Watchlist dropdown state
   const [showWatchlistMenu, setShowWatchlistMenu] = useState(false);
@@ -183,16 +186,7 @@ export default function DetailsView() {
         }
       });
     } else {
-      setModalConfig({
-        isOpen: true,
-        title: 'Add to Watchlist',
-        message: `Add "${title}" to your watchlist?`,
-        type: 'info',
-        confirmText: 'Add to List',
-        onConfirm: () => {
-          toggleWatchlist(media);
-        }
-      });
+      toggleWatchlist(media);
     }
   };
 
@@ -209,16 +203,7 @@ export default function DetailsView() {
         }
       });
     } else {
-      setModalConfig({
-        isOpen: true,
-        title: 'Mark as Watched',
-        message: `Add "${title}" to your watched history?`,
-        type: 'info',
-        confirmText: 'Mark Watched',
-        onConfirm: () => {
-          toggleWatched(media);
-        }
-      });
+      toggleWatched(media);
     }
   };
 
@@ -256,13 +241,13 @@ export default function DetailsView() {
     <>
       {/* Blurred Background */}
       {media.poster_path && (
-        <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div className="fixed -inset-10 -z-10 overflow-hidden pointer-events-none">
           <img 
             src={getImageUrl(media.poster_path, 'w780')} 
             alt="" 
-            className="w-full h-full object-cover opacity-50 blur-xl"
+            className="w-full h-full object-cover opacity-50 blur-2xl scale-110"
           />
-          <div className="absolute inset-0 bg-black/50" />
+          <div className="absolute inset-0 bg-black/60" />
         </div>
       )}
 
@@ -275,17 +260,23 @@ export default function DetailsView() {
 
       <div className="pb-20 pt-[78px]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-10">
+          <div className="flex flex-col items-center gap-6 md:gap-10">
             {media.poster_path && (
-              <img
-                src={getImageUrl(media.poster_path, 'w500')}
-                alt=""
-                className="w-48 sm:w-64 md:w-80 lg:w-[380px] rounded-2xl shadow-2xl shadow-brand-cyan/20 blueprint-border shrink-0"
-              />
+              <button 
+                onClick={() => setIsFullscreenPosterOpen(true)}
+                className="relative group transition-all active:scale-95 cursor-zoom-in"
+              >
+                <img
+                  src={getImageUrl(media.poster_path, 'w500')}
+                  alt=""
+                  className="w-48 sm:w-64 md:w-80 lg:w-[380px] rounded-2xl shadow-2xl shadow-brand-cyan/20 blueprint-border shrink-0"
+                />
+                <div className="absolute inset-0 bg-brand-cyan/0 group-hover:bg-brand-cyan/10 rounded-2xl transition-colors" />
+              </button>
             )}
-            <div className="flex-1 min-w-0 text-center md:text-left">
+            <div className="flex-1 min-w-0 text-center">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-black leading-tight mb-4 text-white drop-shadow-[0_0_15px_rgba(34,211,238,0.2)] uppercase italic tracking-tighter">{title}</h1>
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-xs md:text-sm font-bold text-brand-silver uppercase tracking-wider mb-6">
+              <div className="flex flex-wrap items-center justify-center gap-3 text-xs md:text-sm font-bold text-brand-silver uppercase tracking-wider mb-6">
               <span className="flex items-center gap-1"><Calendar size={14} /> {displayDate || year}</span>
               <span className="flex items-center gap-1"><Star size={14} className="text-brand-cyan fill-brand-cyan" /> {media.vote_average.toFixed(1)}</span>
               {media.media_type === 'tv' && media.status && (
@@ -297,7 +288,7 @@ export default function DetailsView() {
             </div>
 
             {media.next_episode_to_air && (
-                <div className="mt-4 px-4 py-2 bg-brand-cyan/10 blueprint-border rounded-xl inline-block mx-auto md:mx-0">
+                <div className="mt-4 px-4 py-2 bg-brand-cyan/10 blueprint-border rounded-xl inline-block mx-auto">
                   <p className="text-xs md:text-sm font-bold text-brand-cyan">
                     NEXT EPISODE: {new Date(media.next_episode_to_air.air_date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                     <span className="ml-2 opacity-75 font-medium">(S{media.next_episode_to_air.season_number} E{media.next_episode_to_air.episode_number})</span>
@@ -306,7 +297,7 @@ export default function DetailsView() {
               )}
 
               <div className="flex flex-col gap-3 mt-6">
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                <div className="flex flex-wrap items-center justify-center gap-2">
                   <div className="relative">
                     <button
                       onClick={() => setShowWatchlistMenu(!showWatchlistMenu)}
@@ -404,14 +395,14 @@ export default function DetailsView() {
             </div>
           </div>
 
-          <section className="mt-8">
+          <section className="mt-8 flex flex-col items-center text-center">
             <h2 className="text-lg font-bold mb-2 uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Overview</h2>
-            <p className="text-brand-silver leading-relaxed text-lg mb-4">
+            <p className="text-brand-silver leading-relaxed text-lg mb-4 max-w-2xl">
               {media.overview || 'No overview available.'}
             </p>
             
             {localProviders?.flatrate && localProviders.flatrate.length > 0 && (
-              <div className="flex flex-wrap gap-3 justify-center md:justify-start">
+              <div className="flex flex-wrap gap-3 justify-center">
                 {localProviders.flatrate.map((p) => (
                   <ProviderIcon key={p.provider_id} provider={p} />
                 ))}
@@ -420,8 +411,8 @@ export default function DetailsView() {
           </section>
 
           {media.media_type === 'tv' && media.seasons && (
-            <section className="mt-8">
-              <div className="flex items-center justify-between mb-4">
+            <section className="mt-8 flex flex-col items-center w-full">
+              <div className="flex flex-col items-center gap-4 mb-6">
                 <h2 className="text-lg font-bold uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Episodes</h2>
                 <div className="relative">
                   <select
@@ -437,7 +428,7 @@ export default function DetailsView() {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4 w-full max-w-2xl">
                 {seasonDetails ? seasonDetails.episodes.map((ep) => (
                   <div key={ep.id} className="flex gap-3 p-3 sm:p-4 sm:gap-4 rounded-xl bg-brand-bg/50 blueprint-border">
                     <div className="w-24 sm:w-32 aspect-video rounded-lg overflow-hidden bg-brand-bg shrink-0 relative group blueprint-border">
@@ -463,7 +454,7 @@ export default function DetailsView() {
                         S{ep.season_number} E{ep.episode_number}
                       </div>
                     </div>
-                    <div className="flex-1 min-w-0 py-0.5 sm:py-1">
+                    <div className="flex-1 min-w-0 py-0.5 sm:py-1 text-left">
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-0.5 sm:gap-4 mb-1">
                         <h3 className="font-bold text-white truncate text-sm sm:text-base" title={ep.name}>{ep.name}</h3>
                         <span className="text-[10px] sm:text-xs font-medium text-brand-silver whitespace-nowrap">
@@ -483,14 +474,14 @@ export default function DetailsView() {
           )}
 
           {cast.length > 0 && (
-            <section className="mt-8">
-              <h2 className="text-lg font-bold mb-4 uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Top Cast</h2>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+            <section className="mt-8 flex flex-col items-center w-full">
+              <h2 className="text-lg font-bold mb-4 uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block text-center">Cast</h2>
+              <div className="flex flex-wrap justify-center gap-3 w-full max-w-3xl">
                 {cast.map((actor) => (
                   <button
                     key={actor.id}
                     onClick={() => handleActorClick(actor)}
-                    className="relative aspect-[3/4] rounded-xl overflow-hidden bg-brand-bg/50 blueprint-border hover:bg-brand-bg transition-all group active:scale-95"
+                    className="relative w-[calc(33.333%-12px)] sm:w-[calc(16.666%-12px)] aspect-[3/4] rounded-xl overflow-hidden bg-brand-bg/50 blueprint-border hover:bg-brand-bg transition-all group active:scale-95"
                   >
                     {actor.profile_path ? (
                       <img
@@ -516,11 +507,11 @@ export default function DetailsView() {
           )}
 
           {videos.length > 0 && (
-            <section className="mt-8">
-              <h2 className="text-lg font-bold mb-4 uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block">Trailers</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <section className="mt-8 flex flex-col items-center w-full">
+              <h2 className="text-lg font-bold mb-4 uppercase tracking-tighter italic text-white border-b border-brand-cyan/30 pb-1 inline-block text-center">Trailers</h2>
+              <div className="flex flex-wrap justify-center gap-4 w-full max-w-5xl">
                 {videos.map((video) => (
-                  <div key={video.id} className="aspect-video rounded-xl overflow-hidden bg-black shadow-lg blueprint-border">
+                  <div key={video.id} className="aspect-video rounded-xl overflow-hidden bg-black shadow-lg blueprint-border w-full md:w-[calc(50%-8px)]">
                     <iframe
                       className="w-full h-full"
                       src={`https://www.youtube.com/embed/${video.key}`}
@@ -569,6 +560,29 @@ export default function DetailsView() {
         vidAngelSlug={streamPicker.seasonNum === undefined ? vidAngelSlug : null}
         externalPlayerEnabled={externalPlayerEnabled}
       />
+
+      {/* Fullscreen Poster Modal */}
+      {isFullscreenPosterOpen && media.poster_path && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-4 animate-in fade-in duration-300"
+          onClick={() => setIsFullscreenPosterOpen(false)}
+        >
+          <button
+            onClick={() => setIsFullscreenPosterOpen(false)}
+            className="fixed top-6 right-6 z-[110] p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-all active:scale-90"
+          >
+            <X size={28} />
+          </button>
+          
+          <div className="relative max-w-full max-h-[90vh] aspect-[2/3] animate-in zoom-in-95 duration-300">
+            <img
+              src={getImageUrl(media.poster_path, 'original')}
+              alt={title}
+              className="w-full h-full object-contain rounded-xl shadow-[0_0_50px_rgba(34,211,238,0.2)] blueprint-border"
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 }

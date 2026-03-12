@@ -109,16 +109,7 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
         }
       });
     } else {
-      setModalConfig({
-        isOpen: true,
-        title: 'Add to Watchlist',
-        message: `Add "${title}" to your watchlist?`,
-        type: 'info',
-        confirmText: 'Add to List',
-        onConfirm: () => {
-          toggleWatchlist(media);
-        }
-      });
+      toggleWatchlist(media);
     }
   };
 
@@ -135,16 +126,7 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
         }
       });
     } else {
-      setModalConfig({
-        isOpen: true,
-        title: 'Mark as Watched',
-        message: `Add "${title}" to your watched history?`,
-        type: 'info',
-        confirmText: 'Mark Watched',
-        onConfirm: () => {
-          toggleWatched(media);
-        }
-      });
+      toggleWatched(media);
     }
   };
 
