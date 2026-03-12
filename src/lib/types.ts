@@ -141,6 +141,12 @@ export const externalPlayerOptions: ExternalPlayerOption[] = [
     movieUrlTemplate: 'https://rivestream.org/watch?type=movie&id={TMDBID}',
     seriesUrlTemplate: 'https://rivestream.org/detail?type=tv&id={TMDBID}',
   },
+  {
+    id: 'moviebite.cc',
+    name: 'Moviebyte.cc',
+    tvUrlTemplate: 'https://moviebite.cc/watch/tv-{TMDBID}?ep={episode_num}&season={season_num}',
+    movieUrlTemplate: 'https://moviebite.cc/watch/movie-{TMDBID}',
+  },
   // Add other external player options here in the future
 ];
 
