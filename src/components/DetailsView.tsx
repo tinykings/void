@@ -232,11 +232,11 @@ export default function DetailsView() {
     <>
       {/* Blurred Background */}
       {media.poster_path && (
-        <div className="fixed -top-px left-0 right-0 h-[100dvh] z-0 overflow-hidden pointer-events-none">
+        <div className="fixed top-0 left-0 right-0 bottom-0 z-0 overflow-hidden pointer-events-none">
           <img 
             src={getImageUrl(media.poster_path, 'w780')} 
             alt="" 
-            className="w-full h-[100dvh] object-cover opacity-50 blur-2xl scale-110"
+            className="w-full h-full object-cover opacity-50 blur-2xl scale-110"
           />
           <div className="absolute inset-0 bg-black/60" />
         </div>
@@ -249,7 +249,7 @@ export default function DetailsView() {
         <ChevronLeft size={24} />
       </button>
 
-      <div className="relative z-10 pb-20 pt-16">
+      <div className="relative z-10 pb-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col items-center gap-6 md:gap-10">
             {media.poster_path && (
