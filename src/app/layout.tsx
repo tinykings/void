@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "black",
     title: "Void",
   },
 };
@@ -42,7 +42,7 @@ export default function RootLayout({
       <body className={`${inter.className} bg-brand-bg text-foreground min-h-screen transition-colors duration-300`}>
         <AppProvider>
           <OfflineGuard>
-            <main className="w-full min-h-screen pb-12 px-0 transition-colors duration-300">
+            <main className="w-full min-h-screen pb-12 px-0 pt-0 transition-colors duration-300">
               {children}
             </main>
           </OfflineGuard>
