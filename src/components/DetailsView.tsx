@@ -27,6 +27,8 @@ export default function DetailsView() {
     toggleFavorite,
     vidAngelEnabled,
     externalPlayerEnabled,
+    tvSupportEnabled,
+    sendToTv,
   } = useAppContext();
 
   const [media, setMedia] = useState<Media | null>(null);
@@ -539,6 +541,8 @@ export default function DetailsView() {
         episodeNum={streamPicker.episodeNum}
         vidAngelSlug={streamPicker.seasonNum === undefined ? vidAngelSlug : null}
         externalPlayerEnabled={externalPlayerEnabled}
+        tvSupportEnabled={tvSupportEnabled}
+        onSendToTv={sendToTv}
       />
 
       {/* Fullscreen Poster Modal */}

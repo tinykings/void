@@ -54,7 +54,11 @@ interface StoreState extends UserState {
   
   setSession: (sessionId: string, accountId: number) => void;
   setLists: (watchlist: Media[], watched: Media[]) => void;
-
+  
+  // TV Support
+  setTvSupportEnabled: (enabled: boolean) => void;
+  setTvGistConfig: (id: string, token: string) => void;
+  sendToTv: (url: string, title: string) => Promise<void>;
 }
 
 export const useStore = create<StoreState>()(
@@ -224,6 +228,9 @@ export const useStore = create<StoreState>()(
         isSearchFocused: false,
         onboardingCompleted: false,
         editedStatusMap: {},
+        tvSupportEnabled: false,
+        tvGistId: undefined,
+        tvGistToken: undefined,
         isLoaded: false,
         isSyncing: false,
 
@@ -278,6 +285,37 @@ export const useStore = create<StoreState>()(
 
         setSession: (tmdbSessionId, tmdbAccountId) => set({ tmdbSessionId, tmdbAccountId }),
         setLists: (watchlist, watched) => set({ watchlist, watched }),
+
+        setTvSupportEnabled: (tvSupportEnabled) => set({ tvSupportEnabled }),
+        setTvGistConfig: (tvGistId, tvGistToken) => set({ tvGistId, tvGistToken }),
+
+        sendToTv: async (url: string, title: string) => {
+          const { tvGistId, tvGistToken } = get();
+          if (!tvGistId || !tvGistToken) {
+            toast.error('TV gist not configured. Check settings.');
+            return;
+          }
+
+          const content = JSON.stringify({ url, title, timestamp: Date.now() });
+
+          try {
+            const res = await fetch(`https://api.github.com/gists/${tvGistId}`, {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${tvGistToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                files: { 'void-tv-queue.json': { content } },
+              }),
+            });
+            if (!res.ok) throw new Error(`GitHub API responded ${res.status}`);
+            toast.success(`Sent "${title}" to TV`);
+          } catch (err: any) {
+            console.error('Send to TV failed:', err);
+            toast.error(`Send to TV failed: ${err.message}`);
+          }
+        },
 
         loginWithTMDB: async () => {
           const { apiKey } = get();

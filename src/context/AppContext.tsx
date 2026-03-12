@@ -37,7 +37,14 @@ interface AppContextType extends UserState {
   isSearchFocused: boolean;
   setIsSearchFocused: (focused: boolean) => void;
 
-}
+  // TV Support
+  tvSupportEnabled: boolean;
+  tvGistId?: string;
+  tvGistToken?: string;
+  setTvSupportEnabled: (enabled: boolean) => void;
+  setTvGistConfig: (id: string, token: string) => void;
+  sendToTv: (url: string, title: string) => Promise<void>;
+  }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -161,6 +168,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     onboardingCompleted: store.onboardingCompleted || false,
     setOnboardingCompleted: store.setOnboardingCompleted,
     setIsSearchFocused: store.setIsSearchFocused,
+    tvSupportEnabled: store.tvSupportEnabled || false,
+    tvGistId: store.tvGistId,
+    tvGistToken: store.tvGistToken,
+    setTvSupportEnabled: store.setTvSupportEnabled,
+    setTvGistConfig: store.setTvGistConfig,
+    sendToTv: store.sendToTv,
   };
 
   return (

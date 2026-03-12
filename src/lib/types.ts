@@ -223,4 +223,7 @@ export interface UserState {
   isSearchFocused?: boolean;
   onboardingCompleted?: boolean;
   editedStatusMap: Record<string, boolean>;
+  tvSupportEnabled?: boolean;
+  tvGistId?: string;
+  tvGistToken?: string;
 }

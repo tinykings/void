@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { Key, Save, ExternalLink, RefreshCw, ArrowLeft, ShieldCheck, Play, User, LogOut } from 'lucide-react';
+import { Key, Save, ExternalLink, RefreshCw, ArrowLeft, ShieldCheck, Play, User, LogOut, Monitor, Copy, Check as CheckIcon, Share } from 'lucide-react';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 
@@ -16,13 +16,52 @@ export const SettingsView = () => {
     tmdbSessionId, tmdbAccountId,
     vidAngelEnabled, setVidAngelEnabled,
     externalPlayerEnabled, toggleExternalPlayerEnabled,
+    tvSupportEnabled, tvGistId, tvGistToken,
+    setTvSupportEnabled, setTvGistConfig,
   } = useAppContext();
 
   const [tempApiKey, setTempApiKey] = useState('');
   const [tempVidAngelEnabled, setTempVidAngelEnabled] = useState(false);
   const [tempExternalPlayerEnabled, setTempExternalPlayerEnabled] = useState(false);
+  const [tempTvSupportEnabled, setTempTvSupportEnabled] = useState(false);
+  const [tempTvGistId, setTempTvGistId] = useState('');
+  const [tempTvGistToken, setTempTvGistToken] = useState('');
+  const [copiedTvLink, setCopiedTvLink] = useState(false);
 
   const [saved, setSaved] = useState(false);
+
+  // Robust TV link generation
+  const getTvUrl = () => {
+    if (typeof window === 'undefined') return '';
+    const origin = window.location.origin;
+    const isGitHubPages = window.location.pathname.startsWith('/void');
+    const path = isGitHubPages ? '/void/tv' : '/tv';
+    return `${origin}${path}?id=${tvGistId}`;
+  };
+
+  const handleShareTvLink = async () => {
+    const url = getTvUrl();
+    if (!url) return;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'VOID TV Receiver',
+          text: 'Open this link on your TV to stream from VOID.',
+          url: url,
+        });
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.error('Sharing failed:', err);
+        }
+      }
+    } else {
+      navigator.clipboard.writeText(url);
+      setCopiedTvLink(true);
+      toast.success('TV link copied to clipboard');
+      setTimeout(() => setCopiedTvLink(false), 2000);
+    }
+  };
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -31,7 +70,13 @@ export const SettingsView = () => {
     setTempVidAngelEnabled(vidAngelEnabled || false);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTempExternalPlayerEnabled(externalPlayerEnabled || false);
-  }, [apiKey, vidAngelEnabled, externalPlayerEnabled]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTempTvSupportEnabled(tvSupportEnabled || false);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTempTvGistId(tvGistId || '');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTempTvGistToken(tvGistToken || '');
+  }, [apiKey, vidAngelEnabled, externalPlayerEnabled, tvSupportEnabled, tvGistId, tvGistToken]);
 
   const handleSave = () => {
     setApiKey(tempApiKey);
@@ -40,6 +85,8 @@ export const SettingsView = () => {
     if (tempExternalPlayerEnabled !== externalPlayerEnabled) {
       toggleExternalPlayerEnabled();
     }
+    setTvSupportEnabled(tempTvSupportEnabled);
+    setTvGistConfig(tempTvGistId, tempTvGistToken);
     setSaved(true);
     toast.success('Settings saved successfully');
     
@@ -216,6 +263,85 @@ export const SettingsView = () => {
               <div className="w-11 h-6 bg-brand-bg blueprint-border rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-brand-silver after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-cyan peer-checked:after:bg-brand-bg"></div>
             </label>
           </div>
+        </section>
+
+        <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">
+          <div className="flex items-center gap-2 mb-4">
+            <Monitor className="text-brand-cyan" size={20} />
+            <h2 className="text-lg font-semibold text-white">TV Support</h2>
+          </div>
+
+          <div className="flex items-center justify-between mb-4">
+            <div className="pr-4">
+              <h3 className="text-sm font-bold text-white">Enable TV Remote Play</h3>
+              <p className="text-xs text-brand-silver mt-1">
+                Send content from your phone to a TV browser via GitHub Gist.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!tempTvSupportEnabled}
+                onChange={(e) => setTempTvSupportEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-brand-bg blueprint-border rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-brand-silver after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-cyan peer-checked:after:bg-brand-bg"></div>
+            </label>
+          </div>
+
+          {tempTvSupportEnabled && (
+            <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
+              <p className="text-[10px] text-brand-silver italic leading-relaxed">
+                Create a <a href="https://gist.github.com" target="_blank" rel="noopener noreferrer" className="text-brand-cyan hover:underline">Public Gist</a> and
+                a <a href="https://github.com/settings/tokens/new?scopes=gist&description=VOID+TV" target="_blank" rel="noopener noreferrer" className="text-brand-cyan hover:underline">Personal Access Token</a> with the <code className="text-brand-cyan/80 text-xs">gist</code> scope.
+              </p>
+              <input
+                type="text"
+                value={tempTvGistId}
+                onChange={(e) => setTempTvGistId(e.target.value)}
+                placeholder="Gist ID"
+                className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
+              />
+              <input
+                type="password"
+                value={tempTvGistToken}
+                onChange={(e) => setTempTvGistToken(e.target.value)}
+                placeholder="GitHub Token"
+                className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
+              />
+
+              {tvGistId && (
+                <div className="mt-3 pt-3 border-t border-white/5">
+                  <p className="text-xs text-brand-silver mb-2 font-medium uppercase tracking-wider">Share Link with TV:</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const tvUrl = getTvUrl();
+                        navigator.clipboard.writeText(tvUrl);
+                        setCopiedTvLink(true);
+                        toast.success('TV link copied to clipboard');
+                        setTimeout(() => setCopiedTvLink(false), 2000);
+                      }}
+                      className="flex-1 flex items-center justify-between p-3 rounded-lg bg-brand-bg blueprint-border text-brand-cyan text-xs font-mono hover:bg-brand-cyan/5 transition-colors text-left"
+                    >
+                      <span className="truncate mr-2">{getTvUrl().replace('https://', '').replace('http://', '')}</span>
+                      {copiedTvLink ? <CheckIcon size={14} className="shrink-0" /> : <Copy size={14} className="shrink-0" />}
+                    </button>
+                    <button
+                      onClick={handleShareTvLink}
+                      className="p-3 rounded-lg bg-brand-bg blueprint-border text-brand-silver hover:text-white transition-colors"
+                      title="Share link"
+                    >
+                      <Share size={16} />
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-brand-silver/50 mt-2 italic text-center">
+                    Note: Your gist must be PUBLIC for the TV to read it without a token.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         <button
