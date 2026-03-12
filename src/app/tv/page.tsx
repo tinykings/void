@@ -160,8 +160,6 @@ function TvPageContent() {
               </div>
               <a
                 href={lastItem.url}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="w-full py-6 bg-brand-cyan text-brand-bg font-black rounded-2xl uppercase tracking-[0.2em] text-xl hover:bg-brand-cyan/90 transition-all shadow-[0_0_40px_rgba(34,211,238,0.3)] active:scale-95 flex items-center justify-center gap-3"
               >
                 <Play size={24} className="fill-brand-bg" />
