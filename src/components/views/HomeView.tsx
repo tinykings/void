@@ -297,10 +297,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-2 pt-28 pb-[160px] relative">
+    <div className="max-w-7xl mx-auto px-2 pt-4 pb-[160px] relative">
       {/* Search field at top — visible when search is open */}
       {isSearchFocused && (
-        <div className="relative w-full z-20 mb-6 mt-[30px]">
+        <div className="relative w-full z-20 mb-6 mt-2">
           <SearchIcon
             className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-cyan scale-110 transition-all duration-300"
             size={22}
