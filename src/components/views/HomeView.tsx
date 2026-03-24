@@ -11,6 +11,19 @@ import { sortMedia } from '@/lib/sort';
 import { AlertCircle, Settings, Search as SearchIcon, X, ArrowLeft, ArrowRight, ShieldCheck, Bookmark, CheckCircle2, Heart, SlidersHorizontal, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 
+function useDebouncedCallback<T extends (...args: any[]) => any>(callback: T, delay: number): T {
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  return useCallback((...args: Parameters<T>) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = setTimeout(() => {
+      callback(...args);
+    }, delay);
+  }, [callback, delay]) as T;
+}
+
 interface HomeViewProps {
   onGoToSettings: () => void;
 }
@@ -166,14 +179,32 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
   const isLoading = searchLoading || (showTrending ? trendingLoading : isPending);
 
-  const lastItemRef = useCallback((node: HTMLDivElement) => {
-    if (observer.current) observer.current.disconnect();
+  // Stable callback for loading more items
+  const handleIntersection = useCallback(() => {
+    setVisibleItemsCount(prev => prev + itemsPerPage);
+  }, []);
+
+  // Create observer once with stable callback
+  useEffect(() => {
     observer.current = new IntersectionObserver(entries => {
-      if (node && entries[0].isIntersecting) {
-        setVisibleItemsCount(prev => prev + itemsPerPage);
+      if (entries[0].isIntersecting) {
+        handleIntersection();
       }
-    });
-    if (node) observer.current.observe(node);
+    }, { rootMargin: '200px' });
+
+    return () => {
+      observer.current?.disconnect();
+    };
+  }, [handleIntersection]);
+
+  // Attach/detach observer based on last item
+  const lastItemRef = useCallback((node: HTMLDivElement | null) => {
+    if (observer.current) {
+      observer.current.disconnect();
+    }
+    if (node) {
+      observer.current?.observe(node);
+    }
   }, []);
 
   // Reset pagination when filters change
@@ -268,6 +299,21 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     }
   };
 
+  // Debounced search for auto-search on typing
+  const debouncedSearch = useDebouncedCallback(handleSearch, 300);
+
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    if (value.trim().length >= 2) {
+      debouncedSearch(value);
+    } else {
+      setSearchResults([]);
+      if (searchAbortController.current) {
+        searchAbortController.current.abort();
+      }
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleSearch(query);
@@ -309,7 +355,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
             type="text"
             value={query}
             autoFocus
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => handleQueryChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search movies, shows..."
             className="w-full pl-12 pr-20 bg-brand-bg blueprint-border rounded-2xl transition-all duration-300 outline-none font-medium text-white placeholder:text-brand-silver/50 py-5 text-lg shadow-[0_0_30px_rgba(34,211,238,0.15)] ring-1 ring-brand-cyan/30"
@@ -413,7 +459,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               {displayMedia.map((item, index) => (
                 <div
                   key={`${item.media_type}-${item.id}`}
-                  ref={index === displayMedia.length - 1 ? lastItemRef : null}
+                  ref={(node) => lastItemRef(index === displayMedia.length - 1 ? node : null)}
                 >
                   <MediaCard
                     media={{

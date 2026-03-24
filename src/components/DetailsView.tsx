@@ -20,8 +20,9 @@ export default function DetailsView() {
   const router = useRouter();
   const {
     apiKey,
-    watchlist,
-    watched,
+    watchlistIds,
+    watchedIds,
+    watchedMap,
     toggleWatchlist,
     toggleWatched,
     toggleFavorite,
@@ -154,9 +155,10 @@ export default function DetailsView() {
     </div>
   );
 
-  const inWatchlist = watchlist.some((m) => m.id === media.id && m.media_type === media.media_type);
-  const watchedItem = watched.find((m) => m.id === media.id && m.media_type === media.media_type);
-  const inWatched = !!watchedItem;
+  const mediaKey = `${media.media_type}-${media.id}`;
+  const inWatchlist = watchlistIds.has(mediaKey);
+  const inWatched = watchedIds.has(mediaKey);
+  const watchedItem = watchedMap.get(mediaKey);
   const isFavorite = watchedItem?.isFavorite || false;
   const vidAngelAvailable = !!vidAngelSlug;
 

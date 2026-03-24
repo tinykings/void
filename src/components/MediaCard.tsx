@@ -19,8 +19,6 @@ interface MediaCardProps {
 
 export const MediaCard = React.memo(({ media, showActions = true, showBadge = false, onClick }: MediaCardProps) => {
   const {
-    watchlist,
-    watched,
     toggleWatchlist,
     toggleWatched,
     toggleFavorite,
@@ -28,15 +26,19 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
     editedStatusMap,
     setMediaEditedStatus,
     sort,
-    isSearchFocused
+    isSearchFocused,
+    watchlistIds,
+    watchedIds,
+    watchedMap,
   } = useAppContext();
   
   const cardRef = useRef<HTMLDivElement>(null);
   const isEdited = editedStatusMap[`${media.media_type}-${media.id}`];
 
-  const inWatchlist = watchlist.some((m) => m.id === media.id && m.media_type === media.media_type);
-  const watchedItem = watched.find((m) => m.id === media.id && m.media_type === media.media_type);
-  const inWatched = !!watchedItem;
+  const mediaKey = `${media.media_type}-${media.id}`;
+  const inWatchlist = watchlistIds.has(mediaKey);
+  const inWatched = watchedIds.has(mediaKey);
+  const watchedItem = watchedMap.get(mediaKey);
   const isFavorite = watchedItem?.isFavorite || false;
 
   const daysUntilRelease = useMemo(() => {

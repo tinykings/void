@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Media, UserState, ExternalPlayerOption, externalPlayerOptions, SortOption, FilterType } from '@/lib/types';
 import { useStore } from '@/store/useStore';
 import { createSession, getAccountDetails } from '@/lib/tmdb';
@@ -41,6 +41,10 @@ interface AppContextType extends UserState {
   markEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
   unmarkEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
 
+  // O(1) lookup helpers
+  watchlistIds: Set<string>;
+  watchedIds: Set<string>;
+  watchedMap: Map<string, Media>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -125,13 +129,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ? externalPlayerOptions.find(opt => opt.id === store.selectedExternalPlayerId) || null
     : null;
 
-  const value: AppContextType = {
+  // O(1) lookup Maps for membership checks
+  const watchlistIds = useMemo(() => new Set(store.watchlist.map(m => `${m.media_type}-${m.id}`)), [store.watchlist]);
+  const watchedIds = useMemo(() => new Set(store.watched.map(m => `${m.media_type}-${m.id}`)), [store.watched]);
+  const watchedMap = useMemo(() => {
+    const map = new Map<string, Media>();
+    store.watched.forEach(m => map.set(`${m.media_type}-${m.id}`, m));
+    return map;
+  }, [store.watched]);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const value = useMemo<AppContextType>(() => ({
     apiKey: store.apiKey,
     watchlist: store.watchlist,
     watched: store.watched,
     tmdbSessionId: store.tmdbSessionId,
     tmdbAccountId: store.tmdbAccountId,
-    vidAngelEnabled: store.vidAngelEnabled,
+    vidAngelEnabled: store.vidAngelEnabled || false,
     externalPlayerEnabled: store.externalPlayerEnabled || false,
     selectedExternalPlayerId: store.selectedExternalPlayerId,
     selectedExternalPlayer,
@@ -169,7 +183,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     markEpisodePlayed: store.markEpisodePlayed,
     unmarkEpisodePlayed: store.unmarkEpisodePlayed,
-  };
+
+    watchlistIds,
+    watchedIds,
+    watchedMap,
+  }), [
+    store.apiKey,
+    store.watchlist,
+    store.watched,
+    store.tmdbSessionId,
+    store.tmdbAccountId,
+    store.vidAngelEnabled,
+    store.externalPlayerEnabled,
+    store.selectedExternalPlayerId,
+    selectedExternalPlayer,
+    store.filter,
+    store.sort,
+    store.showWatched,
+    store.showEditedOnly,
+    store.showFavoritesOnly,
+    store.isSearchFocused,
+    store.editedStatusMap,
+    store.playedEpisodes,
+    store.isLoaded,
+    store.isSyncing,
+    store.onboardingCompleted,
+    watchlistIds,
+    watchedIds,
+    watchedMap,
+  ]);
 
   return (
     <AppContext.Provider value={value}>
