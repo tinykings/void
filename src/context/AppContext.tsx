@@ -37,6 +37,10 @@ interface AppContextType extends UserState {
   isSearchFocused: boolean;
   setIsSearchFocused: (focused: boolean) => void;
 
+  // Episode tracking
+  markEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
+  unmarkEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
+
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -138,6 +142,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showFavoritesOnly: store.showFavoritesOnly || false,
     isSearchFocused: store.isSearchFocused || false,
     editedStatusMap: store.editedStatusMap,
+    playedEpisodes: store.playedEpisodes,
     isLoaded: store.isLoaded,
     isSyncing: store.isSyncing,
     
@@ -161,6 +166,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     onboardingCompleted: store.onboardingCompleted || false,
     setOnboardingCompleted: store.setOnboardingCompleted,
     setIsSearchFocused: store.setIsSearchFocused,
+
+    markEpisodePlayed: store.markEpisodePlayed,
+    unmarkEpisodePlayed: store.unmarkEpisodePlayed,
   };
 
   return (

@@ -27,6 +27,8 @@ export default function DetailsView() {
     toggleFavorite,
     vidAngelEnabled,
     externalPlayerEnabled,
+    playedEpisodes,
+    markEpisodePlayed,
   } = useAppContext();
 
   const [media, setMedia] = useState<Media | null>(null);
@@ -195,6 +197,12 @@ export default function DetailsView() {
       });
     } else {
       toggleWatched(media);
+    }
+  };
+
+  const handleEpisodeSelect = () => {
+    if (streamPicker.seasonNum !== undefined && streamPicker.episodeNum !== undefined) {
+      markEpisodePlayed(media.id, streamPicker.seasonNum, streamPicker.episodeNum);
     }
   };
 
@@ -430,8 +438,13 @@ export default function DetailsView() {
                         </button>
                       )}
 
-                      <div className="absolute bottom-1 right-1 bg-brand-bg/80 text-white text-[8px] sm:text-[10px] font-bold px-1 rounded pointer-events-none blueprint-border">
-                        S{ep.season_number} E{ep.episode_number}
+                      <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between pointer-events-none">
+                        {playedEpisodes[`${media.id}-${ep.season_number}-${ep.episode_number}`] && (
+                          <span className="text-brand-cyan text-[8px] sm:text-[10px] font-bold">✓</span>
+                        )}
+                        <span className="bg-brand-bg/80 text-white text-[8px] sm:text-[10px] font-bold px-1 rounded blueprint-border ml-auto">
+                          S{ep.season_number} E{ep.episode_number}
+                        </span>
                       </div>
                     </div>
                     <div className="flex-1 min-w-0 py-0.5 sm:py-1 text-left">
@@ -539,6 +552,7 @@ export default function DetailsView() {
         episodeNum={streamPicker.episodeNum}
         vidAngelSlug={streamPicker.seasonNum === undefined ? vidAngelSlug : null}
         externalPlayerEnabled={externalPlayerEnabled}
+        onSelect={handleEpisodeSelect}
       />
 
       {/* Fullscreen Poster Modal */}
