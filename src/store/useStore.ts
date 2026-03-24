@@ -41,6 +41,9 @@ interface StoreState extends UserState {
   setMediaEditedStatus: (id: number, type: 'movie' | 'tv', isEdited: boolean) => void;
   updateMediaMetadata: (id: number, type: 'movie' | 'tv', metadata: Partial<Media>) => void;
   
+  markEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
+  unmarkEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
+  
   // TMDB Sync & Auth
   loginWithTMDB: () => Promise<void>;
   logoutTMDB: () => void;
@@ -224,6 +227,7 @@ export const useStore = create<StoreState>()(
         isSearchFocused: false,
         onboardingCompleted: false,
         editedStatusMap: {},
+        playedEpisodes: {},
         isLoaded: false,
         isSyncing: false,
 
@@ -274,6 +278,16 @@ export const useStore = create<StoreState>()(
             watchlist: updateList(state.watchlist),
             watched: updateList(state.watched)
           };
+        }),
+
+        markEpisodePlayed: (tmdbId, seasonNum, episodeNum) => set((state) => ({
+          playedEpisodes: { ...state.playedEpisodes, [`${tmdbId}-${seasonNum}-${episodeNum}`]: true }
+        })),
+
+        unmarkEpisodePlayed: (tmdbId, seasonNum, episodeNum) => set((state) => {
+          const key = `${tmdbId}-${seasonNum}-${episodeNum}`;
+          const { [key]: _, ...rest } = state.playedEpisodes;
+          return { playedEpisodes: rest };
         }),
 
         setSession: (tmdbSessionId, tmdbAccountId) => set({ tmdbSessionId, tmdbAccountId }),

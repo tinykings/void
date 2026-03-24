@@ -223,4 +223,5 @@ export interface UserState {
   isSearchFocused?: boolean;
   onboardingCompleted?: boolean;
   editedStatusMap: Record<string, boolean>;
+  playedEpisodes: Record<string, boolean>;
 }
