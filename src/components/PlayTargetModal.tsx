@@ -15,6 +15,7 @@ interface StreamPickerModalProps {
   /** VidAngel slug — pass only when VidAngel is enabled and available */
   vidAngelSlug?: string | null;
   externalPlayerEnabled: boolean;
+  onSelect?: () => void;
 }
 
 function buildPlayerUrl(
@@ -52,6 +53,7 @@ export const StreamPickerModal = ({
   episodeNum,
   vidAngelSlug,
   externalPlayerEnabled,
+  onSelect,
 }: StreamPickerModalProps) => {
   const handleSelect = (url: string) => {
     if (!url) return;
@@ -95,7 +97,10 @@ export const StreamPickerModal = ({
               <div className="flex flex-col w-full gap-3">
                 {vidAngelUrl && (
                   <button
-                    onClick={() => handleSelect(vidAngelUrl)}
+                    onClick={() => {
+                      handleSelect(vidAngelUrl);
+                      onSelect?.();
+                    }}
                     className="w-full py-4 rounded-xl font-black uppercase tracking-widest transition-all active:scale-95 bg-amber-500 text-white shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2"
                   >
                     <ShieldCheck size={20} />
@@ -106,7 +111,10 @@ export const StreamPickerModal = ({
                 {externalPlayerEnabled && externalPlayerOptions.map((player) => (
                   <button
                     key={player.id}
-                    onClick={() => handleSelect(buildPlayerUrl(player, mediaType, mediaId, seasonNum, episodeNum))}
+                    onClick={() => {
+                      handleSelect(buildPlayerUrl(player, mediaType, mediaId, seasonNum, episodeNum));
+                      onSelect?.();
+                    }}
                     className="w-full py-4 rounded-xl font-black uppercase tracking-widest transition-all active:scale-95 bg-brand-bg blueprint-border text-white hover:bg-white/5 flex items-center justify-center gap-2"
                   >
                     <Play size={20} className="fill-white" />
