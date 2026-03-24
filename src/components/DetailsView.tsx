@@ -440,7 +440,7 @@ export default function DetailsView() {
 
                       <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between pointer-events-none">
                         {playedEpisodes[`${media.id}-${ep.season_number}-${ep.episode_number}`] && (
-                          <span className="text-brand-cyan text-[8px] sm:text-[10px] font-bold">✓</span>
+                          <span className="text-brand-cyan text-[16px] sm:text-[20px] font-bold">✓</span>
                         )}
                         <span className="bg-brand-bg/80 text-white text-[8px] sm:text-[10px] font-bold px-1 rounded blueprint-border ml-auto">
                           S{ep.season_number} E{ep.episode_number}
