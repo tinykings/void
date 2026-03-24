@@ -51,6 +51,7 @@ export const CreditsModal = ({
                       src={getImageUrl(actor.profile_path, 'w185')} 
                       alt={actor.name} 
                       className="w-full h-full object-cover"
+                      decoding="async"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-brand-silver">

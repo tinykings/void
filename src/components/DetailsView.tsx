@@ -260,6 +260,7 @@ export default function DetailsView() {
                   src={getImageUrl(media.poster_path, 'w500')}
                   alt=""
                   className="w-32 sm:w-40 md:w-48 lg:w-[200px] rounded-2xl shadow-2xl shadow-brand-cyan/20 blueprint-border shrink-0"
+                  decoding="async"
                 />
                 <div className="absolute inset-0 bg-brand-cyan/0 group-hover:bg-brand-cyan/10 rounded-2xl transition-colors" />
               </button>
@@ -423,7 +424,7 @@ export default function DetailsView() {
                   <div key={ep.id} className="flex gap-3 p-3 sm:p-4 sm:gap-4 rounded-xl bg-brand-bg/50 blueprint-border">
                     <div className="w-24 sm:w-32 aspect-video rounded-lg overflow-hidden bg-brand-bg shrink-0 relative group blueprint-border">
                       {ep.still_path ? (
-                        <img src={getImageUrl(ep.still_path)} alt={ep.name} className="w-full h-full object-cover" loading="lazy" />
+                        <img src={getImageUrl(ep.still_path)} alt={ep.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-brand-silver">
                           <Play size={24} />
@@ -483,6 +484,7 @@ export default function DetailsView() {
                         src={getImageUrl(actor.profile_path, 'w185')}
                         alt={actor.name}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        decoding="async"
                       />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-brand-silver bg-brand-bg">
@@ -575,6 +577,7 @@ export default function DetailsView() {
               src={getImageUrl(media.poster_path, 'original')}
               alt={title}
               className="w-full h-full object-contain rounded-xl shadow-[0_0_50px_rgba(34,211,238,0.2)] blueprint-border"
+              decoding="async"
             />
           </div>
         </div>
@@ -585,6 +588,6 @@ export default function DetailsView() {
 
 const ProviderIcon = ({ provider }: { provider: WatchProvider }) => (
   <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm blueprint-border bg-brand-bg shrink-0">
-    <img src={getImageUrl(provider.logo_path, 'w185')} alt={provider.provider_name} className="w-full h-full object-cover" />
+    <img src={getImageUrl(provider.logo_path, 'w185')} alt={provider.provider_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
   </div>
 );

@@ -97,16 +97,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [store.isLoaded, store.tmdbSessionId]);
 
   // Trigger sync on focus
-  useEffect(() => {
-    const handleFocus = () => {
-      if (store.isLoaded && !store.isSyncing) {
-        store.syncFromTMDB();
-      }
-    };
+  const handleFocus = useCallback(() => {
+    if (store.isLoaded && !store.isSyncing) {
+      store.syncFromTMDB();
+    }
+  }, [store.isLoaded, store.isSyncing, store.syncFromTMDB]);
 
+  useEffect(() => {
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [store.isLoaded, store.isSyncing]);
+  }, [handleFocus]);
 
   // TV migration loop
   useEffect(() => {

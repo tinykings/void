@@ -151,6 +151,7 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
               alt={title}
               className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300 rounded-xl shadow-2xl shadow-brand-cyan/10"
               loading="lazy"
+              decoding="async"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center p-4 text-center text-brand-silver bg-brand-bg/80">
