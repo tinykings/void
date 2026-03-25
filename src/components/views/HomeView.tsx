@@ -102,7 +102,13 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   const [showSortMenu, setShowSortMenu] = useState(false);
 
   // Pagination for library
-  const [visibleItemsCount, setVisibleItemsCount] = useState(24);
+  const [visibleItemsCount, setVisibleItemsCount] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedCount = sessionStorage.getItem('void_home_count');
+      if (savedCount) return parseInt(savedCount, 10);
+    }
+    return 24;
+  });
   const itemsPerPage = 24;
   const observer = useRef<IntersectionObserver | null>(null);
 
@@ -207,27 +213,84 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     }
   }, []);
 
+  // Flag to prevent resets on initial mount (important for restoration)
+  const isInitialMount = useRef(true);
+
+  // Restore scroll position when returning from details page
+  useEffect(() => {
+    const savedScroll = sessionStorage.getItem('void_home_scroll');
+    const savedCount = sessionStorage.getItem('void_home_count');
+    if (savedScroll) {
+      const targetScroll = parseInt(savedScroll, 10);
+      console.log(`[Scroll Restoration] Starting: target=${targetScroll}px, count=${savedCount}`);
+      let attempts = 0;
+      const maxAttempts = 15; // Increased to 15 (~1.5s)
+
+      const tryScroll = () => {
+        attempts++;
+        window.scrollTo(0, targetScroll);
+        
+        const currentScroll = window.scrollY;
+        const pageHeight = document.documentElement.scrollHeight;
+        const viewportHeight = window.innerHeight;
+        
+        console.log(`[Scroll Restoration] Attempt ${attempts}: current=${currentScroll}px, target=${targetScroll}px, pageHeight=${pageHeight}px`);
+
+        if (Math.abs(currentScroll - targetScroll) > 10 && attempts < maxAttempts) {
+          // If the page is still too short to reach the target, we keep trying
+          setTimeout(tryScroll, 100);
+        } else if (Math.abs(currentScroll - targetScroll) <= 10) {
+          console.log(`[Scroll Restoration] Success reached at attempt ${attempts}`);
+        } else {
+          console.warn(`[Scroll Restoration] Failed to reach target after ${maxAttempts} attempts. Page height might be insufficient.`);
+        }
+      };
+
+      const timeoutId = setTimeout(tryScroll, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, []);
+
+  // Clear session storage only after we are sure we don't need it for a remount
+  useEffect(() => {
+    const savedScroll = sessionStorage.getItem('void_home_scroll');
+    if (savedScroll) {
+      const timeoutId = setTimeout(() => {
+        sessionStorage.removeItem('void_home_scroll');
+        sessionStorage.removeItem('void_home_count');
+      }, 2000);
+      return () => clearTimeout(timeoutId);
+    }
+  }, []);
+
   // Reset pagination when filters change
   useEffect(() => {
+    if (isInitialMount.current) return;
     setVisibleItemsCount(itemsPerPage);
+    
+    // Clear saved state if user manually changes view
+    sessionStorage.removeItem('void_home_scroll');
+    sessionStorage.removeItem('void_home_count');
   }, [filter, sort, showWatched, showEditedOnly, showFavoritesOnly, isSearchFocused, query]);
 
   // Reset Edited filter when switching views or searching (but not on initial mount)
-  const isInitialMount = useRef(true);
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
+    if (isInitialMount.current) return;
     setShowEditedOnly(false);
   }, [isSearchFocused, query, setShowEditedOnly]);
 
   // Reset favorites filter when leaving watched view
   useEffect(() => {
+    if (isInitialMount.current) return;
     if (!showWatched) {
       setShowFavoritesOnly(false);
     }
   }, [showWatched, setShowFavoritesOnly]);
+
+  // Toggle mount flag last
+  useEffect(() => {
+    isInitialMount.current = false;
+  }, []);
 
   // Fetch Trending when search is focused
   useEffect(() => {
@@ -246,19 +309,13 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     }
   }, [apiKey, isLoaded, isSearchFocused, trending.length]);
 
-  // Restore scroll position when returning from details page
+  // Cleanup and browser settings
   useEffect(() => {
-    const savedScroll = sessionStorage.getItem('void_home_scroll');
-    if (savedScroll) {
-      sessionStorage.removeItem('void_home_scroll');
-      requestAnimationFrame(() => {
-        window.scrollTo(0, parseInt(savedScroll, 10));
-      });
+    // Disable browser scroll restoration to prevent it from jumping before our logic
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
     }
-  }, []);
 
-  // Cleanup abort controller on unmount
-  useEffect(() => {
     // Set default theme color for Home
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', '#030712'); // gray-950
@@ -467,6 +524,9 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                       isEdited: editedStatusMap[`${item.media_type}-${item.id}`]
                     }}
                     showBadge={showEditedOnly}
+                    onClick={() => {
+                      sessionStorage.setItem('void_home_count', String(visibleItemsCount));
+                    }}
                   />
                 </div>
               ))}
