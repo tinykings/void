@@ -219,30 +219,19 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
   // Restore scroll position when returning from details page
   useEffect(() => {
     const savedScroll = sessionStorage.getItem('void_home_scroll');
-    const savedCount = sessionStorage.getItem('void_home_count');
     if (savedScroll) {
       const targetScroll = parseInt(savedScroll, 10);
-      console.log(`[Scroll Restoration] Starting: target=${targetScroll}px, count=${savedCount}`);
       let attempts = 0;
-      const maxAttempts = 15; // Increased to 15 (~1.5s)
+      const maxAttempts = 15;
 
       const tryScroll = () => {
         attempts++;
         window.scrollTo(0, targetScroll);
         
         const currentScroll = window.scrollY;
-        const pageHeight = document.documentElement.scrollHeight;
-        const viewportHeight = window.innerHeight;
-        
-        console.log(`[Scroll Restoration] Attempt ${attempts}: current=${currentScroll}px, target=${targetScroll}px, pageHeight=${pageHeight}px`);
-
         if (Math.abs(currentScroll - targetScroll) > 10 && attempts < maxAttempts) {
           // If the page is still too short to reach the target, we keep trying
           setTimeout(tryScroll, 100);
-        } else if (Math.abs(currentScroll - targetScroll) <= 10) {
-          console.log(`[Scroll Restoration] Success reached at attempt ${attempts}`);
-        } else {
-          console.warn(`[Scroll Restoration] Failed to reach target after ${maxAttempts} attempts. Page height might be insufficient.`);
         }
       };
 

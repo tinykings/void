@@ -228,7 +228,6 @@ export const SettingsView = () => {
 
         <section className="text-center pt-4">
           <p className="text-xs text-brand-silver/50">
-            Void v1.2.2<br />
             Data provided by TMDB.
           </p>
         </section>
