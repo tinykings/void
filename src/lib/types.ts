@@ -109,12 +109,6 @@ export interface ExternalPlayerOption {
 
 export const externalPlayerOptions: ExternalPlayerOption[] = [
   {
-    id: 'cineby.gd',
-    name: 'Cineby.gd',
-    tvUrlTemplate: 'https://www.cineby.gd/tv/{TMDBID}/{season_num}/{episode_num}?play=true',
-    movieUrlTemplate: 'https://www.cineby.gd/movie/{TMDBID}?play=true',
-  },
-  {
     id: 'bitcine.app',
     name: 'Bitcine.app',
     tvUrlTemplate: 'https://www.bitcine.app/tv/{TMDBID}/{season_num}/{episode_num}?play=true',
@@ -125,7 +119,7 @@ export const externalPlayerOptions: ExternalPlayerOption[] = [
     name: 'Fmovies.gd',
     tvUrlTemplate: 'https://www.fmovies.gd/watch/tv/{TMDBID}/{season_num}/{episode_num}?play=true',
     movieUrlTemplate: 'https://www.fmovies.gd/watch/movie/{TMDBID}?play=true',
-    seriesUrlTemplate: 'https://www.fmovies.gd/tv/{TMDBID}',
+    seriesUrlTemplate: 'https://www.fmovies.gd/tv/{TMDBID}/1/1',
   },
   {
     id: 'xprime.today',
@@ -142,11 +136,27 @@ export const externalPlayerOptions: ExternalPlayerOption[] = [
     seriesUrlTemplate: 'https://rivestream.org/detail?type=tv&id={TMDBID}',
   },
   {
-    id: 'moviebite.cc',
-    name: 'Moviebyte.cc',
-    tvUrlTemplate: 'https://moviebite.cc/watch/tv-{TMDBID}?ep={episode_num}&season={season_num}',
-    movieUrlTemplate: 'https://moviebite.cc/watch/movie-{TMDBID}',
+    id: 'flixer.su',
+    name: 'Flixer.su',
+    tvUrlTemplate: 'https://flixer.su/watch/tv/{TMDBID}/{season_num}/{episode_num}',
+    movieUrlTemplate: 'https://flixer.su/watch/movie/{TMDBID}',
+    seriesUrlTemplate: 'https://flixer.su/watch/tv/{TMDBID}/1/1'
   },
+  {
+    id: '67movies.net',
+    name: '67movies.net',
+    tvUrlTemplate: 'https://67movies.net/watch/tv/{TMDBID}/{season_num}/{episode_num}',
+    movieUrlTemplate: 'https://67movies.net/watch/movie/{TMDBID}',
+    seriesUrlTemplate: 'https://67movies.net/watch/tv/{TMDBID}/1/1',
+  },
+  {
+    id: 'animekai.to',
+    name: 'animekai.to',
+    tvUrlTemplate: 'https://animekai.to/browser?keyword={title}',
+    movieUrlTemplate: 'https://animekai.to/browser?keyword={title}',
+    seriesUrlTemplate: 'https://animekai.to/browser?keyword={title}',
+  },
+
   // Add other external player options here in the future
 ];
 

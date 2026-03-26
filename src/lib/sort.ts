@@ -9,16 +9,28 @@ export const sortMedia = (list: Media[], sort: SortOption): Media[] => {
         return titleA.localeCompare(titleB);
       });
     case 'release':
-      const now = new Date().getTime();
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const nowTime = now.getTime();
+      
+      const getRelevantDate = (item: Media) => {
+        const dateStr = (item.media_type === 'tv' && item.next_episode_to_air?.air_date) || 
+                        item.release_date || 
+                        item.first_air_date;
+        return dateStr ? new Date(dateStr).getTime() : null;
+      };
+
       const upcoming: Media[] = [];
       const released: Media[] = [];
 
       list.forEach((item) => {
-        const dateStr = item.release_date || item.first_air_date;
-        if (dateStr) {
-          const date = new Date(dateStr).getTime();
-          // If valid date and in the future
-          if (!isNaN(date) && date > now) {
+        const date = getRelevantDate(item);
+        if (date && !isNaN(date)) {
+          const diffDays = Math.ceil((date - nowTime) / (1000 * 60 * 60 * 24));
+          const isNextEpisode = item.media_type === 'tv' && item.next_episode_to_air;
+          
+          // Include in upcoming if it's in the future OR it's a TV show next episode in the "recent past" (within 3 days)
+          if (diffDays > 0 || (isNextEpisode && diffDays >= -3)) {
             upcoming.push(item);
             return;
           }
@@ -27,18 +39,10 @@ export const sortMedia = (list: Media[], sort: SortOption): Media[] => {
       });
 
       // Sort upcoming: Soonest to Latest (Ascending)
-      upcoming.sort((a, b) => {
-        const dateA = new Date(a.release_date || a.first_air_date || '').getTime();
-        const dateB = new Date(b.release_date || b.first_air_date || '').getTime();
-        return dateA - dateB;
-      });
+      upcoming.sort((a, b) => (getRelevantDate(a) || 0) - (getRelevantDate(b) || 0));
 
       // Sort released: Newest to Oldest (Descending)
-      released.sort((a, b) => {
-        const dateA = new Date(a.release_date || a.first_air_date || '0').getTime();
-        const dateB = new Date(b.release_date || b.first_air_date || '0').getTime();
-        return dateB - dateA;
-      });
+      released.sort((a, b) => (getRelevantDate(b) || 0) - (getRelevantDate(a) || 0));
 
       return [...upcoming, ...released];
     case 'added':

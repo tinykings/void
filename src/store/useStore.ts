@@ -328,17 +328,17 @@ export const useStore = create<StoreState>()(
           const now = Date.now();
           const checkThreshold = 24 * 60 * 60 * 1000;
           
-          const { watched } = get();
-          const showsToProcess = watched.filter(m => 
+          const { watched, watchlist } = get();
+          
+          // 1. Process Watched shows for potential migration to watchlist
+          const watchedShowsToProcess = watched.filter(m => 
             m.media_type === 'tv' && 
             m.status !== 'Ended' && 
             m.status !== 'Canceled' &&
             (now - (m.lastChecked || 0) > checkThreshold)
           );
 
-          if (showsToProcess.length === 0) return;
-
-          for (const show of showsToProcess) {
+          for (const show of watchedShowsToProcess) {
             // Re-verify membership in case of simultaneous sync
             if (!get().watched.some(m => m.id === show.id && m.media_type === 'tv')) continue;
 
@@ -393,10 +393,31 @@ export const useStore = create<StoreState>()(
                 // Metadata update only
                 set(state => ({
                   watched: state.watched.map(m => m.id === show.id && m.media_type === 'tv' 
-                    ? { ...m, status: details.status, next_episode_to_air: null, lastChecked: now } 
+                    ? { ...m, status: details.status, next_episode_to_air: details.next_episode_to_air, lastChecked: now } 
                     : m)
                 }));
               }
+            } catch (err) { console.error(err); }
+          }
+
+          // 2. Refresh metadata for shows already in watchlist
+          const watchlistShowsToProcess = watchlist.filter(m => 
+            m.media_type === 'tv' && 
+            m.status !== 'Ended' && 
+            m.status !== 'Canceled' &&
+            (now - (m.lastChecked || 0) > checkThreshold)
+          );
+
+          for (const show of watchlistShowsToProcess) {
+            if (!get().watchlist.some(m => m.id === show.id && m.media_type === 'tv')) continue;
+
+            try {
+              const details = await getMediaDetails(show.id, 'tv', apiKey);
+              set(state => ({
+                watchlist: state.watchlist.map(m => m.id === show.id && m.media_type === 'tv'
+                  ? { ...m, ...details, lastChecked: now }
+                  : m)
+              }));
             } catch (err) { console.error(err); }
           }
         },

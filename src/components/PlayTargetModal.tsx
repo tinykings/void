@@ -8,6 +8,7 @@ interface StreamPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
+  mediaTitle: string;
   mediaType: 'movie' | 'tv';
   mediaId: number;
   seasonNum?: number;
@@ -22,23 +23,28 @@ function buildPlayerUrl(
   player: ExternalPlayerOption,
   mediaType: 'movie' | 'tv',
   mediaId: number,
+  mediaTitle: string,
   seasonNum?: number,
   episodeNum?: number,
 ): string {
+  const replaceAll = (url: string) => {
+    return url
+      .replace('{TMDBID}', mediaId.toString())
+      .replace('{title}', encodeURIComponent(mediaTitle))
+      .replace('{season_num}', seasonNum?.toString() || '')
+      .replace('{episode_num}', episodeNum?.toString() || '');
+  };
+
   if (mediaType === 'movie') {
-    return player.movieUrlTemplate.replace('{TMDBID}', mediaId.toString());
+    return replaceAll(player.movieUrlTemplate);
   }
   if (seasonNum !== undefined && episodeNum !== undefined) {
-    return player.tvUrlTemplate
-      .replace('{TMDBID}', mediaId.toString())
-      .replace('{season_num}', seasonNum.toString())
-      .replace('{episode_num}', episodeNum.toString());
+    return replaceAll(player.tvUrlTemplate);
   }
   if (player.seriesUrlTemplate) {
-    return player.seriesUrlTemplate.replace('{TMDBID}', mediaId.toString());
+    return replaceAll(player.seriesUrlTemplate);
   }
-  return player.movieUrlTemplate
-    .replace('{TMDBID}', mediaId.toString())
+  return replaceAll(player.movieUrlTemplate)
     .replace('/movie/', '/tv/')
     .replace('?play=true', '');
 }
@@ -47,6 +53,7 @@ export const StreamPickerModal = ({
   isOpen,
   onClose,
   title,
+  mediaTitle,
   mediaType,
   mediaId,
   seasonNum,
@@ -112,7 +119,7 @@ export const StreamPickerModal = ({
                   <button
                     key={player.id}
                     onClick={() => {
-                      handleSelect(buildPlayerUrl(player, mediaType, mediaId, seasonNum, episodeNum));
+                      handleSelect(buildPlayerUrl(player, mediaType, mediaId, mediaTitle, seasonNum, episodeNum));
                       onSelect?.();
                     }}
                     className="w-full py-4 rounded-xl font-black uppercase tracking-widest transition-all active:scale-95 bg-brand-bg blueprint-border text-white hover:bg-white/5 flex items-center justify-center gap-2"

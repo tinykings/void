@@ -43,7 +43,12 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
 
   const daysUntilRelease = useMemo(() => {
     if (sort !== 'release') return null;
-    const releaseDateStr = media.release_date || media.first_air_date;
+    
+    const isNextEpisode = media.media_type === 'tv' && !!media.next_episode_to_air;
+    const releaseDateStr = (isNextEpisode && media.next_episode_to_air?.air_date) || 
+                          media.release_date || 
+                          media.first_air_date;
+                          
     if (!releaseDateStr) return null;
     
     const releaseDate = new Date(releaseDateStr);
@@ -53,8 +58,16 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
     const diffTime = releaseDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    return diffDays > 0 ? diffDays : null;
-  }, [sort, media.release_date, media.first_air_date]);
+    if (diffDays > 0) return diffDays;
+    
+    // For TV shows, if it aired within the last 3 days, show 'now'
+    if (isNextEpisode && diffDays >= -3) return 'now';
+    
+    // For movies/first air dates, if it's today, show 'now'
+    if (!isNextEpisode && diffDays === 0) return 'now';
+    
+    return null;
+  }, [sort, media.release_date, media.first_air_date, media.next_episode_to_air, media.media_type]);
 
   // Modal State
   const [modalConfig, setModalConfig] = useState<{
@@ -162,7 +175,7 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
           {daysUntilRelease !== null && (
             <div className="absolute top-2 left-2 z-10">
               <div className="bg-brand-bg/60 backdrop-blur-md text-brand-cyan text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded shadow-lg border border-brand-cyan/30">
-                {daysUntilRelease} {daysUntilRelease === 1 ? 'day' : 'days'}
+                {daysUntilRelease === 'now' ? 'now' : `${daysUntilRelease} ${daysUntilRelease === 1 ? 'day' : 'days'}`}
               </div>
             </div>
           )}

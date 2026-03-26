@@ -30,6 +30,7 @@ export default function DetailsView() {
     externalPlayerEnabled,
     playedEpisodes,
     markEpisodePlayed,
+    updateMediaMetadata,
   } = useAppContext();
 
   const [media, setMedia] = useState<Media | null>(null);
@@ -125,6 +126,12 @@ export default function DetailsView() {
           setRating(ratingData);
           setUsReleaseDate(usDate);
           setCast(creditsData.cast.slice(0, 3));
+          
+          // Update global store metadata so things like next_episode_to_air are persisted
+          updateMediaMetadata(mediaData.id, mediaData.media_type, {
+            ...mediaData,
+            lastChecked: Date.now()
+          });
           
           const trailers = videoData.results
             .filter((v: Video) => v.site === 'YouTube' && v.type === 'Trailer')
@@ -550,6 +557,7 @@ export default function DetailsView() {
             ? `${media.name || media.title} S${streamPicker.seasonNum} E${streamPicker.episodeNum}`
             : media.title || media.name || 'Unknown'
         }
+        mediaTitle={media.title || media.name || 'Unknown'}
         mediaType={media.media_type}
         mediaId={media.id}
         seasonNum={streamPicker.seasonNum}
