@@ -4,7 +4,6 @@ import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import { Toaster } from "sonner";
 import { OfflineGuard } from "@/components/OfflineGuard";
-import { PWAUpdater } from "@/components/PWAUpdater";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -47,7 +46,6 @@ export default function RootLayout({
             </main>
           </OfflineGuard>
           <Toaster position="bottom-center" theme="dark" closeButton />
-          <PWAUpdater />
         </AppProvider>
       </body>
     </html>
