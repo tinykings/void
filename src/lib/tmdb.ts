@@ -37,8 +37,7 @@ export const getContentRating = async (id: number, type: 'movie' | 'tv', apiKey:
       const usRating = data.results?.find((r: ContentRating) => r.iso_3166_1 === 'US');
       return usRating?.rating || null;
     }
-  } catch (error) {
-    console.error("Error fetching content rating:", error);
+  } catch {
     return null;
   }
 };
@@ -59,8 +58,7 @@ export const getUSReleaseDate = async (id: number, type: 'movie' | 'tv', apiKey:
       const data: Media = await fetchFromTMDB(`/tv/${id}`, apiKey);
       return data.first_air_date || null;
     }
-  } catch (error) {
-    console.error("Error fetching release date:", error);
+  } catch {
     return null;
   }
 };
@@ -101,7 +99,7 @@ export const validateApiKey = async (apiKey: string): Promise<boolean> => {
   try {
     const data = await fetchFromTMDB('/authentication', apiKey);
     return data.success === true;
-  } catch (error) {
+  } catch {
     return false;
   }
 };
@@ -124,7 +122,7 @@ export const getAccountLists = async (apiKey: string, sessionId: string, account
   const endpoint = `/account/${accountId}/${list}/${type}`;
   const data = await fetchFromTMDB(endpoint, apiKey, { session_id: sessionId, sort_by: 'created_at.asc', page: page.toString() });
   return {
-    results: data.results.map((item: any) => ({
+    results: data.results.map((item: TmdbResult) => ({
       ...item,
       media_type: type === 'movies' ? 'movie' : 'tv'
     })),

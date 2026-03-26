@@ -12,16 +12,12 @@ import { vidAngelObserver } from '@/lib/observerManager';
 
 interface MediaCardProps {
   media: Media;
-  showActions?: boolean;
   showBadge?: boolean;
   onClick?: () => void;
 }
 
-export const MediaCard = React.memo(({ media, showActions = true, showBadge = false, onClick }: MediaCardProps) => {
+export const MediaCard = React.memo(({ media, showBadge = false, onClick }: MediaCardProps) => {
   const {
-    toggleWatchlist,
-    toggleWatched,
-    toggleFavorite,
     vidAngelEnabled,
     editedStatusMap,
     setMediaEditedStatus,
@@ -29,7 +25,6 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
     isSearchFocused,
     watchlistIds,
     watchedIds,
-    watchedMap,
   } = useAppContext();
   
   const cardRef = useRef<HTMLDivElement>(null);
@@ -38,8 +33,6 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
   const mediaKey = `${media.media_type}-${media.id}`;
   const inWatchlist = watchlistIds.has(mediaKey);
   const inWatched = watchedIds.has(mediaKey);
-  const watchedItem = watchedMap.get(mediaKey);
-  const isFavorite = watchedItem?.isFavorite || false;
 
   const daysUntilRelease = useMemo(() => {
     if (sort !== 'release') return null;
@@ -104,56 +97,13 @@ export const MediaCard = React.memo(({ media, showActions = true, showBadge = fa
 
   const title = media.title || media.name;
 
-  const prefetchBackdrop = () => {
-    if (media.backdrop_path) {
-      const img = new Image();
-      img.src = getImageUrl(media.backdrop_path, 'w780');
-    }
-  };
-
-  const handleWatchlistClick = () => {
-    if (inWatchlist) {
-      setModalConfig({
-        isOpen: true,
-        title: 'Remove from List',
-        message: `Are you sure you want to remove "${title}" from your watchlist?`,
-        type: 'danger',
-        confirmText: 'Remove',
-        onConfirm: () => {
-          toggleWatchlist(media);
-        }
-      });
-    } else {
-      toggleWatchlist(media);
-    }
-  };
-
-  const handleWatchedClick = () => {
-    if (inWatched) {
-      setModalConfig({
-        isOpen: true,
-        title: 'Remove from History',
-        message: `Remove "${title}" from your history?`,
-        type: 'danger',
-        confirmText: 'Remove',
-        onConfirm: () => {
-          toggleWatched(media);
-        }
-      });
-    } else {
-      toggleWatched(media);
-    }
-  };
-
   return (
     <>
       <div ref={cardRef} className="relative group bg-brand-bg rounded-xl overflow-hidden transition-colors duration-300">
         <Link 
           href={`/details?type=${media.media_type}&id=${media.id}`} 
           className="block relative aspect-[2/3] bg-brand-bg/50 overflow-hidden shrink-0 blueprint-border"
-          onMouseEnter={prefetchBackdrop}
-          onTouchStart={prefetchBackdrop}
-          onClick={(e) => {
+          onClick={() => {
             sessionStorage.setItem('void_home_scroll', String(window.scrollY));
             onClick?.();
           }}

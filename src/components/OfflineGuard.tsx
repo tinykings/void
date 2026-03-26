@@ -4,12 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { WifiOff, RefreshCw } from 'lucide-react';
 
 export const OfflineGuard = ({ children }: { children: React.ReactNode }) => {
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState(() => 
+    typeof window !== 'undefined' ? window.navigator.onLine : true
+  );
 
   useEffect(() => {
-    // Initial check
-    setIsOnline(window.navigator.onLine);
-
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 

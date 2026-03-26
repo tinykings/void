@@ -2,12 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
-import { Key, User, ShieldCheck, Play, ArrowRight, Check, ExternalLink } from 'lucide-react';
-import { validateApiKey } from '@/lib/tmdb';
-import { clsx } from 'clsx';
-import { toast } from 'sonner';
-
-// Re-using icon names but they might be imported from lucide-react in actual code
 import { 
   Key as KeyIcon, 
   User as UserIcon, 
@@ -18,6 +12,9 @@ import {
   ExternalLink as LinkIcon,
   Loader2
 } from 'lucide-react';
+import { validateApiKey } from '@/lib/tmdb';
+import { clsx } from 'clsx';
+import { toast } from 'sonner';
 
 export const Onboarding = () => {
   const {

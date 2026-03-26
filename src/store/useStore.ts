@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, StateStorage, createJSONStorage } from 'zustand/middleware';
 import { get, set, del } from 'idb-keyval';
 import { Media, UserState, FilterType, SortOption } from '@/lib/types';
-import { getMediaDetails, createRequestToken, createSession, getAccountDetails, getAccountLists, toggleWatchlistStatus, rateMedia, deleteRating } from '@/lib/tmdb';
+import { getMediaDetails, createRequestToken, getAccountLists, toggleWatchlistStatus, rateMedia, deleteRating } from '@/lib/tmdb';
 import { toast } from 'sonner';
 
 // Custom storage object for IndexedDB
@@ -112,7 +112,7 @@ export const useStore = create<StoreState>()(
 
           const allIncomingRated = assignDateAdded([...ratedMovies, ...ratedTv].map(item => ({
             ...item,
-            isFavorite: (item as any).rating >= 8,
+            isFavorite: ((item as Media).rating ?? 0) >= 8,
           })));
           const allIncomingWatchlist = assignDateAdded([...wlMovies, ...wlTv]);
 
@@ -148,7 +148,7 @@ export const useStore = create<StoreState>()(
           }
 
           // Fetch fresh details for these shows
-          const freshShowDetails = new Map<number, any>();
+          const freshShowDetails = new Map<number, Media>();
           await Promise.all(
             tvShowsNeedingFreshData.map(async (show) => {
               try {
@@ -199,9 +199,9 @@ export const useStore = create<StoreState>()(
             watched: finalWatched
           });
           lastSyncTime.current = Date.now();
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error("TMDB Sync Error:", error);
-          if (error.message?.includes('401')) {
+          if (error instanceof Error && error.message?.includes('401')) {
             const { logoutTMDB } = get();
             logoutTMDB();
             toast.error('TMDB Session Expired. Please login again in settings.');
@@ -286,8 +286,9 @@ export const useStore = create<StoreState>()(
 
         unmarkEpisodePlayed: (tmdbId, seasonNum, episodeNum) => set((state) => {
           const key = `${tmdbId}-${seasonNum}-${episodeNum}`;
-          const { [key]: _, ...rest } = state.playedEpisodes;
-          return { playedEpisodes: rest };
+          const newPlayedEpisodes = { ...state.playedEpisodes };
+          delete newPlayedEpisodes[key];
+          return { playedEpisodes: newPlayedEpisodes };
         }),
 
         setSession: (tmdbSessionId, tmdbAccountId) => set({ tmdbSessionId, tmdbAccountId }),
@@ -496,7 +497,7 @@ export const useStore = create<StoreState>()(
     {
       name: 'void_user_state',
       storage: createJSONStorage(() => storage),
-      onRehydrateStorage: (state) => {
+      onRehydrateStorage: () => {
         // Migration bridge: If IndexedDB is empty, try to import from localStorage
         return async (rehydratedState, error) => {
           if (error) {
@@ -509,11 +510,11 @@ export const useStore = create<StoreState>()(
             const localData = localStorage.getItem('void_user_state');
             if (localData) {
               try {
-                const parsed = JSON.parse(localData);
+                const parsed = JSON.parse(localData) as { state: Partial<StoreState> };
                 if (parsed.state) {
                   // Merge localStorage data into current store
-                  rehydratedState.setApiKey(parsed.state.apiKey);
-                  if (parsed.state.tmdbSessionId) {
+                  if (parsed.state.apiKey) rehydratedState.setApiKey(parsed.state.apiKey);
+                  if (parsed.state.tmdbSessionId && parsed.state.tmdbAccountId) {
                     rehydratedState.setSession(parsed.state.tmdbSessionId, parsed.state.tmdbAccountId);
                   }
                   rehydratedState.setLists(parsed.state.watchlist || [], parsed.state.watched || []);

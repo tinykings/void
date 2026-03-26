@@ -147,7 +147,7 @@ export default function DetailsView() {
     } else if (!apiKey) {
        if (id && type) setLoading(false); 
     }
-  }, [id, type, apiKey, vidAngelEnabled]);
+  }, [id, type, apiKey, vidAngelEnabled, updateMediaMetadata]);
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen">
@@ -225,7 +225,7 @@ export default function DetailsView() {
       
       // Filter out duplicates and invalid entries
       const seen = new Set();
-      const uniqueCredits = data.cast.filter((c: any) => {
+      const uniqueCredits = data.cast.filter((c: Media) => {
         const key = `${c.media_type || 'movie'}-${c.id}`;
         if (seen.has(key)) return false;
         seen.add(key);
@@ -233,9 +233,9 @@ export default function DetailsView() {
       });
 
       const sortedCredits = uniqueCredits
-        .sort((a: any, b: any) => (b.vote_count || 0) - (a.vote_count || 0))
+        .sort((a: Media, b: Media) => (b.vote_count || 0) - (a.vote_count || 0))
         .slice(0, 24)
-        .map((c: any) => ({ ...c, media_type: c.media_type || 'movie' } as Media));
+        .map((c: Media) => ({ ...c, media_type: c.media_type || 'movie' } as Media));
       setActorCredits(sortedCredits);
     } catch (err) {
       console.error(err);

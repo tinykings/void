@@ -11,7 +11,7 @@ import { sortMedia } from '@/lib/sort';
 import { AlertCircle, Settings, Search as SearchIcon, X, ArrowLeft, ArrowRight, ShieldCheck, Bookmark, CheckCircle2, Heart, SlidersHorizontal, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 
-function useDebouncedCallback<T extends (...args: any[]) => any>(callback: T, delay: number): T {
+function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(callback: T, delay: number): T {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   return useCallback((...args: Parameters<T>) => {
@@ -21,7 +21,7 @@ function useDebouncedCallback<T extends (...args: any[]) => any>(callback: T, de
     timeoutRef.current = setTimeout(() => {
       callback(...args);
     }, delay);
-  }, [callback, delay]) as T;
+  }, [callback, delay]) as unknown as T;
 }
 
 interface HomeViewProps {
@@ -44,12 +44,10 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     setShowEditedOnly,
     showFavoritesOnly,
     setShowFavoritesOnly,
-    updateMediaMetadata,
     editedStatusMap,
     isSearchFocused,
     setIsSearchFocused,
     vidAngelEnabled,
-    syncFromTMDB
   } = useAppContext();
   
   const [isPending, startTransition] = useTransition();
@@ -168,7 +166,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     }
 
     return sortMedia(filtered, sort || 'added');
-  }, [baseLibraryMedia, sort, showEditedOnly, editedStatusMap, showFavoritesOnly, showWatched]);
+  }, [baseLibraryMedia, sort, showEditedOnly, editedStatusMap, showFavoritesOnly]);
 
   const fullList = useMemo(() => {
     let list = searchResults.length > 0 
@@ -337,8 +335,8 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
       const results = await searchMedia(searchQuery, apiKey, searchAbortController.current.signal);
       // Remove manual sort to rely on TMDB native relevance
       setSearchResults(results);
-    } catch (err: any) {
-      if (err.name === 'AbortError') return;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       console.error("Search error:", err);
     } finally {
       setSearchLoading(false);

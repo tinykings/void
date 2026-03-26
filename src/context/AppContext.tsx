@@ -53,8 +53,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const store = useStore();
   const initialSyncDone = useRef(false);
 
-  // Handle TMDB Auth Callback
+  // Handle TMDB Auth Callback and Service Worker Registration
   useEffect(() => {
+    // Service Worker Registration
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+      const registerServiceWorker = async () => {
+        try {
+          await navigator.serviceWorker.register('/void/sw.js');
+        } catch (error) {
+          console.error('Service worker registration failed:', error);
+        }
+      };
+      registerServiceWorker();
+    }
+
     const handleAuthCallback = async () => {
       const searchParams = new URLSearchParams(window.location.search);
       const approved = searchParams.get('approved');
@@ -86,7 +98,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window !== 'undefined' && store.isLoaded && !initialSyncDone.current) {
       handleAuthCallback();
     }
-  }, [store.apiKey, store.isLoaded]);
+  }, [store]);
 
   // Initial Sync and background loops
   useEffect(() => {
@@ -94,14 +106,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       initialSyncDone.current = true;
       store.syncFromTMDB();
     }
-  }, [store.isLoaded, store.tmdbSessionId]);
+  }, [store]);
 
   // Trigger sync on focus
   const handleFocus = useCallback(() => {
     if (store.isLoaded && !store.isSyncing) {
       store.syncFromTMDB();
     }
-  }, [store.isLoaded, store.isSyncing, store.syncFromTMDB]);
+  }, [store]);
 
   useEffect(() => {
     window.addEventListener('focus', handleFocus);
@@ -122,12 +134,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clearInterval(interval);
       clearTimeout(timeout);
     };
-  }, [store.isLoaded]);
+  }, [store]);
 
   // Derive selectedExternalPlayer
-  const selectedExternalPlayer = store.selectedExternalPlayerId
-    ? externalPlayerOptions.find(opt => opt.id === store.selectedExternalPlayerId) || null
-    : null;
+  const selectedExternalPlayer = useMemo(() => {
+    if (!store.selectedExternalPlayerId) return null;
+    return externalPlayerOptions.find(opt => opt.id === store.selectedExternalPlayerId) || null;
+  }, [store.selectedExternalPlayerId]);
 
   // O(1) lookup Maps for membership checks
   const watchlistIds = useMemo(() => new Set(store.watchlist.map(m => `${m.media_type}-${m.id}`)), [store.watchlist]);
@@ -188,26 +201,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     watchedIds,
     watchedMap,
   }), [
-    store.apiKey,
-    store.watchlist,
-    store.watched,
-    store.tmdbSessionId,
-    store.tmdbAccountId,
-    store.vidAngelEnabled,
-    store.externalPlayerEnabled,
-    store.selectedExternalPlayerId,
+    store,
     selectedExternalPlayer,
-    store.filter,
-    store.sort,
-    store.showWatched,
-    store.showEditedOnly,
-    store.showFavoritesOnly,
-    store.isSearchFocused,
-    store.editedStatusMap,
-    store.playedEpisodes,
-    store.isLoaded,
-    store.isSyncing,
-    store.onboardingCompleted,
     watchlistIds,
     watchedIds,
     watchedMap,

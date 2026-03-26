@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
 import { Key, Save, ExternalLink, RefreshCw, ArrowLeft, ShieldCheck, Play, User, LogOut } from 'lucide-react';
@@ -18,20 +18,15 @@ export const SettingsView = () => {
     externalPlayerEnabled, toggleExternalPlayerEnabled,
   } = useAppContext();
 
-  const [tempApiKey, setTempApiKey] = useState('');
-  const [tempVidAngelEnabled, setTempVidAngelEnabled] = useState(false);
-  const [tempExternalPlayerEnabled, setTempExternalPlayerEnabled] = useState(false);
+  const [tempApiKey, setTempApiKey] = useState(apiKey);
+  const [tempVidAngelEnabled, setTempVidAngelEnabled] = useState(vidAngelEnabled);
+  const [tempExternalPlayerEnabled, setTempExternalPlayerEnabled] = useState(externalPlayerEnabled);
 
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTempApiKey(apiKey);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTempVidAngelEnabled(vidAngelEnabled || false);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTempExternalPlayerEnabled(externalPlayerEnabled || false);
-  }, [apiKey, vidAngelEnabled, externalPlayerEnabled]);
+  // We'll use a key on the component from the parent to reset it if needed, 
+  // or just rely on initial state since settings are usually edited once per visit.
+  // Removing the useEffect that was causing the lint error.
 
   const handleSave = () => {
     setApiKey(tempApiKey);
