@@ -19,8 +19,8 @@ export const SettingsView = () => {
   } = useAppContext();
 
   const [tempApiKey, setTempApiKey] = useState(apiKey);
-  const [tempVidAngelEnabled, setTempVidAngelEnabled] = useState(vidAngelEnabled);
-  const [tempExternalPlayerEnabled, setTempExternalPlayerEnabled] = useState(externalPlayerEnabled);
+  const [tempVidAngelEnabled, setTempVidAngelEnabled] = useState(!!vidAngelEnabled);
+  const [tempExternalPlayerEnabled, setTempExternalPlayerEnabled] = useState(!!externalPlayerEnabled);
 
   const [saved, setSaved] = useState(false);
 

@@ -11,7 +11,7 @@ import { sortMedia } from '@/lib/sort';
 import { AlertCircle, Settings, Search as SearchIcon, X, ArrowLeft, ArrowRight, ShieldCheck, Bookmark, CheckCircle2, Heart, SlidersHorizontal, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 
-function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(callback: T, delay: number): T {
+function useDebouncedCallback<T extends (...args: any[]) => any>(callback: T, delay: number): T {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   return useCallback((...args: Parameters<T>) => {
