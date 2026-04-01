@@ -238,4 +238,7 @@ export interface UserState {
   onboardingCompleted?: boolean;
   editedStatusMap: Record<string, boolean>;
   playedEpisodes: Record<string, boolean>;
+  sendToTvEnabled?: boolean;
+  gistId?: string;
+  gistToken?: string;
 }

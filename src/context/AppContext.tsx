@@ -41,6 +41,15 @@ interface AppContextType extends UserState {
   markEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
   unmarkEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
 
+  // Send to TV
+  sendToTvEnabled: boolean;
+  gistId: string;
+  gistToken: string;
+  setSendToTvEnabled: (enabled: boolean) => void;
+  setGistId: (id: string) => void;
+  setGistToken: (token: string) => void;
+  sendToGist: (url: string, title: string) => Promise<void>;
+
   // O(1) lookup helpers
   watchlistIds: Set<string>;
   watchedIds: Set<string>;
@@ -170,6 +179,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     isSearchFocused: store.isSearchFocused || false,
     editedStatusMap: store.editedStatusMap,
     playedEpisodes: store.playedEpisodes,
+    sendToTvEnabled: store.sendToTvEnabled || false,
+    gistId: store.gistId || '',
+    gistToken: store.gistToken || '',
     isLoaded: store.isLoaded,
     isSyncing: store.isSyncing,
     
@@ -196,6 +208,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     markEpisodePlayed: store.markEpisodePlayed,
     unmarkEpisodePlayed: store.unmarkEpisodePlayed,
+
+    setSendToTvEnabled: store.setSendToTvEnabled,
+    setGistId: store.setGistId,
+    setGistToken: store.setGistToken,
+    sendToGist: store.sendToGist,
 
     watchlistIds,
     watchedIds,

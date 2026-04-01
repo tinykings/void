@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { Key, Save, ExternalLink, RefreshCw, ArrowLeft, ShieldCheck, Play, User, LogOut } from 'lucide-react';
+import { Key, Save, ExternalLink, RefreshCw, ArrowLeft, ShieldCheck, Play, User, LogOut, Tv } from 'lucide-react';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 
@@ -16,11 +16,18 @@ export const SettingsView = () => {
     tmdbSessionId, tmdbAccountId,
     vidAngelEnabled, setVidAngelEnabled,
     externalPlayerEnabled, toggleExternalPlayerEnabled,
+    sendToTvEnabled, setSendToTvEnabled,
+    gistId, setGistId,
+    gistToken, setGistToken,
   } = useAppContext();
 
   const [tempApiKey, setTempApiKey] = useState(apiKey);
   const [tempVidAngelEnabled, setTempVidAngelEnabled] = useState(!!vidAngelEnabled);
   const [tempExternalPlayerEnabled, setTempExternalPlayerEnabled] = useState(!!externalPlayerEnabled);
+  const [tempSendToTvEnabled, setTempSendToTvEnabled] = useState(!!sendToTvEnabled);
+  const [tempGistId, setTempGistId] = useState(gistId || '');
+  const [tempGistToken, setTempGistToken] = useState(gistToken || '');
+  const [showToken, setShowToken] = useState(false);
 
   const [saved, setSaved] = useState(false);
 
@@ -31,10 +38,12 @@ export const SettingsView = () => {
   const handleSave = () => {
     setApiKey(tempApiKey);
     setVidAngelEnabled(tempVidAngelEnabled);
-    // Only call toggle if the value has actually changed
     if (tempExternalPlayerEnabled !== externalPlayerEnabled) {
       toggleExternalPlayerEnabled();
     }
+    setSendToTvEnabled(tempSendToTvEnabled);
+    setGistId(tempGistId);
+    setGistToken(tempGistToken);
     setSaved(true);
     toast.success('Settings saved successfully');
     
@@ -212,6 +221,78 @@ export const SettingsView = () => {
             </label>
           </div>
         </section>
+
+        {tempExternalPlayerEnabled && (
+        <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">
+          <div className="flex items-center gap-2 mb-4">
+            <Tv className="text-brand-cyan" size={20} />
+            <h2 className="text-lg font-semibold text-white">Send to TV</h2>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="pr-4">
+              <h3 className="text-sm font-bold text-white">Enable Send to TV</h3>
+              <p className="text-xs text-brand-silver mt-1">
+                Send media to play on your TV via a GitHub Gist.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!tempSendToTvEnabled}
+                onChange={(e) => setTempSendToTvEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-brand-bg blueprint-border rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-brand-silver after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-cyan peer-checked:after:bg-brand-bg"></div>
+            </label>
+          </div>
+
+          {tempSendToTvEnabled && (
+            <div className="mt-4 pt-4 border-t border-white/5 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-brand-silver mb-2">Gist ID</label>
+                <input
+                  type="text"
+                  value={tempGistId}
+                  onChange={(e) => setTempGistId(e.target.value)}
+                  placeholder="e.g., 8f7a9b2c3d4e5f6a7b8c9d0e"
+                  className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-brand-silver mb-2">Personal Access Token</label>
+                <div className="relative">
+                  <input
+                    type={showToken ? 'text' : 'password'}
+                    value={tempGistToken}
+                    onChange={(e) => setTempGistToken(e.target.value)}
+                    placeholder="ghp_xxxxxxxxxxxx"
+                    className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50 pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowToken(!showToken)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-silver hover:text-white"
+                  >
+                    {showToken ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+              </div>
+              <p className="text-[10px] text-brand-silver/70">
+                Create a public gist on GitHub and paste the ID here. Generate a token with &quot;gist&quot; scope at{' '}
+                <a
+                  href="https://github.com/settings/tokens"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand-cyan hover:underline"
+                >
+                  github.com/settings/tokens
+                </a>
+              </p>
+            </div>
+          )}
+        </section>
+        )}
 
         <button
           onClick={handleSave}

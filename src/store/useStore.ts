@@ -3,6 +3,7 @@ import { persist, StateStorage, createJSONStorage } from 'zustand/middleware';
 import { get, set, del } from 'idb-keyval';
 import { Media, UserState, FilterType, SortOption } from '@/lib/types';
 import { getMediaDetails, createRequestToken, getAccountLists, toggleWatchlistStatus, rateMedia, deleteRating } from '@/lib/tmdb';
+import { updateGist } from '@/lib/gist';
 import { toast } from 'sonner';
 
 // Custom storage object for IndexedDB
@@ -57,6 +58,11 @@ interface StoreState extends UserState {
   
   setSession: (sessionId: string, accountId: number) => void;
   setLists: (watchlist: Media[], watched: Media[]) => void;
+
+  setSendToTvEnabled: (enabled: boolean) => void;
+  setGistId: (id: string) => void;
+  setGistToken: (token: string) => void;
+  sendToGist: (url: string, title: string) => Promise<void>;
 
 }
 
@@ -228,6 +234,9 @@ export const useStore = create<StoreState>()(
         onboardingCompleted: false,
         editedStatusMap: {},
         playedEpisodes: {},
+        sendToTvEnabled: false,
+        gistId: '',
+        gistToken: '',
         isLoaded: false,
         isSyncing: false,
 
@@ -491,7 +500,21 @@ export const useStore = create<StoreState>()(
               await rateMedia(apiKey, tmdbSessionId, media.id, media.media_type, newIsFavorite ? 4 : 1);
             } catch (err) { console.error(err); }
           }
-        }
+        },
+
+        setSendToTvEnabled: (sendToTvEnabled) => set({ sendToTvEnabled }),
+        setGistId: (gistId) => set({ gistId }),
+        setGistToken: (gistToken) => set({ gistToken }),
+
+        sendToGist: async (url, title) => {
+          const { gistId, gistToken } = get();
+          if (!gistId || !gistToken) return;
+          await updateGist(gistId, gistToken, {
+            url,
+            title,
+            timestamp: Date.now(),
+          });
+        },
       };
     },
     {

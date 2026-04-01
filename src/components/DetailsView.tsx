@@ -28,6 +28,8 @@ export default function DetailsView() {
     toggleFavorite,
     vidAngelEnabled,
     externalPlayerEnabled,
+    sendToTvEnabled,
+    sendToGist,
     playedEpisodes,
     markEpisodePlayed,
     updateMediaMetadata,
@@ -564,6 +566,8 @@ export default function DetailsView() {
         episodeNum={streamPicker.episodeNum}
         vidAngelSlug={streamPicker.seasonNum === undefined ? vidAngelSlug : null}
         externalPlayerEnabled={externalPlayerEnabled}
+        sendToTvEnabled={sendToTvEnabled}
+        sendToGist={sendToGist}
         onSelect={handleEpisodeSelect}
       />
 
