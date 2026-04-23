@@ -113,10 +113,18 @@ export interface ExternalPlayerOption {
 
 export const externalPlayerOptions: ExternalPlayerOption[] = [
   {
-    id: 'bitcine.app',
-    name: 'Bitcine.app',
-    tvUrlTemplate: 'https://www.bitcine.app/tv/{TMDBID}/{season_num}/{episode_num}?play=true',
-    movieUrlTemplate: 'https://www.bitcine.app/movie/{TMDBID}?play=true',
+    id: 'flixer.su',
+    name: 'Flixer.su',
+    tvUrlTemplate: 'https://flixer.su/watch/tv/{TMDBID}/{season_num}/{episode_num}',
+    movieUrlTemplate: 'https://flixer.su/watch/movie/{TMDBID}',
+    seriesUrlTemplate: 'https://flixer.su/watch/tv/{TMDBID}/1/1'
+  },
+  {
+    id: 'hexa.su',
+    name: 'Hexa.su',
+    tvUrlTemplate: 'https://hexa.su/watch/tv/{TMDBID}/{season_num}/{episode_num}',
+    movieUrlTemplate: 'https://hexa.su/watch/movie/{TMDBID}',
+    seriesUrlTemplate: 'https://hexa.su/watch/tv/{TMDBID}/1/1'
   },
   {
     id: 'fmovies.gd',
@@ -138,13 +146,6 @@ export const externalPlayerOptions: ExternalPlayerOption[] = [
     tvUrlTemplate: 'https://rivestream.org/watch?type=tv&id={TMDBID}&season={season_num}&episode={episode_num}',
     movieUrlTemplate: 'https://rivestream.org/watch?type=movie&id={TMDBID}',
     seriesUrlTemplate: 'https://rivestream.org/detail?type=tv&id={TMDBID}',
-  },
-  {
-    id: 'flixer.su',
-    name: 'Flixer.su',
-    tvUrlTemplate: 'https://flixer.su/watch/tv/{TMDBID}/{season_num}/{episode_num}',
-    movieUrlTemplate: 'https://flixer.su/watch/movie/{TMDBID}',
-    seriesUrlTemplate: 'https://flixer.su/watch/tv/{TMDBID}/1/1'
   },
   {
     id: '67movies.net',

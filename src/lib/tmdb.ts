@@ -111,6 +111,9 @@ export const createSession = async (apiKey: string, requestToken: string) => {
     body: JSON.stringify({ request_token: requestToken }),
   });
   const data = await response.json();
+  if (!response.ok || !data?.success || !data?.session_id) {
+    throw new Error(data?.status_message || `TMDB API error: ${response.statusText}`);
+  }
   return data.session_id;
 };
 

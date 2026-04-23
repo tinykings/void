@@ -60,7 +60,9 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const store = useStore();
+  const { apiKey, isLoaded, tmdbSessionId, isSyncing, syncFromTMDB, setIsSyncing, setSession, processTVMigrations } = store;
   const initialSyncDone = useRef(false);
+  const authCallbackHandled = useRef(false);
 
   // Handle TMDB Auth Callback and Service Worker Registration
   useEffect(() => {
@@ -82,47 +84,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const requestToken = searchParams.get('request_token');
       const savedToken = localStorage.getItem('tmdb_request_token');
 
-      if (approved === 'true' && requestToken && requestToken === savedToken && store.apiKey) {
-        store.setIsSyncing(true);
+      if (authCallbackHandled.current) return;
+
+      if (approved === 'true' && requestToken && requestToken === savedToken && apiKey) {
+        authCallbackHandled.current = true;
+        setIsSyncing(true);
         try {
-          const sessionId = await createSession(store.apiKey, requestToken);
-          const account = await getAccountDetails(store.apiKey, sessionId);
+          const sessionId = await createSession(apiKey, requestToken);
+          if (!sessionId) {
+            throw new Error('TMDB did not return a session id');
+          }
+          const account = await getAccountDetails(apiKey, sessionId);
           
-          store.setSession(sessionId, account.id);
+          setSession(sessionId, account.id);
           
           // Clean up URL
           window.history.replaceState({}, document.title, window.location.pathname);
           localStorage.removeItem('tmdb_request_token');
           
           // Initial sync
-          await store.syncFromTMDB(true);
+          await syncFromTMDB(true);
         } catch (error) {
           console.error("TMDB Auth Error:", error);
         } finally {
-          store.setIsSyncing(false);
+          setIsSyncing(false);
         }
       }
     };
 
-    if (typeof window !== 'undefined' && store.isLoaded && !initialSyncDone.current) {
+    if (typeof window !== 'undefined' && isLoaded && !initialSyncDone.current) {
       handleAuthCallback();
     }
-  }, [store]);
+  }, [apiKey, isLoaded, setIsSyncing, setSession, syncFromTMDB]);
 
   // Initial Sync and background loops
   useEffect(() => {
-    if (store.isLoaded && store.tmdbSessionId && !initialSyncDone.current) {
+    if (isLoaded && tmdbSessionId && !initialSyncDone.current) {
       initialSyncDone.current = true;
-      store.syncFromTMDB();
+      syncFromTMDB();
     }
-  }, [store]);
+  }, [isLoaded, tmdbSessionId, syncFromTMDB]);
 
   // Trigger sync on focus
   const handleFocus = useCallback(() => {
-    if (store.isLoaded && !store.isSyncing) {
-      store.syncFromTMDB();
+    if (isLoaded && !isSyncing) {
+      syncFromTMDB();
     }
-  }, [store]);
+  }, [isLoaded, isSyncing, syncFromTMDB]);
 
   useEffect(() => {
     window.addEventListener('focus', handleFocus);
@@ -131,19 +139,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // TV migration loop
   useEffect(() => {
-    if (!store.isLoaded) return;
+    if (!isLoaded) return;
     const interval = setInterval(() => {
-      store.processTVMigrations();
+      processTVMigrations();
     }, 60000); // Check every minute while app is open
     
     // Also run once after initial load
-    const timeout = setTimeout(() => store.processTVMigrations(), 5000);
+    const timeout = setTimeout(() => processTVMigrations(), 5000);
     
     return () => {
       clearInterval(interval);
       clearTimeout(timeout);
     };
-  }, [store]);
+  }, [isLoaded, processTVMigrations]);
 
   // Derive selectedExternalPlayer
   const selectedExternalPlayer = useMemo(() => {
