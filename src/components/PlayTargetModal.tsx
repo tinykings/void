@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, X, ShieldCheck, Tv } from 'lucide-react';
 import { ExternalPlayerOption, externalPlayerOptions } from '@/lib/types';
@@ -69,6 +69,15 @@ export const StreamPickerModal = ({
 }: StreamPickerModalProps) => {
   const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
   const [showTvChoice, setShowTvChoice] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Always start from a clean slate when the modal opens so the user
+    // chooses the streaming site every time.
+    setSelectedUrl(null);
+    setShowTvChoice(false);
+  }, [isOpen, mediaId, mediaType, seasonNum, episodeNum, mediaTitle]);
 
   const handleSourceSelect = (url: string) => {
     setSelectedUrl(url);
