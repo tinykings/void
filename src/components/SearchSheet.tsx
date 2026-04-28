@@ -179,7 +179,6 @@ export const SearchSheet = () => {
                   <MediaCard
                     key={`${item.media_type}-${item.id}`}
                     media={item}
-                    onClick={closeSheet}
                   />
                 ))}
               </div>
