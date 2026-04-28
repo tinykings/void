@@ -184,8 +184,14 @@ export const SearchSheet = () => {
               </div>
             ) : (
               <p className="text-sm text-brand-silver text-center py-16">
-                {showSearchResults ? 'Try a different search term.' : 'Popular titles will appear here.'}
+                {showSearchResults ? 'Try a different search term.' : 'No titles to show.'}
               </p>
+            )}
+
+            {isLibraryEmpty && (
+              <div className="pt-10 pb-4 text-center text-xs uppercase tracking-[0.2em] text-brand-silver/60">
+                Data provided by TMDB.
+              </div>
             )}
           </div>
         </motion.div>
