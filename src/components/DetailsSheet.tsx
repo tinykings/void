@@ -5,11 +5,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getImageUrl, getMediaCredits, getContentRating, getMediaDetails, getMediaVideos } from '@/lib/tmdb';
 import { CastMember, Media, Video } from '@/lib/types';
-import { Bookmark, Eye, Play, X } from 'lucide-react';
+import { Bookmark, Eye, Heart, Play, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
-
-type Tab = 'overview' | 'trailers';
 
 export const DetailsSheet = () => {
   const {
@@ -21,10 +19,10 @@ export const DetailsSheet = () => {
     watchedMap,
     toggleWatchlist,
     toggleWatched,
+    toggleFavorite,
     updateMediaMetadata,
   } = useAppContext();
 
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [details, setDetails] = useState<Media | null>(null);
   const [cast, setCast] = useState<CastMember[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
@@ -63,7 +61,6 @@ export const DetailsSheet = () => {
 
   useEffect(() => {
     if (!activeDetailsMedia) return;
-    setActiveTab('overview');
     setDetails(activeDetailsMedia);
     setCast([]);
     setVideos([]);
@@ -75,7 +72,7 @@ export const DetailsSheet = () => {
   }, [activeDetailsMedia?.id, activeDetailsMedia?.media_type]);
 
   useEffect(() => {
-    if (!activeDetailsMedia || activeTab !== 'overview' || !apiKey || overviewLoadedFor === activeDetailsMedia.id) return;
+    if (!activeDetailsMedia || !apiKey || overviewLoadedFor === activeDetailsMedia.id) return;
 
     let cancelled = false;
     setOverviewLoading(true);
@@ -102,7 +99,7 @@ export const DetailsSheet = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeDetailsMedia, activeTab, apiKey, overviewLoadedFor, updateMediaMetadata]);
+  }, [activeDetailsMedia, apiKey, overviewLoadedFor, updateMediaMetadata]);
 
   useEffect(() => {
     if (!activeDetailsMedia || !apiKey) return;
@@ -121,7 +118,7 @@ export const DetailsSheet = () => {
   }, [activeDetailsMedia, apiKey]);
 
   useEffect(() => {
-    if (!activeDetailsMedia || activeTab !== 'trailers' || !apiKey || trailersLoadedFor === activeDetailsMedia.id) return;
+    if (!activeDetailsMedia || !apiKey || trailersLoadedFor === activeDetailsMedia.id) return;
 
     let cancelled = false;
     setTrailersLoading(true);
@@ -132,7 +129,7 @@ export const DetailsSheet = () => {
         const trailerVideos = data.results
           .filter((video) => video.site === 'YouTube' && video.type === 'Trailer')
           .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime())
-          .slice(0, 4);
+          .slice(0, 2);
         setVideos(trailerVideos);
         setTrailersLoadedFor(activeDetailsMedia.id);
       })
@@ -144,7 +141,7 @@ export const DetailsSheet = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeDetailsMedia, activeTab, apiKey, trailersLoadedFor]);
+  }, [activeDetailsMedia, apiKey, trailersLoadedFor]);
 
   useEffect(() => {
     if (!activeDetailsMedia) return;
@@ -213,11 +210,11 @@ export const DetailsSheet = () => {
               exit={{ y: '100%' }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-4xl h-[55vh] sm:h-[60vh] bg-brand-bg/95 blueprint-border rounded-t-3xl shadow-2xl overflow-hidden flex flex-col"
+              className="relative w-full max-w-4xl h-[86vh] sm:h-[80vh] lg:h-[74vh] max-h-[92vh] bg-brand-bg/95 blueprint-border rounded-t-3xl shadow-2xl overflow-hidden flex flex-col"
             >
               <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-brand-bg/80">
                 <div className="min-w-0">
-                  <h2 className="text-lg font-black text-white uppercase italic tracking-tighter truncate">{title}</h2>
+                  <h2 className="text-lg font-black text-white uppercase tracking-tight leading-tight pr-2">{title}</h2>
                 </div>
 
                 <button
@@ -248,80 +245,95 @@ export const DetailsSheet = () => {
                       {year && <span className="px-2 py-1 rounded-full bg-white/5">{year}</span>}
                       <span className="px-2 py-1 rounded-full bg-white/5">★ {selected.vote_average?.toFixed(1) || '0.0'}</span>
                       <span className="px-2 py-1 rounded-full bg-white/5">{contentRating || 'N/A'}</span>
-                      {isFavorite && <span className="px-2 py-1 rounded-full bg-red-500/15 text-red-300">Favorite</span>}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <button
-                        onClick={handleWatchlistToggle}
-                        className={clsx(
-                          'flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-xs font-black uppercase tracking-widest transition-colors blueprint-border',
-                          inWatchlist ? 'bg-brand-cyan/15 text-brand-cyan' : 'bg-white/5 text-white hover:bg-white/10'
-                        )}
-                      >
-                        <Bookmark size={14} />
-                        {inWatchlist ? 'In Watchlist' : 'Watchlist'}
-                      </button>
-                      <button
-                        onClick={handleWatchedToggle}
-                        className={clsx(
-                          'flex items-center justify-center gap-2 rounded-xl px-3 py-3 text-xs font-black uppercase tracking-widest transition-colors blueprint-border',
-                          inWatched ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/5 text-white hover:bg-white/10'
-                        )}
-                      >
-                        <Eye size={14} />
-                        {inWatched ? 'Watched' : 'Mark Watched'}
-                      </button>
-                    </div>
                   </div>
                 </div>
 
-                <div className="mt-4 min-h-[12rem]">
-                  {activeTab === 'overview' && (
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-xs font-black uppercase tracking-widest text-brand-cyan mb-2">Cast</h3>
-                        <div className="grid grid-cols-2 gap-2">
-                          {overviewLoading && cast.length === 0 ? (
-                            [...Array(4)].map((_, index) => (
-                              <div key={index} className="flex items-center gap-3 p-2 rounded-xl bg-white/5 blueprint-border">
-                                <div className="w-10 h-10 rounded-full bg-white/10 animate-pulse" />
-                                <div className="min-w-0 flex-1 space-y-2">
-                                  <div className="h-3 w-24 rounded bg-white/10 animate-pulse" />
-                                  <div className="h-2 w-16 rounded bg-white/10 animate-pulse" />
-                                </div>
-                              </div>
-                            ))
-                          ) : cast.length > 0 ? (
-                            cast.map((member) => (
-                              <div key={member.id} className="flex items-center gap-3 p-2 rounded-xl bg-white/5 blueprint-border">
-                                <div className="w-10 h-10 rounded-full overflow-hidden bg-brand-bg shrink-0">
-                                  {member.profile_path ? (
-                                    <img src={getImageUrl(member.profile_path, 'w185')} alt={member.name} className="w-full h-full object-cover" decoding="async" />
-                                  ) : null}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-xs font-bold text-white truncate">{member.name}</p>
-                                  <p className="text-[10px] text-brand-silver truncate">{member.character}</p>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-sm text-brand-silver">Cast will load when available.</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                <div className={`mt-4 grid gap-2 ${inWatched ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                  <button
+                    onClick={handleWatchlistToggle}
+                    title={inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
+                    aria-label={inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
+                    className={clsx(
+                      'w-full flex items-center justify-center gap-2 rounded-xl px-3 py-3 transition-colors blueprint-border',
+                      inWatchlist ? 'bg-brand-cyan/15 text-brand-cyan' : 'bg-white/5 text-white hover:bg-white/10'
+                    )}
+                  >
+                    <Bookmark size={14} />
+                    <span className="hidden min-[1000px]:inline text-xs font-black uppercase tracking-widest">Watchlist</span>
+                  </button>
+                  <button
+                    onClick={handleWatchedToggle}
+                    title={inWatched ? 'Watched' : 'Mark Watched'}
+                    aria-label={inWatched ? 'Watched' : 'Mark Watched'}
+                    className={clsx(
+                      'w-full flex items-center justify-center gap-2 rounded-xl px-3 py-3 transition-colors blueprint-border',
+                      inWatched ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/5 text-white hover:bg-white/10'
+                    )}
+                  >
+                    <Eye size={14} />
+                    <span className="hidden min-[1000px]:inline text-xs font-black uppercase tracking-widest">Watched</span>
+                  </button>
+                  {inWatched && (
+                    <button
+                      onClick={() => toggleFavorite(selected)}
+                      title={isFavorite ? 'Favorited' : 'Favorite'}
+                      aria-label={isFavorite ? 'Favorited' : 'Favorite'}
+                      className={clsx(
+                        'w-full flex items-center justify-center gap-2 rounded-xl px-3 py-3 transition-colors blueprint-border',
+                        isFavorite ? 'bg-red-500/15 text-red-300' : 'bg-white/5 text-white hover:bg-white/10'
+                      )}
+                    >
+                      <Heart size={14} className={isFavorite ? 'fill-current' : ''} />
+                      <span className="hidden min-[1000px]:inline text-xs font-black uppercase tracking-widest">Favorite</span>
+                    </button>
                   )}
+                </div>
 
-                  {activeTab === 'trailers' && (
-                    <div className="space-y-3">
-                      {trailersLoading ? (
-                        <div className="flex items-center justify-center py-10">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-cyan" />
-                        </div>
-                      ) : videos.length > 0 ? (
-                        videos.map((video) => (
+                <div className="mt-4 space-y-5">
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-widest text-brand-cyan mb-2">Cast</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {overviewLoading && cast.length === 0 ? (
+                        [...Array(4)].map((_, index) => (
+                          <div key={index} className="flex items-center gap-3 p-2 rounded-xl bg-white/5 blueprint-border">
+                            <div className="w-10 h-10 rounded-full bg-white/10 animate-pulse" />
+                            <div className="min-w-0 flex-1 space-y-2">
+                              <div className="h-3 w-24 rounded bg-white/10 animate-pulse" />
+                              <div className="h-2 w-16 rounded bg-white/10 animate-pulse" />
+                            </div>
+                          </div>
+                        ))
+                      ) : cast.length > 0 ? (
+                        cast.map((member) => (
+                          <div key={member.id} className="flex items-center gap-3 p-2 rounded-xl bg-white/5 blueprint-border">
+                            <div className="w-10 h-10 rounded-full overflow-hidden bg-brand-bg shrink-0">
+                              {member.profile_path ? (
+                                <img src={getImageUrl(member.profile_path, 'w185')} alt={member.name} className="w-full h-full object-cover" decoding="async" />
+                              ) : null}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-white truncate">{member.name}</p>
+                              <p className="text-[10px] text-brand-silver truncate">{member.character}</p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-brand-silver">Cast will load when available.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-widest text-brand-cyan mb-2">Trailers</h3>
+                    {trailersLoading ? (
+                      <div className="flex items-center justify-center py-10">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-cyan" />
+                      </div>
+                    ) : videos.length > 0 ? (
+                      <div className="space-y-3">
+                        {videos.map((video) => (
                           <a
                             key={video.id}
                             href={`https://www.youtube.com/watch?v=${video.key}`}
@@ -335,35 +347,12 @@ export const DetailsSheet = () => {
                             </div>
                             <Play className="text-brand-cyan shrink-0" size={16} />
                           </a>
-                        ))
-                      ) : (
-                        <p className="text-sm text-brand-silver py-10 text-center">No trailers found.</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="border-t border-white/5 bg-brand-bg/90 backdrop-blur-md">
-                <div className="grid grid-cols-2">
-                  <button
-                    onClick={() => setActiveTab('overview')}
-                    className={clsx(
-                      'py-3 text-xs font-black uppercase tracking-widest transition-colors',
-                      activeTab === 'overview' ? 'text-brand-cyan bg-brand-cyan/10' : 'text-brand-silver hover:text-white'
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-brand-silver py-10 text-center">No trailers found.</p>
                     )}
-                  >
-                    Overview
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('trailers')}
-                    className={clsx(
-                      'py-3 text-xs font-black uppercase tracking-widest transition-colors',
-                      activeTab === 'trailers' ? 'text-brand-cyan bg-brand-cyan/10' : 'text-brand-silver hover:text-white'
-                    )}
-                  >
-                    Trailers
-                  </button>
+                  </div>
                 </div>
               </div>
             </motion.div>
