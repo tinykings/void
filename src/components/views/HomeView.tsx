@@ -2,14 +2,14 @@
 
 import { useEffect, useState, useMemo, useTransition, useCallback, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
-import { getTrending, searchMedia } from '@/lib/tmdb';
 import { Media } from '@/lib/types';
 import { MediaCard } from '@/components/MediaCard';
 import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
 import { DetailsSheet } from '@/components/DetailsSheet';
+import { SearchSheet } from '@/components/SearchSheet';
 import { FilterTabs } from '@/components/FilterTabs';
 import { sortMedia } from '@/lib/sort';
-import { AlertCircle, Search as SearchIcon, X, ArrowLeft, ArrowRight, ShieldCheck, Bookmark, CheckCircle2, Heart, SlidersHorizontal, Check, Save, Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, Search as SearchIcon, X, ShieldCheck, Bookmark, CheckCircle2, Heart, SlidersHorizontal, Check, Save, Eye, EyeOff } from 'lucide-react';
 import { clsx } from 'clsx';
 
 function useDebouncedCallback<T extends (...args: any[]) => any>(callback: T, delay: number): T {
@@ -85,16 +85,6 @@ export const HomeView = () => {
     }, 1600);
   }, []);
 
-  // Trending State
-  const [trending, setTrending] = useState<Media[]>([]);
-  const [trendingLoading, setTrendingLoading] = useState(false);
-  
-  // Local Search State
-  const [query, setQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Media[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const searchAbortController = useRef<AbortController | null>(null);
-  
   const [error, setError] = useState<string | null>(null);
 
   // Sort dropdown state
@@ -148,9 +138,7 @@ export const HomeView = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const isSearching = searchResults.length > 0 || searchLoading || (query.length > 0 && isSearchFocused);
-  const showTrending = isSearchFocused && searchResults.length === 0 && !searchLoading;
-  const showLibrary = !isSearchFocused && query.length === 0;
+  const showLibrary = !isSearchFocused;
   const isLibraryEmpty = watchlist.length === 0 && watched.length === 0;
 
   // Combine and process library media
@@ -173,13 +161,6 @@ export const HomeView = () => {
 
     return sortMedia(filtered, sort || 'added');
   }, [baseLibraryMedia, sort, showEditedOnly, editedStatusMap, showFavoritesOnly]);
-
-  const fullList = useMemo(() => {
-    let list = searchResults.length > 0 
-      ? searchResults 
-      : (showTrending ? trending : libraryMedia);
-    return list;
-  }, [searchResults, trending, libraryMedia]);
 
   const hasGistSync = !!(gistId && gistToken);
 
@@ -224,9 +205,9 @@ export const HomeView = () => {
     setShowSortMenu(false);
   };
     
-  const displayMedia = useMemo(() => fullList.slice(0, visibleItemsCount), [fullList, visibleItemsCount]);
+  const displayMedia = useMemo(() => libraryMedia.slice(0, visibleItemsCount), [libraryMedia, visibleItemsCount]);
 
-  const isLoading = searchLoading || (showTrending ? trendingLoading : isPending);
+  const isLoading = isPending;
 
   // Stable callback for loading more items
   const handleIntersection = useCallback(() => {
@@ -303,13 +284,7 @@ export const HomeView = () => {
     // Clear saved state if user manually changes view
     sessionStorage.removeItem('void_home_scroll');
     sessionStorage.removeItem('void_home_count');
-  }, [filter, sort, showWatched, showEditedOnly, showFavoritesOnly, isSearchFocused, query]);
-
-  // Reset Edited filter when switching views or searching (but not on initial mount)
-  useEffect(() => {
-    if (isInitialMount.current) return;
-    setShowEditedOnly(false);
-  }, [isSearchFocused, query, setShowEditedOnly]);
+  }, [filter, sort, showWatched, showEditedOnly, showFavoritesOnly]);
 
   // Reset favorites filter when leaving watched view
   useEffect(() => {
@@ -324,23 +299,6 @@ export const HomeView = () => {
     isInitialMount.current = false;
   }, []);
 
-  // Fetch Trending when search is focused
-  useEffect(() => {
-    if (isLoaded && apiKey && isSearchFocused && trending.length === 0) {
-      setTrendingLoading(true);
-      getTrending(apiKey, 'all')
-        .then((items) => {
-          const processed = items.map(item => ({
-            ...item,
-            media_type: item.media_type || 'movie'
-          })) as Media[];
-          setTrending(processed);
-        })
-        .catch((err) => setError(err.message))
-        .finally(() => setTrendingLoading(false));
-    }
-  }, [apiKey, isLoaded, isSearchFocused, trending.length]);
-
   // Cleanup and browser settings
   useEffect(() => {
     // Disable browser scroll restoration to prevent it from jumping before our logic
@@ -353,140 +311,15 @@ export const HomeView = () => {
     if (meta) meta.setAttribute('content', '#030712'); // gray-950
 
     return () => {
-      if (searchAbortController.current) {
-        searchAbortController.current.abort();
-      }
       if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
     };
   }, []);
 
-  const handleSearch = async (searchQuery: string) => {
-    if (!searchQuery || searchQuery.trim().length < 2 || !apiKey) {
-      if (searchAbortController.current) {
-        searchAbortController.current.abort();
-      }
-      setSearchResults([]);
-      return;
-    }
-
-    // Cancel any pending search
-    if (searchAbortController.current) {
-      searchAbortController.current.abort();
-    }
-    searchAbortController.current = new AbortController();
-
-    setSearchLoading(true);
-    try {
-      const results = await searchMedia(searchQuery, apiKey, searchAbortController.current.signal);
-      // Remove manual sort to rely on TMDB native relevance
-      setSearchResults(results);
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') return;
-      console.error("Search error:", err);
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  // Debounced search for auto-search on typing
-  const debouncedSearch = useDebouncedCallback(handleSearch, 300);
-
-  const handleQueryChange = (value: string) => {
-    setQuery(value);
-    if (value.trim().length >= 2) {
-      debouncedSearch(value);
-    } else {
-      setSearchResults([]);
-      if (searchAbortController.current) {
-        searchAbortController.current.abort();
-      }
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSearch(query);
-    }
-  };
-
   if (!isLoaded) return null;
-
   return (
     <div className="max-w-7xl mx-auto px-2 pt-4 pb-[160px] relative">
-      {/* Search field at top — visible when search is open */}
-      {isSearchFocused && (
-        <div className="relative w-full z-20 mb-6 mt-2">
-          <SearchIcon
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-cyan scale-110 transition-all duration-300"
-            size={22}
-          />
-          <input
-            type="text"
-            value={query}
-            autoFocus
-            onChange={(e) => handleQueryChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Search movies, shows..."
-            className="w-full pl-12 pr-20 bg-brand-bg blueprint-border rounded-2xl transition-all duration-300 outline-none font-medium text-white placeholder:text-brand-silver/50 py-5 text-lg shadow-[0_0_30px_rgba(34,211,238,0.15)] ring-1 ring-brand-cyan/30"
-          />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-            {query.trim().length >= 2 && (
-              <button
-                onClick={() => handleSearch(query)}
-                className="p-2 bg-brand-cyan text-brand-bg rounded-xl shadow-lg hover:bg-brand-cyan/80 transition-all active:scale-95"
-                title="Search"
-              >
-                <ArrowRight size={16} />
-              </button>
-            )}
-            <button
-              onClick={() => {
-                startTransition(() => {
-                  setQuery('');
-                  setSearchResults([]);
-                  if (searchAbortController.current) {
-                    searchAbortController.current.abort();
-                  }
-                });
-              }}
-              className="p-2 text-brand-silver hover:text-white transition-colors"
-            >
-              <X size={20} />
-            </button>
-          </div>
-        </div>
-      )}
 
-      {(isSearching || showTrending) && (
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
-          <div className="flex flex-col md:flex-row md:items-center gap-4 w-full md:w-auto">
-            <div className="flex items-center gap-2">
-              {isSearching ? <SearchIcon className="text-brand-cyan" size={20} /> : <div className="w-2 h-6 bg-brand-cyan rounded-full" />}
-              <h1 className="text-xl font-black italic tracking-tighter text-white uppercase">
-                {isSearching ? (searchLoading ? 'Searching...' : (searchResults.length > 0 ? `Results for "${query}"` : 'Type and press Enter to search')) : 'Popular Right Now'}
-              </h1>
-            </div>
-          </div>
-          {(showTrending || isSearching) && !isLibraryEmpty && (
-            <button
-              onClick={() => startTransition(() => {
-                setQuery('');
-                setSearchResults([]);
-                setIsSearchFocused(false);
-                if (searchAbortController.current) {
-                  searchAbortController.current.abort();
-                }
-              })}
-              className="flex items-center gap-2 px-6 py-3 bg-brand-bg/80 blueprint-border text-brand-cyan rounded-xl font-bold hover:bg-brand-cyan/10 transition-all shadow-[0_0_15px_rgba(34,211,238,0.1)] active:scale-95 uppercase tracking-wider text-sm whitespace-nowrap"
-            >
-              <ArrowLeft size={18} />
-              Return to Library
-            </button>
-          )}
-        </div>
-      )}
-
-      {error && !isSearching && (
+      {error && (
         <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-xl flex items-start gap-3 mb-6 border border-red-100 dark:border-red-900/30">
           <AlertCircle size={20} className="mt-0.5 shrink-0" />
           <p className="text-sm font-medium">{error}</p>
@@ -523,36 +356,23 @@ export const HomeView = () => {
             </div>
           ) : (
             <div className="text-center py-20 text-brand-silver">
-              {isSearching ? (
-                <p className="font-medium text-lg">
-                  {searchLoading ? 'Searching...' : `No results found for "${query}"`}
+              <div className="flex flex-col items-center gap-4">
+                <p className="text-lg font-medium text-white">
+                  {showEditedOnly ? 'No edited titles found' : 'Your list is empty'}
                 </p>
-              ) : showTrending ? (
-                <p>No trending content found.</p>
-              ) : (
-                  <div className="flex flex-col items-center gap-4">
-                    <p className="text-lg font-medium text-white">
-                      {showEditedOnly ? 'No edited titles found' : 'Your list is empty'}
-                    </p>
-                    <p className="text-sm text-brand-silver max-w-xs mx-auto">
-                      {showEditedOnly
-                        ? 'If you just logged into VidAngel, come back and try again. Otherwise there may simply be no edited matches in this view.'
-                        : 'Search for movies and shows to add them to your watchlist.'}
-                    </p>
-                    <button
-                      onClick={() => setIsSearchFocused(true)}
-                      className="mt-4 text-brand-cyan font-bold uppercase tracking-wider text-xs border-b border-brand-cyan/30 pb-1 hover:border-brand-cyan transition-colors"
-                    >
-                      {showEditedOnly ? 'Browse Popular' : 'Browse Popular'}
-                    </button>
-                  </div>
-                )}
+                <p className="text-sm text-brand-silver max-w-xs mx-auto">
+                  {showEditedOnly
+                    ? 'If you just logged into VidAngel, come back and try again. Otherwise there may simply be no edited matches in this view.'
+                    : 'Search for movies and shows to add them to your watchlist.'}
+                </p>
+              </div>
             </div>
           )}
         </>
       )}
 
       <DetailsSheet />
+      <SearchSheet />
 
       {/* Floating Search Button */}
       {!isSearchFocused && (
