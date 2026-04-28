@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getTrending, searchMedia } from '@/lib/tmdb';
@@ -23,9 +23,9 @@ export const SearchSheet = () => {
   const showSearchResults = searchTerm.length >= 2;
   const isLibraryEmpty = watchlist.length === 0 && watched.length === 0;
 
-  const runSearch = async (value: string) => {
+  const runSearch = useCallback(async (value: string) => {
     if (!apiKey || value.trim().length < 2) {
-      setSearchResults([]);
+      setSearchResults((current) => (current.length === 0 ? current : []));
       return;
     }
 
@@ -43,7 +43,7 @@ export const SearchSheet = () => {
     } finally {
       setSearchLoading(false);
     }
-  };
+  }, [apiKey]);
 
   const debouncedSearch = useDebouncedCallback(runSearch, 300);
 
