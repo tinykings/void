@@ -8,7 +8,7 @@ import { MediaCard } from '@/components/MediaCard';
 import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
 import { FilterTabs } from '@/components/FilterTabs';
 import { sortMedia } from '@/lib/sort';
-import { AlertCircle, Settings, Search as SearchIcon, X, ArrowLeft, ArrowRight, ShieldCheck, Bookmark, CheckCircle2, Heart, SlidersHorizontal, Check } from 'lucide-react';
+import { AlertCircle, Settings, Search as SearchIcon, X, ArrowLeft, ArrowRight, ShieldCheck, Bookmark, CheckCircle2, Heart, SlidersHorizontal, Check, Save, Eye, EyeOff } from 'lucide-react';
 import { clsx } from 'clsx';
 
 function useDebouncedCallback<T extends (...args: any[]) => any>(callback: T, delay: number): T {
@@ -29,7 +29,7 @@ interface HomeViewProps {
 }
 
 export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
-  const { 
+  const {
     apiKey, 
     isLoaded, 
     watchlist, 
@@ -44,10 +44,14 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     setShowEditedOnly,
     showFavoritesOnly,
     setShowFavoritesOnly,
+    gistId,
+    gistToken,
+    setGistId,
+    setGistToken,
+    syncFromGist,
     editedStatusMap,
     isSearchFocused,
     setIsSearchFocused,
-    vidAngelEnabled,
   } = useAppContext();
   
   const [isPending, startTransition] = useTransition();
@@ -98,7 +102,11 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
   // Sort dropdown state
   const [showSortMenu, setShowSortMenu] = useState(false);
-
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [tempGistId, setTempGistId] = useState(gistId || '');
+  const [tempGistToken, setTempGistToken] = useState(gistToken || '');
+  const [showSyncToken, setShowSyncToken] = useState(false);
+  
   // Pagination for library
   const [visibleItemsCount, setVisibleItemsCount] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -178,6 +186,49 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
     }
     return list;
   }, [searchResults, trending, libraryMedia, showEditedOnly, isSearching, showTrending, editedStatusMap]);
+
+  const hasGistSync = !!(gistId && gistToken);
+
+  useEffect(() => {
+    if (!showSyncModal) return;
+    setTempGistId(gistId || '');
+    setTempGistToken(gistToken || '');
+    setShowSyncToken(false);
+  }, [showSyncModal, gistId, gistToken]);
+
+  const handleSaveSync = () => {
+    const nextGistId = tempGistId.trim();
+    const nextGistToken = tempGistToken.trim();
+
+    setGistId(nextGistId);
+    setGistToken(nextGistToken);
+
+    if (nextGistId && nextGistToken) {
+      void syncFromGist();
+    }
+
+    setShowSyncModal(false);
+    setShowSortMenu(false);
+  };
+
+  const handleEditedFilterClick = () => {
+    if (showEditedOnly) {
+      startTransition(() => {
+        setShowEditedOnly(false);
+        setShowFavoritesOnly(false);
+      });
+      showStatus('Showing All');
+      setShowSortMenu(false);
+      return;
+    }
+
+    startTransition(() => {
+      setShowEditedOnly(true);
+      setShowFavoritesOnly(false);
+    });
+    showStatus('Edited');
+    setShowSortMenu(false);
+  };
     
   const displayMedia = useMemo(() => fullList.slice(0, visibleItemsCount), [fullList, visibleItemsCount]);
 
@@ -443,26 +494,19 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               </h1>
             </div>
 
-            {vidAngelEnabled && (
-              <button
-                onClick={() => {
-                  startTransition(() => {
-                    const newValue = !showEditedOnly;
-                    setShowEditedOnly(newValue);
-                    if (newValue) setShowFavoritesOnly(false);
-                    showStatus(newValue ? 'Edited' : 'Showing All');
-                  });
-                }}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
-                  showEditedOnly
-                    ? 'bg-amber-500/20 text-amber-400 blueprint-border'
-                    : 'bg-brand-bg/50 text-brand-silver blueprint-border'
-                }`}
-              >
-                <ShieldCheck size={14} className={showEditedOnly ? 'fill-current' : ''} />
-                EDITED
-              </button>
-            )}
+            <button
+              onClick={() => {
+                handleEditedFilterClick();
+              }}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
+                showEditedOnly
+                  ? 'bg-amber-500/20 text-amber-400 blueprint-border'
+                  : 'bg-brand-bg/50 text-brand-silver blueprint-border'
+              }`}
+            >
+              <ShieldCheck size={14} className={showEditedOnly ? 'fill-current' : ''} />
+              EDITED
+            </button>
           </div>
           {(showTrending || isSearching) && (
             <button
@@ -527,19 +571,23 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
               ) : showTrending ? (
                 <p>No trending content found.</p>
               ) : (
-                <div className="flex flex-col items-center gap-4">
-                  <p className="text-lg font-medium text-white">Your list is empty</p>
-                  <p className="text-sm text-brand-silver max-w-xs mx-auto">
-                    Search for movies and shows to add them to your watchlist.
-                  </p>
-                  <button
-                    onClick={() => setIsSearchFocused(true)}
-                    className="mt-4 text-brand-cyan font-bold uppercase tracking-wider text-xs border-b border-brand-cyan/30 pb-1 hover:border-brand-cyan transition-colors"
-                  >
-                    Browse Popular
-                  </button>
-                </div>
-              )}
+                  <div className="flex flex-col items-center gap-4">
+                    <p className="text-lg font-medium text-white">
+                      {showEditedOnly ? 'No edited titles found' : 'Your list is empty'}
+                    </p>
+                    <p className="text-sm text-brand-silver max-w-xs mx-auto">
+                      {showEditedOnly
+                        ? 'If you just logged into VidAngel, come back and try again. Otherwise there may simply be no edited matches in this view.'
+                        : 'Search for movies and shows to add them to your watchlist.'}
+                    </p>
+                    <button
+                      onClick={() => setIsSearchFocused(true)}
+                      className="mt-4 text-brand-cyan font-bold uppercase tracking-wider text-xs border-b border-brand-cyan/30 pb-1 hover:border-brand-cyan transition-colors"
+                    >
+                      {showEditedOnly ? 'Browse Popular' : 'Browse Popular'}
+                    </button>
+                  </div>
+                )}
             </div>
           )}
         </>
@@ -692,7 +740,7 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                         Release Date
                       </button>
 
-                      {(vidAngelEnabled || showWatched) && <div className="h-px bg-white/5 my-1" />}
+                      <div className="h-px bg-white/5 my-1" />
 
                       {showWatched && (
                         <button
@@ -720,31 +768,44 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                         </button>
                       )}
 
-                      {vidAngelEnabled && (
-                        <button
-                          onClick={() => {
-                            startTransition(() => {
-                              const newValue = !showEditedOnly;
-                              setShowEditedOnly(newValue);
-                              if (newValue) setShowFavoritesOnly(false);
-                              showStatus(newValue ? 'Edited' : 'Showing All');
-                            });
-                            setShowSortMenu(false);
-                          }}
-                          className={clsx(
-                            "w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors",
-                            showEditedOnly
-                              ? "text-amber-500 bg-amber-500/5"
-                              : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                          )}
-                        >
-                          <div className="flex items-center gap-2">
-                            <ShieldCheck size={16} className={showEditedOnly ? 'fill-current' : ''} />
-                            Edited
-                          </div>
-                          {showEditedOnly && <Check size={14} className="text-amber-500" />}
-                        </button>
-                      )}
+                      <button
+                        onClick={() => {
+                          void handleEditedFilterClick();
+                        }}
+                        className={clsx(
+                          "w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors",
+                          showEditedOnly
+                            ? "text-amber-500 bg-amber-500/5"
+                            : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck size={16} className={showEditedOnly ? 'fill-current' : ''} />
+                          Edited
+                        </div>
+                        {showEditedOnly && <Check size={14} className="text-amber-500" />}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setShowSyncModal(true);
+                          setShowSortMenu(false);
+                        }}
+                        className={clsx(
+                          "w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors",
+                          hasGistSync
+                            ? "text-emerald-400 bg-emerald-500/5"
+                            : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="relative flex items-center justify-center w-4 h-4">
+                            {hasGistSync && <span className="absolute w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]" />}
+                          </span>
+                          Sync
+                        </div>
+                      </button>
+
                     </div>
                   )}
                 </div>
@@ -763,6 +824,66 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
                   }}
                 />
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSyncModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-brand-bg blueprint-border shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+              <div>
+                <h2 className="text-lg font-semibold text-white">Sync</h2>
+                <p className="text-xs text-brand-silver mt-1">Enter your Gist details to sync your library.</p>
+              </div>
+              <button
+                onClick={() => setShowSyncModal(false)}
+                className="p-2 text-brand-silver hover:text-white transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-brand-silver mb-2">Gist ID</label>
+                <input
+                  type="text"
+                  value={tempGistId}
+                  onChange={(e) => setTempGistId(e.target.value)}
+                  placeholder="e.g. 8f7a9b2c3d4e5f6a7b8c9d0e"
+                  className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-brand-silver mb-2">GitHub Token</label>
+                <div className="relative">
+                  <input
+                    type={showSyncToken ? 'text' : 'password'}
+                    value={tempGistToken}
+                    onChange={(e) => setTempGistToken(e.target.value)}
+                    placeholder="ghp_xxxxxxxxxxxx"
+                    className="w-full p-3 pr-12 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSyncToken((value) => !value)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-silver hover:text-white"
+                  >
+                    {showSyncToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                onClick={handleSaveSync}
+                className="w-full bg-brand-cyan text-brand-bg font-black py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-brand-cyan/90 active:scale-95 transition-all uppercase tracking-widest"
+              >
+                <Save size={18} />
+                Save Sync
+              </button>
             </div>
           </div>
         </div>

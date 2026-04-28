@@ -1,5 +1,18 @@
 const cache = new Map<number, string | null>();
 
+export const checkVidAngelLogin = async (): Promise<boolean> => {
+  try {
+    const response = await fetch('https://api.vidangel.com/api/subscriptions/my-subscription/', {
+      credentials: 'include',
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error('VidAngel login check failed', error);
+    return false;
+  }
+};
+
 export const checkVidAngelAvailability = async (title: string, tmdbId: number): Promise<string | null> => {
   if (!title || !tmdbId) return null;
   
