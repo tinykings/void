@@ -6,6 +6,7 @@ import { getTrending, searchMedia } from '@/lib/tmdb';
 import { Media } from '@/lib/types';
 import { MediaCard } from '@/components/MediaCard';
 import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
+import { DetailsSheet } from '@/components/DetailsSheet';
 import { FilterTabs } from '@/components/FilterTabs';
 import { sortMedia } from '@/lib/sort';
 import { AlertCircle, Search as SearchIcon, X, ArrowLeft, ArrowRight, ShieldCheck, Bookmark, CheckCircle2, Heart, SlidersHorizontal, Check, Save, Eye, EyeOff } from 'lucide-react';
@@ -150,6 +151,7 @@ export const HomeView = () => {
   const isSearching = searchResults.length > 0 || searchLoading || (query.length > 0 && isSearchFocused);
   const showTrending = isSearchFocused && searchResults.length === 0 && !searchLoading;
   const showLibrary = !isSearchFocused && query.length === 0;
+  const isLibraryEmpty = watchlist.length === 0 && watched.length === 0;
 
   // Combine and process library media
   const baseLibraryMedia = useMemo(() => {
@@ -176,12 +178,8 @@ export const HomeView = () => {
     let list = searchResults.length > 0 
       ? searchResults 
       : (showTrending ? trending : libraryMedia);
-
-    if (showEditedOnly && (isSearching || showTrending)) {
-      list = list.filter(m => editedStatusMap[`${m.media_type}-${m.id}`] !== false);
-    }
     return list;
-  }, [searchResults, trending, libraryMedia, showEditedOnly, isSearching, showTrending, editedStatusMap]);
+  }, [searchResults, trending, libraryMedia]);
 
   const hasGistSync = !!(gistId && gistToken);
 
@@ -446,7 +444,6 @@ export const HomeView = () => {
                 startTransition(() => {
                   setQuery('');
                   setSearchResults([]);
-                  setIsSearchFocused(false);
                   if (searchAbortController.current) {
                     searchAbortController.current.abort();
                   }
@@ -469,22 +466,8 @@ export const HomeView = () => {
                 {isSearching ? (searchLoading ? 'Searching...' : (searchResults.length > 0 ? `Results for "${query}"` : 'Type and press Enter to search')) : 'Popular Right Now'}
               </h1>
             </div>
-
-            <button
-              onClick={() => {
-                handleEditedFilterClick();
-              }}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${
-                showEditedOnly
-                  ? 'bg-amber-500/20 text-amber-400 blueprint-border'
-                  : 'bg-brand-bg/50 text-brand-silver blueprint-border'
-              }`}
-            >
-              <ShieldCheck size={14} className={showEditedOnly ? 'fill-current' : ''} />
-              EDITED
-            </button>
           </div>
-          {(showTrending || isSearching) && (
+          {(showTrending || isSearching) && !isLibraryEmpty && (
             <button
               onClick={() => startTransition(() => {
                 setQuery('');
@@ -568,6 +551,8 @@ export const HomeView = () => {
           )}
         </>
       )}
+
+      <DetailsSheet />
 
       {/* Floating Search Button */}
       {!isSearchFocused && (

@@ -5,7 +5,6 @@ import { Media } from '@/lib/types';
 import { getImageUrl } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { useAppContext } from '@/context/AppContext';
-import Link from 'next/link';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { vidAngelObserver } from '@/lib/observerManager';
@@ -25,6 +24,7 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
     isSearchFocused,
     watchlistIds,
     watchedIds,
+    openDetails,
   } = useAppContext();
   
   const cardRef = useRef<HTMLDivElement>(null);
@@ -100,11 +100,11 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
   return (
     <>
       <div ref={cardRef} className="relative group bg-brand-bg rounded-xl overflow-hidden transition-colors duration-300">
-        <Link 
-          href={`/details?type=${media.media_type}&id=${media.id}`} 
+        <button
+          type="button"
           className="block relative aspect-[2/3] bg-brand-bg/50 overflow-hidden shrink-0 blueprint-border"
           onClick={() => {
-            sessionStorage.setItem('void_home_scroll', String(window.scrollY));
+            openDetails(media);
             onClick?.();
           }}
         >
@@ -142,7 +142,7 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
               </div>
             </div>
           )}
-        </Link>
+        </button>
       </div>
 
       <ConfirmationModal

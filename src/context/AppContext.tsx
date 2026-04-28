@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Media, UserState, SortOption, FilterType } from '@/lib/types';
 import { useStore } from '@/store/useStore';
 
@@ -25,6 +25,9 @@ interface AppContextType extends UserState {
   isSearchFocused: boolean;
   setIsSearchFocused: (focused: boolean) => void;
   syncFromGist: () => Promise<void>;
+  activeDetailsMedia: Media | null;
+  openDetails: (media: Media) => void;
+  closeDetails: () => void;
 
   // Episode tracking
   markEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
@@ -41,6 +44,10 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const store = useStore();
   const initialGistSyncDone = useRef('');
+  const initialViewApplied = useRef(false);
+  const [activeDetailsMedia, setActiveDetailsMedia] = useState<Media | null>(null);
+  const openDetails = useCallback((media: Media) => setActiveDetailsMedia(media), []);
+  const closeDetails = useCallback(() => setActiveDetailsMedia(null), []);
 
   // Service worker registration
   useEffect(() => {
@@ -57,17 +64,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   useEffect(() => {
-    if (!store.isLoaded || !store.gistId || !store.gistToken) {
+    if (!store.isLoaded) {
       initialGistSyncDone.current = '';
+      initialViewApplied.current = false;
+      return;
+    }
+
+    const applyInitialView = () => {
+      if (initialViewApplied.current) return;
+
+      if (store.isSearchFocused || store.showWatched) {
+        initialViewApplied.current = true;
+        return;
+      }
+
+      if (store.watchlist.length === 0 && store.watched.length === 0) {
+        store.setIsSearchFocused(true);
+      } else if (store.watchlist.length === 0 && store.watched.length > 0) {
+        store.setShowWatched(true);
+      }
+
+      initialViewApplied.current = true;
+    };
+
+    if (!store.gistId || !store.gistToken) {
+      applyInitialView();
       return;
     }
 
     const signature = `${store.gistId}:${store.gistToken}`;
-    if (initialGistSyncDone.current === signature) return;
+    if (initialGistSyncDone.current === signature) {
+      applyInitialView();
+      return;
+    }
 
     initialGistSyncDone.current = signature;
-    void store.syncFromGist();
-  }, [store.isLoaded, store.gistId, store.gistToken, store.syncFromGist]);
+    void store.syncFromGist().finally(() => {
+      applyInitialView();
+    });
+  }, [
+    store.isLoaded,
+    store.gistId,
+    store.gistToken,
+    store.watchlist.length,
+    store.watched.length,
+    store.showWatched,
+    store.isSearchFocused,
+    store.syncFromGist,
+  ]);
 
   // O(1) lookup Maps for membership checks
   const watchlistIds = useMemo(() => new Set(store.watchlist.map(m => `${m.media_type}-${m.id}`)), [store.watchlist]);
@@ -112,6 +156,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateMediaMetadata: store.updateMediaMetadata,
     setMediaEditedStatus: store.setMediaEditedStatus,
     setIsSearchFocused: store.setIsSearchFocused,
+    activeDetailsMedia,
+    openDetails,
+    closeDetails,
 
     markEpisodePlayed: store.markEpisodePlayed,
     unmarkEpisodePlayed: store.unmarkEpisodePlayed,
@@ -124,6 +171,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     watchlistIds,
     watchedIds,
     watchedMap,
+    activeDetailsMedia,
+    openDetails,
+    closeDetails,
   ]);
 
   return (
