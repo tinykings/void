@@ -7,27 +7,12 @@ import { MediaCard } from '@/components/MediaCard';
 import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
 import { DetailsSheet } from '@/components/DetailsSheet';
 import { SearchSheet } from '@/components/SearchSheet';
-import { FilterTabs } from '@/components/FilterTabs';
 import { sortMedia } from '@/lib/sort';
-import { AlertCircle, Search as SearchIcon, X, ShieldCheck, Bookmark, CheckCircle2, Heart, SlidersHorizontal, Check, Save, Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, X, ShieldCheck, Check, Save, Eye, EyeOff } from 'lucide-react';
 import { clsx } from 'clsx';
-
-function useDebouncedCallback<T extends (...args: any[]) => any>(callback: T, delay: number): T {
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
-  return useCallback((...args: Parameters<T>) => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    timeoutRef.current = setTimeout(() => {
-      callback(...args);
-    }, delay);
-  }, [callback, delay]) as unknown as T;
-}
 
 export const HomeView = () => {
   const {
-    apiKey, 
     isLoaded, 
     watchlist, 
     watched,
@@ -61,12 +46,12 @@ export const HomeView = () => {
   const persistentStatus = useMemo(() => {
     if (showFavoritesOnly) return 'Favorites';
     if (showEditedOnly) return 'Edited';
-    return null;
-  }, [showFavoritesOnly, showEditedOnly]);
+    return showWatched ? 'Watched' : 'Watchlist';
+  }, [showFavoritesOnly, showEditedOnly, showWatched]);
 
   const showStatus = useCallback((label: string) => {
     // If it matches a persistent state, we don't need a timer
-    if (label === 'Favorites' || label === 'Edited') {
+    if (label === 'Favorites' || label === 'Edited' || label === 'Watched' || label === 'Watchlist') {
       if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
       setStatusLabel(null);
       setStatusFading(false);
@@ -89,6 +74,7 @@ export const HomeView = () => {
 
   // Sort dropdown state
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [showLibraryMenu, setShowLibraryMenu] = useState<'movie' | 'tv' | null>(null);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [tempGistId, setTempGistId] = useState(gistId || '');
   const [tempGistToken, setTempGistToken] = useState(gistToken || '');
@@ -104,39 +90,6 @@ export const HomeView = () => {
   });
   const itemsPerPage = 24;
   const observer = useRef<IntersectionObserver | null>(null);
-
-  // Auto-hiding footer state
-  const [isFooterVisible, setIsFooterVisible] = useState(true);
-  const lastScrollY = useRef(0);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      // Always show at the top or if searching
-      if (currentScrollY < 10) {
-        setIsFooterVisible(true);
-        lastScrollY.current = currentScrollY;
-        return;
-      }
-
-      // Only toggle visibility if we've scrolled a minimum distance (to avoid jitter)
-      if (Math.abs(currentScrollY - lastScrollY.current) < 10) return;
-
-      if (currentScrollY > lastScrollY.current) {
-        // Scrolling down
-        setIsFooterVisible(false);
-      } else {
-        // Scrolling up
-        setIsFooterVisible(true);
-      }
-      
-      lastScrollY.current = currentScrollY;
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const showLibrary = !isSearchFocused;
   const isLibraryEmpty = watchlist.length === 0 && watched.length === 0;
@@ -163,6 +116,7 @@ export const HomeView = () => {
   }, [baseLibraryMedia, sort, showEditedOnly, editedStatusMap, showFavoritesOnly]);
 
   const hasGistSync = !!(gistId && gistToken);
+  const activeLibraryMode = showFavoritesOnly ? 'favorites' : showWatched ? 'watched' : 'watchlist';
 
   useEffect(() => {
     if (!showSyncModal) return;
@@ -203,6 +157,29 @@ export const HomeView = () => {
     });
     showStatus('Edited');
     setShowSortMenu(false);
+  };
+
+  const selectLibraryMenuOption = (nextFilter: 'movie' | 'tv', mode: 'watchlist' | 'watched' | 'favorites') => {
+    startTransition(() => {
+      setFilter(nextFilter);
+
+      if (mode === 'watchlist') {
+        setShowWatched(false);
+        setShowFavoritesOnly(false);
+      } else if (mode === 'watched') {
+        setShowWatched(true);
+        setShowFavoritesOnly(false);
+      } else {
+        setShowWatched(true);
+        setShowFavoritesOnly(true);
+        setShowEditedOnly(false);
+      }
+    });
+
+    showStatus(mode === 'watchlist' ? 'Watchlist' : mode === 'watched' ? 'Watched' : 'Favorites');
+    setShowSortMenu(false);
+    setShowLibraryMenu(null);
+    window.scrollTo(0, 0);
   };
     
   const displayMedia = useMemo(() => libraryMedia.slice(0, visibleItemsCount), [libraryMedia, visibleItemsCount]);
@@ -374,26 +351,9 @@ export const HomeView = () => {
       <DetailsSheet />
       <SearchSheet />
 
-      {/* Floating Search Button */}
-      {!isSearchFocused && (
-        <button
-          onClick={() => startTransition(() => setIsSearchFocused(true))}
-          className={clsx(
-            "fixed bottom-36 right-4 z-40 w-11 h-11 bg-brand-bg/80 backdrop-blur-md blueprint-border text-brand-cyan rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.3)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-500 group",
-            !isFooterVisible ? "translate-y-[120px]" : "translate-y-0"
-          )}
-          title="Search"
-        >
-          <SearchIcon size={20} className="group-hover:rotate-12 transition-transform" />
-        </button>
-      )}
-
       {/* Fixed Bottom Bar */}
       {!isSearchFocused && (
-        <div className={clsx(
-          "fixed bottom-0 left-0 right-0 z-30 bg-brand-bg/40 backdrop-blur-xl border-t border-white/[0.04] transition-transform duration-500",
-          !isFooterVisible ? "translate-y-full" : "translate-y-0"
-        )}>
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-brand-bg/40 backdrop-blur-xl border-t border-white/[0.04]">
           {/* Floating status pill — pops up above the bar */}
           <div
             aria-live="polite"
@@ -407,192 +367,234 @@ export const HomeView = () => {
             {persistentStatus || statusLabel}
           </div>
 
-          <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col items-center gap-3 relative">
-            {/* Row 1: Primary Navigation + Sort */}
-            <div className="flex items-center justify-center w-full relative">
-              {/* Watchlist / History Tabs (Centered) */}
-              <div className="flex p-1 bg-brand-bg/50 blueprint-border rounded-xl w-[240px] transition-colors duration-300">
+          <div className="max-w-7xl mx-auto px-4 py-2 relative">
+            <div className="grid grid-cols-4 gap-2">
+              <div className="relative rounded-xl bg-brand-bg/50 blueprint-border p-1">
+                {showSortMenu && (
+                  <div className="absolute bottom-full left-0 mb-2 py-2 w-48 rounded-xl bg-brand-bg blueprint-border shadow-xl z-20">
+                    <button
+                      onClick={() => {
+                        startTransition(() => setSort('added'));
+                        showStatus('Recently Added');
+                        setShowSortMenu(false);
+                      }}
+                      className={clsx(
+                        'w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors',
+                        (sort || 'added') === 'added'
+                          ? 'text-brand-cyan'
+                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
+                      )}
+                    >
+                      Recently Added
+                    </button>
+                    <button
+                      onClick={() => {
+                        startTransition(() => setSort('title'));
+                        showStatus('Title A–Z');
+                        setShowSortMenu(false);
+                      }}
+                      className={clsx(
+                        'w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors',
+                        sort === 'title'
+                          ? 'text-brand-cyan'
+                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
+                      )}
+                    >
+                      Title
+                    </button>
+                    <button
+                      onClick={() => {
+                        startTransition(() => setSort('release'));
+                        showStatus('Release Date');
+                        setShowSortMenu(false);
+                      }}
+                      className={clsx(
+                        'w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors',
+                        sort === 'release'
+                          ? 'text-brand-cyan'
+                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
+                      )}
+                    >
+                      Release Date
+                    </button>
+
+                    <div className="h-px bg-white/5 my-1" />
+
+                    <button
+                      onClick={() => {
+                        void handleEditedFilterClick();
+                      }}
+                      className={clsx(
+                        'w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors',
+                        showEditedOnly
+                          ? 'text-amber-500 bg-amber-500/5'
+                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck size={16} className={showEditedOnly ? 'fill-current' : ''} />
+                        Edited
+                      </div>
+                      {showEditedOnly && <Check size={14} className="text-amber-500" />}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowSyncModal(true);
+                        setShowSortMenu(false);
+                      }}
+                      className={clsx(
+                        'w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors',
+                        hasGistSync
+                          ? 'text-emerald-400 bg-emerald-500/5'
+                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex items-center justify-center w-4 h-4">
+                          {hasGistSync && <span className="absolute w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]" />}
+                        </span>
+                        Sync
+                      </div>
+                    </button>
+                  </div>
+                )}
                 <button
                   onClick={() => {
-                    startTransition(() => setShowWatched(false));
-                    showStatus('Watchlist');
-                    window.scrollTo(0, 0);
+                    setShowLibraryMenu(null);
+                    setShowSortMenu(!showSortMenu);
                   }}
                   className={clsx(
-                    "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all",
-                    !showWatched 
-                      ? "bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
-                      : "text-brand-silver hover:text-white"
+                    'w-full flex items-center justify-center py-2 px-2 rounded-lg text-xs font-bold transition-all',
+                    showSortMenu
+                      ? 'bg-brand-cyan/10 text-brand-cyan'
+                      : 'text-brand-silver hover:text-white'
                   )}
+                  title="Sort & Filter"
                 >
-                  <Bookmark size={14} />
-                  Watchlist
-                </button>
-                <button
-                  onClick={() => {
-                    startTransition(() => setShowWatched(true));
-                    showStatus('Watched');
-                    window.scrollTo(0, 0);
-                  }}
-                  className={clsx(
-                    "flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-bold transition-all",
-                    showWatched 
-                      ? "bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
-                      : "text-brand-silver hover:text-white"
-                  )}
-                >
-                  <CheckCircle2 size={14} />
-                  Watched
+                  Filter
                 </button>
               </div>
 
-              {/* Sort Menu (Absolutely positioned to the right of the centered toggle) */}
-              {showLibrary && (
-                <div className="absolute right-0">
-                  <button
-                    onClick={() => setShowSortMenu(!showSortMenu)}
-                    className={clsx(
-                      "flex items-center justify-center w-9 h-9 rounded-xl transition-all",
-                      showSortMenu 
-                        ? "bg-brand-cyan/10 text-brand-cyan" 
-                        : "bg-brand-bg/50 blueprint-border text-brand-silver hover:text-brand-cyan"
-                    )}
-                    title="Sort & Filter"
-                  >
-                    <SlidersHorizontal size={18} />
-                  </button>
-
-                  {showSortMenu && (
-                    <div className="absolute bottom-full right-0 mb-2 py-2 w-48 rounded-xl bg-brand-bg blueprint-border shadow-xl z-20">
-                      <button
-                        onClick={() => {
-                          startTransition(() => setSort('added'));
-                          showStatus('Recently Added');
-                          setShowSortMenu(false);
-                        }}
-                        className={clsx(
-                          "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
-                          (sort || 'added') === 'added'
-                            ? "text-brand-cyan"
-                            : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                        )}
-                      >
-                        Recently Added
-                      </button>
-                      <button
-                        onClick={() => {
-                          startTransition(() => setSort('title'));
-                          showStatus('Title A–Z');
-                          setShowSortMenu(false);
-                        }}
-                        className={clsx(
-                          "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
-                          sort === 'title'
-                            ? "text-brand-cyan"
-                            : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                        )}
-                      >
-                        Title
-                      </button>
-                      <button
-                        onClick={() => {
-                          startTransition(() => setSort('release'));
-                          showStatus('Release Date');
-                          setShowSortMenu(false);
-                        }}
-                        className={clsx(
-                          "w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors",
-                          sort === 'release'
-                            ? "text-brand-cyan"
-                            : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                        )}
-                      >
-                        Release Date
-                      </button>
-
-                      <div className="h-px bg-white/5 my-1" />
-
-                      {showWatched && (
-                        <button
-                          onClick={() => {
-                            startTransition(() => {
-                              const newValue = !showFavoritesOnly;
-                              setShowFavoritesOnly(newValue);
-                              if (newValue) setShowEditedOnly(false);
-                              showStatus(newValue ? 'Favorites' : 'Showing All');
-                            });
-                            setShowSortMenu(false);
-                          }}
-                          className={clsx(
-                            "w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors",
-                            showFavoritesOnly
-                              ? "text-red-500 bg-red-500/5"
-                              : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                          )}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Heart size={16} className={showFavoritesOnly ? 'fill-current' : ''} />
-                            Favorites
-                          </div>
-                          {showFavoritesOnly && <Check size={14} className="text-red-500" />}
-                        </button>
+              <div className="relative rounded-xl bg-brand-bg/50 blueprint-border p-1">
+                {showLibraryMenu === 'movie' && (
+                  <div className="absolute bottom-full left-0 mb-2 w-44 rounded-xl bg-brand-bg blueprint-border shadow-xl overflow-hidden">
+                    <button
+                      onClick={() => selectLibraryMenuOption('movie', 'watchlist')}
+                      className={clsx(
+                        'w-full px-3 py-3 text-left text-sm font-bold transition-colors',
+                        (filter || 'movie') === 'movie' && activeLibraryMode === 'watchlist'
+                          ? 'text-brand-cyan bg-brand-cyan/5'
+                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
                       )}
-
-                      <button
-                        onClick={() => {
-                          void handleEditedFilterClick();
-                        }}
-                        className={clsx(
-                          "w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors",
-                          showEditedOnly
-                            ? "text-amber-500 bg-amber-500/5"
-                            : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <ShieldCheck size={16} className={showEditedOnly ? 'fill-current' : ''} />
-                          Edited
-                        </div>
-                        {showEditedOnly && <Check size={14} className="text-amber-500" />}
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setShowSyncModal(true);
-                          setShowSortMenu(false);
-                        }}
-                        className={clsx(
-                          "w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors",
-                          hasGistSync
-                            ? "text-emerald-400 bg-emerald-500/5"
-                            : "text-brand-silver hover:text-white hover:bg-brand-bg/50"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="relative flex items-center justify-center w-4 h-4">
-                            {hasGistSync && <span className="absolute w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]" />}
-                          </span>
-                          Sync
-                        </div>
-                      </button>
-
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Row 2: Secondary Filter (Centered) */}
-            <div className="flex items-center justify-center w-full relative">
-              <div className="flex items-center justify-center w-full max-w-sm">
-                <FilterTabs
-                  currentFilter={filter || 'movie'}
-                  onFilterChange={(f) => {
-                    startTransition(() => setFilter(f));
-                    showStatus(f === 'movie' ? 'Movies' : 'TV Shows');
-                    window.scrollTo(0, 0);
+                    >
+                      Watchlist
+                    </button>
+                    <button
+                      onClick={() => selectLibraryMenuOption('movie', 'watched')}
+                      className={clsx(
+                        'w-full px-3 py-3 text-left text-sm font-bold transition-colors',
+                        (filter || 'movie') === 'movie' && activeLibraryMode === 'watched'
+                          ? 'text-brand-cyan bg-brand-cyan/5'
+                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
+                      )}
+                    >
+                      Watched
+                    </button>
+                    <button
+                      onClick={() => selectLibraryMenuOption('movie', 'favorites')}
+                      className={clsx(
+                        'w-full px-3 py-3 text-left text-sm font-bold transition-colors',
+                        (filter || 'movie') === 'movie' && activeLibraryMode === 'favorites'
+                          ? 'text-brand-cyan bg-brand-cyan/5'
+                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
+                      )}
+                    >
+                      Favorites
+                    </button>
+                  </div>
+                )}
+                <button
+                  onClick={() => {
+                    setShowSortMenu(false);
+                    setShowLibraryMenu((current) => current === 'movie' ? null : 'movie');
                   }}
-                />
+                  className={clsx(
+                    'w-full flex items-center justify-center py-2 px-2 rounded-lg text-xs font-bold transition-all',
+                    (filter || 'movie') === 'movie'
+                      ? 'bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]' 
+                      : 'text-brand-silver hover:text-white'
+                  )}
+                >
+                  Movies
+                </button>
+              </div>
+
+              <div className="relative rounded-xl bg-brand-bg/50 blueprint-border p-1">
+                {showLibraryMenu === 'tv' && (
+                  <div className="absolute bottom-full right-0 mb-2 w-44 rounded-xl bg-brand-bg blueprint-border shadow-xl overflow-hidden">
+                    <button
+                      onClick={() => selectLibraryMenuOption('tv', 'watchlist')}
+                      className={clsx(
+                        'w-full px-3 py-3 text-left text-sm font-bold transition-colors',
+                        filter === 'tv' && activeLibraryMode === 'watchlist'
+                          ? 'text-brand-cyan bg-brand-cyan/5'
+                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
+                      )}
+                    >
+                      Watchlist
+                    </button>
+                    <button
+                      onClick={() => selectLibraryMenuOption('tv', 'watched')}
+                      className={clsx(
+                        'w-full px-3 py-3 text-left text-sm font-bold transition-colors',
+                        filter === 'tv' && activeLibraryMode === 'watched'
+                          ? 'text-brand-cyan bg-brand-cyan/5'
+                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
+                      )}
+                    >
+                      Watched
+                    </button>
+                    <button
+                      onClick={() => selectLibraryMenuOption('tv', 'favorites')}
+                      className={clsx(
+                        'w-full px-3 py-3 text-left text-sm font-bold transition-colors',
+                        filter === 'tv' && activeLibraryMode === 'favorites'
+                          ? 'text-brand-cyan bg-brand-cyan/5'
+                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
+                      )}
+                    >
+                      Favorites
+                    </button>
+                  </div>
+                )}
+                <button
+                  onClick={() => {
+                    setShowSortMenu(false);
+                    setShowLibraryMenu((current) => current === 'tv' ? null : 'tv');
+                  }}
+                  className={clsx(
+                    'w-full flex items-center justify-center py-2 px-2 rounded-lg text-xs font-bold transition-all',
+                    filter === 'tv'
+                      ? 'bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]' 
+                      : 'text-brand-silver hover:text-white'
+                  )}
+                >
+                  Shows
+                </button>
+              </div>
+
+              <div className="rounded-xl bg-brand-bg/50 blueprint-border p-1">
+                <button
+                  onClick={() => {
+                    startTransition(() => setIsSearchFocused(true));
+                    setShowSortMenu(false);
+                    setShowLibraryMenu(null);
+                  }}
+                  className="w-full flex items-center justify-center py-2 px-2 rounded-lg text-xs font-bold text-brand-silver hover:text-white transition-all"
+                >
+                  Search
+                </button>
               </div>
             </div>
           </div>
