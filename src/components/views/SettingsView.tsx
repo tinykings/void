@@ -3,21 +3,19 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { Key, Save, ExternalLink, RefreshCw, ArrowLeft, ShieldCheck, User, LogOut } from 'lucide-react';
+import { Save, ExternalLink, RefreshCw, ArrowLeft, ShieldCheck, User, LogOut } from 'lucide-react';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 
 export const SettingsView = () => {
   const router = useRouter();
   const {
-    apiKey, setApiKey,
     syncFromTMDB, isSyncing,
     loginWithTMDB, logoutTMDB,
     tmdbSessionId, tmdbAccountId,
     vidAngelEnabled, setVidAngelEnabled,
   } = useAppContext();
 
-  const [tempApiKey, setTempApiKey] = useState(apiKey);
   const [tempVidAngelEnabled, setTempVidAngelEnabled] = useState(!!vidAngelEnabled);
   const [saved, setSaved] = useState(false);
 
@@ -26,7 +24,6 @@ export const SettingsView = () => {
   // Removing the useEffect that was causing the lint error.
 
   const handleSave = () => {
-    setApiKey(tempApiKey);
     setVidAngelEnabled(tempVidAngelEnabled);
     setSaved(true);
     toast.success('Settings saved successfully');
@@ -68,13 +65,12 @@ export const SettingsView = () => {
           </div>
 
           <p className="text-sm text-brand-silver mb-4">
-            Log in to your TMDB account and approve the 3rd party app request to sync your watchlist and history across all your devices.
+            Log in to your TMDB account to sync your watchlist and history across all your devices.
           </p>
 
           {!tmdbSessionId ? (
             <button
               onClick={loginWithTMDB}
-              disabled={!tempApiKey}
               className="w-full py-3 bg-brand-bg blueprint-border rounded-xl font-bold text-white hover:bg-brand-cyan/10 transition-colors disabled:opacity-50"
             >
               Login with TMDB
@@ -112,33 +108,6 @@ export const SettingsView = () => {
               </div>
             </div>
           )}
-        </section>
-
-        <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">
-          <div className="flex items-center gap-2 mb-4">
-            <Key className="text-brand-cyan" size={20} />
-            <h2 className="text-lg font-semibold text-white">TMDB API Key</h2>
-          </div>
-
-          <p className="text-sm text-brand-silver mb-4">
-            To use this app, you need a free API key from The Movie Database.
-            <a
-              href="https://developer.themoviedb.org/reference/intro/getting-started"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-brand-cyan flex items-center gap-1 mt-1 font-medium hover:underline"
-            >
-              Get one here <ExternalLink size={14} />
-            </a>
-          </p>
-
-          <input
-            type="password"
-            value={tempApiKey}
-            onChange={(e) => setTempApiKey(e.target.value)}
-            placeholder="Enter your TMDB API key..."
-            className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
-          />
         </section>
 
         <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">

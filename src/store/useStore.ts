@@ -5,6 +5,8 @@ import { Media, UserState, FilterType, SortOption } from '@/lib/types';
 import { getMediaDetails, createRequestToken, getAccountLists, toggleWatchlistStatus, rateMedia, deleteRating } from '@/lib/tmdb';
 import { toast } from 'sonner';
 
+const DEFAULT_TMDB_ACCESS_TOKEN = process.env.NEXT_PUBLIC_TMDB_READ_ACCESS_TOKEN || '';
+
 // Custom storage object for IndexedDB
 const storage: StateStorage = {
   getItem: async (name: string): Promise<string | null> => {
@@ -211,7 +213,7 @@ export const useStore = create<StoreState>()(
 
       return {
         // Initial State
-        apiKey: '',
+        apiKey: DEFAULT_TMDB_ACCESS_TOKEN,
         watchlist: [],
         watched: [],
         vidAngelEnabled: false,
@@ -484,9 +486,9 @@ export const useStore = create<StoreState>()(
     {
       name: 'void_user_state',
       storage: createJSONStorage(() => storage),
-      onRehydrateStorage: () => {
-        // Migration bridge: If IndexedDB is empty, try to import from localStorage
-        return async (rehydratedState, error) => {
+        onRehydrateStorage: () => {
+          // Migration bridge: If IndexedDB is empty, try to import from localStorage
+          return async (rehydratedState, error) => {
           if (error) {
             console.error('Rehydration error:', error);
             return;
@@ -511,6 +513,9 @@ export const useStore = create<StoreState>()(
                 console.error('Failed to migrate localStorage data', e);
               }
             }
+          }
+          if (DEFAULT_TMDB_ACCESS_TOKEN) {
+            rehydratedState?.setApiKey(DEFAULT_TMDB_ACCESS_TOKEN);
           }
           rehydratedState?.setIsLoaded(true);
         };

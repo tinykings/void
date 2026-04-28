@@ -21,7 +21,7 @@
 
 ## Overview
 
-VOID is a personal media tracker built as a static Next.js app deployed to GitHub Pages. Track your watchlist and watch history for movies and TV shows, sync with your TMDB account, and launch content directly in external streaming players — all from the browser with no backend required.
+VOID is a personal media tracker built as a static Next.js app deployed to GitHub Pages. Track your watchlist and watch history for movies and TV shows, sync with your TMDB account, and browse TMDB metadata from the browser with no backend required.
 
 Data lives entirely in your browser (IndexedDB) or within your TMDB profile.
 
@@ -37,13 +37,10 @@ Data lives entirely in your browser (IndexedDB) or within your TMDB profile.
 - **Trending** — Browse weekly trending content from TMDB when opening search.
 - **Media Details** — Full detail pages with cast, trailers, watch providers, season/episode info, content ratings, and next episode data.
 
-### Sync & Backup
 - **TMDB Account Sync** — OAuth login syncs your TMDB watchlist and rated items with local state. Rate-limited to 30-second cooldowns.
-- **GitHub Gist Backup** — Optionally back up your watchlist and library to a Gist in a human-readable format for cross-device access.
 
 ### Streaming Integration
-- **External Players** — Launch movies or episodes directly in external streaming sites via configurable URL templates. Supported players include Cineby, Bitcine, Fmovies, XPrime, and RiveStream.
-- **TV Remote Play** — Send content from your phone to a TV receiver page polling a GitHub Gist queue, enabling a remote-play workflow across devices.
+- **Watch Providers** — Click provider icons to open JustWatch search results for that title.
 - **VidAngel** — Optional content filtering integration. Shows an "Edited" badge and filter toggle when enabled.
 
 ### App Experience
@@ -55,17 +52,12 @@ Data lives entirely in your browser (IndexedDB) or within your TMDB profile.
 ## Setup
 
 ### Requirements
-- A free [TMDB API key](https://developer.themoviedb.org/reference/intro/getting-started)
+- A TMDB Read Access Token set in `NEXT_PUBLIC_TMDB_READ_ACCESS_TOKEN`
 
 ### Quick Start
 1. Open the app at [tinykings.github.io/void](https://tinykings.github.io/void/)
-2. Go to **Settings** and enter your TMDB API key
-3. Optionally log in with TMDB to enable account sync
-
-### Optional: TV Remote Play
-1. Enable **TV Support** in Settings
-2. Copy the TV receiver URL and open it on your TV or second screen
-3. Use the play button on any movie/episode to push content to the TV
+2. Click **Login with TMDB** to enable account sync
+3. Browse and use provider links directly from the details page
 
 ## Tech Stack
 
@@ -77,7 +69,7 @@ Data lives entirely in your browser (IndexedDB) or within your TMDB profile.
 | Animations | Framer Motion |
 | State | Zustand 5 |
 | Persistence | IndexedDB via `idb-keyval` |
-| Data | TMDB API v3 |
+| Data | TMDB API v3/v4 |
 | Hosting | GitHub Pages |
 
 ## Architecture
@@ -87,7 +79,7 @@ src/
 ├── app/                  # Next.js App Router pages
 │   ├── page.tsx          # Home page (watchlist/history/search)
 │   ├── details/          # Media detail page
-│   └── tv/               # TV receiver page
+│   └── ...               # Other routes
 ├── components/
 │   ├── views/            # Page-level views (HomeView, SettingsView)
 │   └── ...               # Shared UI components
@@ -120,12 +112,9 @@ GitHub Actions builds and deploys to GitHub Pages on every push to `main`. The s
 
 | Setting | Description |
 |---|---|
-| TMDB API Key | Required for all media data |
 | TMDB Login | OAuth sync with your TMDB account |
-| External Player | Enable launch buttons with a choice of streaming site |
+| Watch Providers | Open JustWatch search from provider icons |
 | VidAngel | Enable content filtering badges and filter |
-| TV Support | Enable remote play to a second screen via Gist queue |
-| Gist Backup | Auto-backup watchlist and library to a GitHub Gist |
 
 ## License
 
