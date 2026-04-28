@@ -26,8 +26,11 @@ interface AppContextType extends UserState {
   setIsSearchFocused: (focused: boolean) => void;
   syncFromGist: () => Promise<void>;
   activeDetailsMedia: Media | null;
+  activePosterMedia: Media | null;
   openDetails: (media: Media) => void;
   closeDetails: () => void;
+  openPoster: (media: Media) => void;
+  closePoster: () => void;
 
   // Episode tracking
   markEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
@@ -46,8 +49,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const initialGistSyncDone = useRef('');
   const initialViewApplied = useRef(false);
   const [activeDetailsMedia, setActiveDetailsMedia] = useState<Media | null>(null);
-  const openDetails = useCallback((media: Media) => setActiveDetailsMedia(media), []);
-  const closeDetails = useCallback(() => setActiveDetailsMedia(null), []);
+  const [activePosterMedia, setActivePosterMedia] = useState<Media | null>(null);
+  const openDetails = useCallback((media: Media) => {
+    setActivePosterMedia(null);
+    setActiveDetailsMedia(media);
+  }, []);
+  const closeDetails = useCallback(() => {
+    setActivePosterMedia(null);
+    setActiveDetailsMedia(null);
+  }, []);
+  const openPoster = useCallback((media: Media) => setActivePosterMedia(media), []);
+  const closePoster = useCallback(() => setActivePosterMedia(null), []);
 
   // Service worker registration
   useEffect(() => {
@@ -157,8 +169,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setMediaEditedStatus: store.setMediaEditedStatus,
     setIsSearchFocused: store.setIsSearchFocused,
     activeDetailsMedia,
+    activePosterMedia,
     openDetails,
     closeDetails,
+    openPoster,
+    closePoster,
 
     markEpisodePlayed: store.markEpisodePlayed,
     unmarkEpisodePlayed: store.unmarkEpisodePlayed,
@@ -172,8 +187,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     watchedIds,
     watchedMap,
     activeDetailsMedia,
+    activePosterMedia,
     openDetails,
     closeDetails,
+    openPoster,
+    closePoster,
   ]);
 
   return (

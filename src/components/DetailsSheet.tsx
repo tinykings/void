@@ -18,6 +18,7 @@ export const DetailsSheet = () => {
     watchedIds,
     watchedMap,
     openDetails,
+    openPoster,
     toggleWatchlist,
     toggleWatched,
     toggleFavorite,
@@ -262,15 +263,23 @@ export const DetailsSheet = () => {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pb-4">
+              <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pb-2">
                 <div className="pt-4 grid grid-cols-[88px_1fr] gap-4 items-start">
-                  <div className="aspect-[2/3] rounded-xl overflow-hidden blueprint-border bg-brand-bg/50">
+                  <button
+                    type="button"
+                    onClick={() => selected.poster_path && openPoster(selected)}
+                    disabled={!selected.poster_path}
+                    className={clsx(
+                      'aspect-[2/3] rounded-xl overflow-hidden blueprint-border bg-brand-bg/50 text-left',
+                      selected.poster_path ? 'cursor-zoom-in' : 'cursor-default'
+                    )}
+                  >
                     {selected.poster_path ? (
                       <img src={getImageUrl(selected.poster_path, 'w342')} alt={title} className="w-full h-full object-cover" decoding="async" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-brand-silver text-xs text-center p-2">No poster</div>
                     )}
-                  </div>
+                  </button>
 
                   <div className="space-y-3">
                     <p className="text-sm text-brand-silver leading-relaxed line-clamp-4">
@@ -416,6 +425,10 @@ export const DetailsSheet = () => {
                     ) : (
                       <p className="text-sm text-brand-silver py-10 text-center">No trailers found.</p>
                     )}
+
+                    <p className="pt-1 text-center text-[10px] uppercase tracking-[0.2em] text-brand-silver/60">
+                      Data provided by TMDB
+                    </p>
                   </div>
                 </div>
               </div>

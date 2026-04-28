@@ -6,6 +6,7 @@ import { Media } from '@/lib/types';
 import { MediaCard } from '@/components/MediaCard';
 import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
 import { DetailsSheet } from '@/components/DetailsSheet';
+import { PosterSheet } from '@/components/PosterSheet';
 import { SearchSheet } from '@/components/SearchSheet';
 import { sortMedia } from '@/lib/sort';
 import { AlertCircle, X, ShieldCheck, Check, Save, Eye, EyeOff } from 'lucide-react';
@@ -349,6 +350,7 @@ export const HomeView = () => {
       )}
 
       <DetailsSheet />
+      <PosterSheet />
       <SearchSheet />
 
       {/* Fixed Bottom Bar */}
