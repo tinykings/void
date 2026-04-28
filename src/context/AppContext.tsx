@@ -22,8 +22,6 @@ interface AppContextType extends UserState {
   toggleFavorite: (media: Media) => void;
   updateMediaMetadata: (id: number, type: 'movie' | 'tv', metadata: Partial<Media>) => void;
   setMediaEditedStatus: (id: number, type: 'movie' | 'tv', isEdited: boolean) => void;
-  onboardingCompleted: boolean;
-  setOnboardingCompleted: (completed: boolean) => void;
   isSearchFocused: boolean;
   setIsSearchFocused: (focused: boolean) => void;
   syncFromGist: () => Promise<void>;
@@ -113,8 +111,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     toggleFavorite: store.toggleFavorite,
     updateMediaMetadata: store.updateMediaMetadata,
     setMediaEditedStatus: store.setMediaEditedStatus,
-    onboardingCompleted: store.onboardingCompleted || false,
-    setOnboardingCompleted: store.setOnboardingCompleted,
     setIsSearchFocused: store.setIsSearchFocused,
 
     markEpisodePlayed: store.markEpisodePlayed,

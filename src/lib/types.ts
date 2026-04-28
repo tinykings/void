@@ -172,7 +172,6 @@ export interface UserState {
   showEditedOnly?: boolean;
   showFavoritesOnly?: boolean;
   isSearchFocused?: boolean;
-  onboardingCompleted?: boolean;
   editedStatusMap: Record<string, boolean>;
   playedEpisodes: Record<string, boolean>;
 }

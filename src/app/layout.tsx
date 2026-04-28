@@ -38,12 +38,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} bg-brand-bg text-foreground min-h-screen transition-colors duration-300`}>
+      <body className={`${inter.className} bg-brand-bg text-foreground min-h-screen flex flex-col transition-colors duration-300`}>
         <AppProvider>
           <OfflineGuard>
-            <main className="w-full min-h-screen transition-colors duration-300">
+            <main className="w-full min-h-screen flex-1 transition-colors duration-300">
               {children}
             </main>
+            <footer className="w-full py-4 text-center text-xs text-brand-silver/50">
+              Data provided by TMDB.
+            </footer>
           </OfflineGuard>
           <Toaster position="bottom-center" theme="dark" closeButton />
         </AppProvider>

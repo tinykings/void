@@ -3,15 +3,13 @@
 import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { HomeView } from '@/components/views/HomeView';
-import { SettingsView } from '@/components/views/SettingsView';
-import { Onboarding } from '@/components/Onboarding';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 
 function MainContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { isLoaded, apiKey, onboardingCompleted } = useAppContext();
+  const { isLoaded } = useAppContext();
   
   const activeTab = searchParams.get('tab') || 'home';
 
@@ -29,18 +27,12 @@ function MainContent() {
     );
   }
 
-  if (!apiKey || !onboardingCompleted) {
-    return <Onboarding />;
-  }
-
   const renderView = () => {
     switch (activeTab) {
       case 'home':
-        return <HomeView onGoToSettings={() => setTab('settings')} />;
-      case 'settings':
-        return <SettingsView />;
+        return <HomeView />;
       default:
-        return <HomeView onGoToSettings={() => setTab('settings')} />;
+        return <HomeView />;
     }
   };
 

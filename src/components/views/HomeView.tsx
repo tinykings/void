@@ -8,7 +8,7 @@ import { MediaCard } from '@/components/MediaCard';
 import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
 import { FilterTabs } from '@/components/FilterTabs';
 import { sortMedia } from '@/lib/sort';
-import { AlertCircle, Settings, Search as SearchIcon, X, ArrowLeft, ArrowRight, ShieldCheck, Bookmark, CheckCircle2, Heart, SlidersHorizontal, Check, Save, Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, Search as SearchIcon, X, ArrowLeft, ArrowRight, ShieldCheck, Bookmark, CheckCircle2, Heart, SlidersHorizontal, Check, Save, Eye, EyeOff } from 'lucide-react';
 import { clsx } from 'clsx';
 
 function useDebouncedCallback<T extends (...args: any[]) => any>(callback: T, delay: number): T {
@@ -24,11 +24,7 @@ function useDebouncedCallback<T extends (...args: any[]) => any>(callback: T, de
   }, [callback, delay]) as unknown as T;
 }
 
-interface HomeViewProps {
-  onGoToSettings: () => void;
-}
-
-export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
+export const HomeView = () => {
   const {
     apiKey, 
     isLoaded, 
@@ -417,26 +413,6 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
 
   if (!isLoaded) return null;
 
-  if (!apiKey) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
-        <div className="bg-indigo-50 dark:bg-indigo-900/20 p-6 rounded-full mb-6">
-          <Settings size={48} className="text-indigo-600 dark:text-indigo-400" />
-        </div>
-        <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Welcome to Void</h1>
-        <p className="text-gray-600 dark:text-gray-400 mb-8">
-          To get started and browse movies, please add your TMDB API key in settings.
-        </p>
-        <button 
-          onClick={onGoToSettings}
-          className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors"
-        >
-          Go to Settings
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-7xl mx-auto px-2 pt-4 pb-[160px] relative">
       {/* Search field at top — visible when search is open */}
@@ -627,19 +603,8 @@ export const HomeView = ({ onGoToSettings }: HomeViewProps) => {
           </div>
 
           <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col items-center gap-3 relative">
-            {/* Row 1: Primary Navigation + Settings + Sort */}
+            {/* Row 1: Primary Navigation + Sort */}
             <div className="flex items-center justify-center w-full relative">
-              {/* Settings button on the far left */}
-              <div className="absolute left-0">
-                <button
-                  onClick={onGoToSettings}
-                  className="flex items-center justify-center w-9 h-9 rounded-xl bg-brand-bg/50 blueprint-border text-brand-silver hover:text-brand-cyan transition-all"
-                  title="Settings"
-                >
-                  <Settings size={18} />
-                </button>
-              </div>
-
               {/* Watchlist / History Tabs (Centered) */}
               <div className="flex p-1 bg-brand-bg/50 blueprint-border rounded-xl w-[240px] transition-colors duration-300">
                 <button
