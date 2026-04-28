@@ -298,8 +298,9 @@ export const DetailsSheet = () => {
                       inWatchlist ? 'bg-brand-cyan/15 text-brand-cyan' : 'bg-white/5 text-white hover:bg-white/10'
                     )}
                   >
-                    <Bookmark size={14} className={compactActions ? '' : 'hidden min-[1000px]:inline'} />
+                    <Bookmark size={14} className="hidden min-[1000px]:inline" />
                     <span className={compactActions ? 'hidden min-[1000px]:inline text-xs font-black uppercase tracking-widest' : 'text-xs font-black uppercase tracking-widest'}>Watchlist</span>
+                    <span className={compactActions ? 'text-xs font-black uppercase tracking-widest min-[1000px]:hidden' : 'hidden'}>List</span>
                   </button>
                   <button
                     onClick={handleWatchedToggle}
@@ -311,8 +312,9 @@ export const DetailsSheet = () => {
                       inWatched ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/5 text-white hover:bg-white/10'
                     )}
                   >
-                    <Eye size={14} className={compactActions ? '' : 'hidden min-[1000px]:inline'} />
+                    <Eye size={14} className="hidden min-[1000px]:inline" />
                     <span className={compactActions ? 'hidden min-[1000px]:inline text-xs font-black uppercase tracking-widest' : 'text-xs font-black uppercase tracking-widest'}>Watched</span>
+                    <span className={compactActions ? 'text-xs font-black uppercase tracking-widest min-[1000px]:hidden' : 'hidden'}>Watched</span>
                   </button>
                   {inWatched && (
                     <button
@@ -325,8 +327,9 @@ export const DetailsSheet = () => {
                         isFavorite ? 'bg-red-500/15 text-red-300' : 'bg-white/5 text-white hover:bg-white/10'
                       )}
                     >
-                      <Heart size={14} className={isFavorite ? 'fill-current' : ''} />
+                      <Heart size={14} className={isFavorite ? 'fill-current hidden min-[1000px]:inline' : 'hidden min-[1000px]:inline'} />
                       <span className="hidden min-[1000px]:inline text-xs font-black uppercase tracking-widest">Favorite</span>
+                      <span className="text-xs font-black uppercase tracking-widest min-[1000px]:hidden">Fav</span>
                     </button>
                   )}
                 </div>

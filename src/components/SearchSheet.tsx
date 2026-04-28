@@ -118,7 +118,8 @@ export const SearchSheet = () => {
           }
         >
           {!isLibraryEmpty && (
-            <div className="flex items-center justify-end px-4 py-3 border-b border-white/5 bg-brand-bg/80">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-brand-bg/80">
+              <h2 className="text-lg font-black text-white uppercase tracking-tight leading-tight">Search</h2>
               <button
                 onClick={closeSheet}
                 className="p-2 text-brand-silver hover:text-white transition-colors bg-white/5 rounded-full"
