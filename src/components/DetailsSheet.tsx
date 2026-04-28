@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
-import { getImageUrl, getMediaCredits, getContentRating, getMediaDetails, getMediaVideos } from '@/lib/tmdb';
-import { CastMember, Media, Video } from '@/lib/types';
+import { getImageUrl, getMediaCredits, getContentRating, getMediaDetails, getMediaVideos, getWatchProviders } from '@/lib/tmdb';
+import { CastMember, Media, Video, WatchProvider } from '@/lib/types';
 import { Bookmark, Eye, Heart, Play, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
@@ -17,6 +17,7 @@ export const DetailsSheet = () => {
     watchlistIds,
     watchedIds,
     watchedMap,
+    openDetails,
     toggleWatchlist,
     toggleWatched,
     toggleFavorite,
@@ -26,9 +27,11 @@ export const DetailsSheet = () => {
   const [details, setDetails] = useState<Media | null>(null);
   const [cast, setCast] = useState<CastMember[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
+  const [watchProviders, setWatchProviders] = useState<WatchProvider[]>([]);
   const [contentRating, setContentRating] = useState<string | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [trailersLoading, setTrailersLoading] = useState(false);
+  const [providersLoadedFor, setProvidersLoadedFor] = useState<number | null>(null);
   const [overviewLoadedFor, setOverviewLoadedFor] = useState<number | null>(null);
   const [trailersLoadedFor, setTrailersLoadedFor] = useState<number | null>(null);
   const [modalConfig, setModalConfig] = useState<{
@@ -64,12 +67,38 @@ export const DetailsSheet = () => {
     setDetails(activeDetailsMedia);
     setCast([]);
     setVideos([]);
+    setWatchProviders([]);
     setContentRating(null);
     setOverviewLoading(false);
     setTrailersLoading(false);
+    setProvidersLoadedFor(null);
     setOverviewLoadedFor(null);
     setTrailersLoadedFor(null);
   }, [activeDetailsMedia?.id, activeDetailsMedia?.media_type]);
+
+  useEffect(() => {
+    if (!activeDetailsMedia || !apiKey || providersLoadedFor === activeDetailsMedia.id) return;
+
+    let cancelled = false;
+
+    getWatchProviders(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey)
+      .then((data) => {
+        if (cancelled) return;
+
+        const usProviders = data.results?.US;
+        const providers = [...(usProviders?.free || []), ...(usProviders?.flatrate || [])]
+          .filter((provider) => !provider.provider_name.includes('Amazon Channel'))
+          .filter((provider, index, array) => array.findIndex((item) => item.provider_id === provider.provider_id) === index);
+
+        setWatchProviders(providers);
+        setProvidersLoadedFor(activeDetailsMedia.id);
+      })
+      .catch(console.error);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeDetailsMedia, apiKey, providersLoadedFor]);
 
   useEffect(() => {
     if (!activeDetailsMedia || !apiKey || overviewLoadedFor === activeDetailsMedia.id) return;
@@ -84,7 +113,7 @@ export const DetailsSheet = () => {
       .then(([mediaData, creditsData]) => {
         if (cancelled) return;
         setDetails(mediaData);
-        setCast(creditsData.cast.slice(0, 6));
+        setCast(creditsData.cast.slice(0, 4));
         setOverviewLoadedFor(activeDetailsMedia.id);
         updateMediaMetadata(mediaData.id, mediaData.media_type, {
           ...mediaData,
@@ -159,7 +188,9 @@ export const DetailsSheet = () => {
   if (!isOpen || !selected) return null;
 
   const title = selected.title || selected.name || 'Unknown';
+  const justWatchSearchUrl = `https://www.justwatch.com/us/search?q=${encodeURIComponent(title)}`;
   const year = (selected.release_date || selected.first_air_date || '').split('-')[0];
+  const compactActions = inWatched;
   const handleWatchlistToggle = () => {
     if (inWatchlist) {
       setModalConfig({
@@ -168,7 +199,10 @@ export const DetailsSheet = () => {
         message: `Remove \"${title}\" from your watchlist?`,
         type: 'danger',
         confirmText: 'Remove',
-        onConfirm: () => toggleWatchlist(selected),
+        onConfirm: async () => {
+          await toggleWatchlist(selected);
+          openDetails(selected);
+        },
       });
       return;
     }
@@ -184,7 +218,10 @@ export const DetailsSheet = () => {
         message: `Remove \"${title}\" from watched?`,
         type: 'danger',
         confirmText: 'Remove',
-        onConfirm: () => toggleWatched(selected),
+        onConfirm: async () => {
+          await toggleWatched(selected);
+          openDetails(selected);
+        },
       });
       return;
     }
@@ -256,24 +293,26 @@ export const DetailsSheet = () => {
                     title={inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
                     aria-label={inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
                     className={clsx(
-                      'w-full flex items-center justify-center gap-2 rounded-xl px-3 py-3 transition-colors blueprint-border',
+                      'w-full flex items-center justify-center rounded-xl px-3 py-3 transition-colors blueprint-border',
+                      compactActions ? 'gap-2' : 'gap-2 min-[1000px]:gap-2',
                       inWatchlist ? 'bg-brand-cyan/15 text-brand-cyan' : 'bg-white/5 text-white hover:bg-white/10'
                     )}
                   >
-                    <Bookmark size={14} />
-                    <span className="hidden min-[1000px]:inline text-xs font-black uppercase tracking-widest">Watchlist</span>
+                    <Bookmark size={14} className={compactActions ? '' : 'hidden min-[1000px]:inline'} />
+                    <span className={compactActions ? 'hidden min-[1000px]:inline text-xs font-black uppercase tracking-widest' : 'text-xs font-black uppercase tracking-widest'}>Watchlist</span>
                   </button>
                   <button
                     onClick={handleWatchedToggle}
                     title={inWatched ? 'Watched' : 'Mark Watched'}
                     aria-label={inWatched ? 'Watched' : 'Mark Watched'}
                     className={clsx(
-                      'w-full flex items-center justify-center gap-2 rounded-xl px-3 py-3 transition-colors blueprint-border',
+                      'w-full flex items-center justify-center rounded-xl px-3 py-3 transition-colors blueprint-border',
+                      compactActions ? 'gap-2' : 'gap-2 min-[1000px]:gap-2',
                       inWatched ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/5 text-white hover:bg-white/10'
                     )}
                   >
-                    <Eye size={14} />
-                    <span className="hidden min-[1000px]:inline text-xs font-black uppercase tracking-widest">Watched</span>
+                    <Eye size={14} className={compactActions ? '' : 'hidden min-[1000px]:inline'} />
+                    <span className={compactActions ? 'hidden min-[1000px]:inline text-xs font-black uppercase tracking-widest' : 'text-xs font-black uppercase tracking-widest'}>Watched</span>
                   </button>
                   {inWatched && (
                     <button
@@ -281,7 +320,8 @@ export const DetailsSheet = () => {
                       title={isFavorite ? 'Favorited' : 'Favorite'}
                       aria-label={isFavorite ? 'Favorited' : 'Favorite'}
                       className={clsx(
-                        'w-full flex items-center justify-center gap-2 rounded-xl px-3 py-3 transition-colors blueprint-border',
+                        'w-full flex items-center justify-center rounded-xl px-3 py-3 transition-colors blueprint-border',
+                        compactActions ? 'gap-2' : 'gap-2 min-[1000px]:gap-2',
                         isFavorite ? 'bg-red-500/15 text-red-300' : 'bg-white/5 text-white hover:bg-white/10'
                       )}
                     >
@@ -292,6 +332,27 @@ export const DetailsSheet = () => {
                 </div>
 
                 <div className="mt-4 space-y-5">
+                  <a
+                    href={justWatchSearchUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block rounded-2xl bg-white/5 blueprint-border p-3 hover:bg-white/10 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="mt-1 text-sm text-white truncate">
+                          {watchProviders.length > 0
+                            ? watchProviders.map((provider) => provider.provider_name).join(' · ')
+                            : 'View streaming options on JustWatch'}
+                        </p>
+                        <p className="mt-1 text-[10px] uppercase tracking-widest text-brand-silver">
+                          data provided by JustWatch
+                        </p>
+                      </div>
+                      <Play className="text-brand-cyan shrink-0" size={16} />
+                    </div>
+                  </a>
+
                   <div>
                     <h3 className="text-xs font-black uppercase tracking-widest text-brand-cyan mb-2">Cast</h3>
                     <div className="grid grid-cols-2 gap-2">

@@ -146,6 +146,7 @@ export interface WatchProvidersResponse {
   results: {
     [countryCode: string]: {
       link: string;
+      free?: WatchProvider[];
       flatrate?: WatchProvider[];
       rent?: WatchProvider[];
       buy?: WatchProvider[];
