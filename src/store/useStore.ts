@@ -3,7 +3,6 @@ import { persist, StateStorage, createJSONStorage } from 'zustand/middleware';
 import { get, set, del } from 'idb-keyval';
 import { Media, UserState, FilterType, SortOption } from '@/lib/types';
 import { getMediaDetails, createRequestToken, getAccountLists, toggleWatchlistStatus, rateMedia, deleteRating } from '@/lib/tmdb';
-import { updateGist } from '@/lib/gist';
 import { toast } from 'sonner';
 
 // Custom storage object for IndexedDB
@@ -30,9 +29,7 @@ interface StoreState extends UserState {
   
   setApiKey: (apiKey: string) => void;
   setVidAngelEnabled: (enabled: boolean) => void;
-  toggleExternalPlayerEnabled: () => void;
-  setSelectedExternalPlayerId: (id: string | null) => void;
-  setFilter: (filter: FilterType) => void;
+   setFilter: (filter: FilterType) => void;
   setSort: (sort: SortOption) => void;
   setShowWatched: (show: boolean) => void;
   setShowEditedOnly: (show: boolean) => void;
@@ -58,11 +55,6 @@ interface StoreState extends UserState {
   
   setSession: (sessionId: string, accountId: number) => void;
   setLists: (watchlist: Media[], watched: Media[]) => void;
-
-  setSendToTvEnabled: (enabled: boolean) => void;
-  setGistId: (id: string) => void;
-  setGistToken: (token: string) => void;
-  sendToGist: (url: string, title: string) => Promise<void>;
 
 }
 
@@ -223,8 +215,6 @@ export const useStore = create<StoreState>()(
         watchlist: [],
         watched: [],
         vidAngelEnabled: false,
-        externalPlayerEnabled: false,
-        selectedExternalPlayerId: null,
         filter: 'movie',
         sort: 'added',
         showWatched: false,
@@ -234,9 +224,6 @@ export const useStore = create<StoreState>()(
         onboardingCompleted: false,
         editedStatusMap: {},
         playedEpisodes: {},
-        sendToTvEnabled: false,
-        gistId: '',
-        gistToken: '',
         isLoaded: false,
         isSyncing: false,
 
@@ -247,16 +234,6 @@ export const useStore = create<StoreState>()(
         setApiKey: (apiKey) => set({ apiKey }),
         
         setVidAngelEnabled: (vidAngelEnabled) => set({ vidAngelEnabled }),
-        
-        toggleExternalPlayerEnabled: () => set((state) => {
-          const newEnabledState = !state.externalPlayerEnabled;
-          return { 
-            externalPlayerEnabled: newEnabledState,
-            selectedExternalPlayerId: newEnabledState ? state.selectedExternalPlayerId : null
-          };
-        }),
-        
-        setSelectedExternalPlayerId: (id) => set({ selectedExternalPlayerId: id }),
         
         setFilter: (filter) => set({ filter }),
         
@@ -502,19 +479,6 @@ export const useStore = create<StoreState>()(
           }
         },
 
-        setSendToTvEnabled: (sendToTvEnabled) => set({ sendToTvEnabled }),
-        setGistId: (gistId) => set({ gistId }),
-        setGistToken: (gistToken) => set({ gistToken }),
-
-        sendToGist: async (url, title) => {
-          const { gistId, gistToken } = get();
-          if (!gistId || !gistToken) return;
-          await updateGist(gistId, gistToken, {
-            url,
-            title,
-            timestamp: Date.now(),
-          });
-        },
       };
     },
     {
@@ -554,4 +518,3 @@ export const useStore = create<StoreState>()(
     }
   )
 );
-

@@ -6,12 +6,11 @@ import { useAppContext } from '@/context/AppContext';
 import { getMediaDetails, getWatchProviders, getImageUrl, getContentRating, getSeasonDetails, getMediaVideos, getMediaCredits, getPersonCredits, getUSReleaseDate } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { Media, WatchProvidersResponse, WatchProvider, SeasonDetails, Video, SeasonSummary, CastMember } from '@/lib/types';
-import { ChevronLeft, Check, Play, Star, Calendar, ChevronDown, User as UserIcon, Bookmark, Eye, Heart, Trash2, X } from 'lucide-react';
+import { ChevronLeft, Check, Play, Star, Calendar, ChevronDown, User as UserIcon, Bookmark, Eye, Heart, Trash2, X, ShieldCheck } from 'lucide-react';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { CreditsModal } from '@/components/CreditsModal';
-import { StreamPickerModal } from '@/components/PlayTargetModal';
 
 export default function DetailsView() {
   const searchParams = useSearchParams();
@@ -27,11 +26,7 @@ export default function DetailsView() {
     toggleWatched,
     toggleFavorite,
     vidAngelEnabled,
-    externalPlayerEnabled,
-    sendToTvEnabled,
-    sendToGist,
     playedEpisodes,
-    markEpisodePlayed,
     updateMediaMetadata,
   } = useAppContext();
 
@@ -53,9 +48,6 @@ export default function DetailsView() {
   const [actorCredits, setActorCredits] = useState<Media[]>([]);
   const [isCreditsModalOpen, setIsCreditsModalOpen] = useState(false);
   const [creditsLoading, setCreditsLoading] = useState(false);
-
-  // Stream picker state
-  const [streamPicker, setStreamPicker] = useState<{ open: boolean; seasonNum?: number; episodeNum?: number }>({ open: false });
 
   // Fullscreen poster state
   const [isFullscreenPosterOpen, setIsFullscreenPosterOpen] = useState(false);
@@ -170,12 +162,22 @@ export default function DetailsView() {
   const watchedItem = watchedMap.get(mediaKey);
   const isFavorite = watchedItem?.isFavorite || false;
   const vidAngelAvailable = !!vidAngelSlug;
+  const vidAngelUrl = vidAngelSlug
+    ? `https://www.vidangel.com/${media.media_type === 'movie' ? 'movie' : 'show'}/${vidAngelSlug}`
+    : null;
 
   const title = media.title || media.name;
   const displayDate = media.media_type === 'movie' ? usReleaseDate : (media.first_air_date || usReleaseDate);
   const year = displayDate?.split('-')[0];
   const userRegion = 'US'; 
   const localProviders = providers?.results?.[userRegion];
+  const featuredProviders = (localProviders?.flatrate || [])
+    .filter((provider) => !provider.provider_name.toLowerCase().includes('amazon channel'));
+
+  const buildProviderSearchUrl = () => {
+    const query = encodeURIComponent(title || 'Unknown');
+    return `https://www.justwatch.com/us/search?q=${query}`;
+  };
 
   const handleWatchlistToggle = () => {
     if (inWatchlist) {
@@ -208,12 +210,6 @@ export default function DetailsView() {
       });
     } else {
       toggleWatched(media);
-    }
-  };
-
-  const handleEpisodeSelect = () => {
-    if (streamPicker.seasonNum !== undefined && streamPicker.episodeNum !== undefined) {
-      markEpisodePlayed(media.id, streamPicker.seasonNum, streamPicker.episodeNum);
     }
   };
 
@@ -381,13 +377,15 @@ export default function DetailsView() {
                       </button>
                     )}
 
-                    {(externalPlayerEnabled || vidAngelAvailable) && (
-                      <button
-                        onClick={() => setStreamPicker({ open: true })}
-                        className="py-2 px-3 rounded-xl flex items-center justify-center font-bold transition-all active:scale-95 text-sm bg-green-500 text-brand-bg shadow-lg shadow-green-500/20 hover:bg-green-500/90"
+                    {vidAngelAvailable && vidAngelUrl && (
+                      <a
+                        href={vidAngelUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="py-2 px-3 rounded-xl flex items-center justify-center font-bold transition-all active:scale-95 text-sm bg-amber-500 text-white shadow-lg shadow-amber-500/20 hover:bg-amber-500/90"
                       >
-                        <Play size={16} className="fill-brand-bg" />
-                      </button>
+                        <ShieldCheck size={16} />
+                      </a>
                     )}
                   </div>
                 </div>
@@ -401,10 +399,15 @@ export default function DetailsView() {
               {media.overview || 'No overview available.'}
             </p>
             
-            {localProviders?.flatrate && localProviders.flatrate.length > 0 && (
+            {featuredProviders.length > 0 && (
               <div className="flex flex-wrap gap-3 justify-center">
-                {localProviders.flatrate.map((p) => (
-                  <ProviderIcon key={p.provider_id} provider={p} />
+                {featuredProviders.map((p) => (
+                  <ProviderIcon
+                    key={p.provider_id}
+                    provider={p}
+                    href={buildProviderSearchUrl()}
+                    label={`${title} on ${p.provider_name}`}
+                  />
                 ))}
               </div>
             )}
@@ -440,16 +443,6 @@ export default function DetailsView() {
                         </div>
                       )}
                       
-                      {externalPlayerEnabled && (
-                        <button
-                          onClick={() => setStreamPicker({ open: true, seasonNum: ep.season_number, episodeNum: ep.episode_number })}
-                          title={`Stream S${ep.season_number} E${ep.episode_number}`}
-                          className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-brand-cyan/20 transition-colors"
-                        >
-                          <Play size={24} className="text-white/80 group-hover:text-brand-cyan fill-current" />
-                        </button>
-                      )}
-
                       <div className="absolute bottom-1 left-1 right-1 flex items-center justify-between pointer-events-none">
                         {playedEpisodes[`${media.id}-${ep.season_number}-${ep.episode_number}`] && (
                           <span className="text-brand-cyan text-[16px] sm:text-[20px] font-bold">✓</span>
@@ -551,26 +544,6 @@ export default function DetailsView() {
         loading={creditsLoading}
       />
 
-      <StreamPickerModal
-        isOpen={streamPicker.open}
-        onClose={() => setStreamPicker({ open: false })}
-        title={
-          streamPicker.seasonNum !== undefined
-            ? `${media.name || media.title} S${streamPicker.seasonNum} E${streamPicker.episodeNum}`
-            : media.title || media.name || 'Unknown'
-        }
-        mediaTitle={media.title || media.name || 'Unknown'}
-        mediaType={media.media_type}
-        mediaId={media.id}
-        seasonNum={streamPicker.seasonNum}
-        episodeNum={streamPicker.episodeNum}
-        vidAngelSlug={streamPicker.seasonNum === undefined ? vidAngelSlug : null}
-        externalPlayerEnabled={externalPlayerEnabled}
-        sendToTvEnabled={sendToTvEnabled}
-        sendToGist={sendToGist}
-        onSelect={handleEpisodeSelect}
-      />
-
       {/* Fullscreen Poster Modal */}
       {isFullscreenPosterOpen && media.poster_path && (
         <div 
@@ -598,8 +571,15 @@ export default function DetailsView() {
   );
 }
 
-const ProviderIcon = ({ provider }: { provider: WatchProvider }) => (
-  <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm blueprint-border bg-brand-bg shrink-0">
+const ProviderIcon = ({ provider, href, label }: { provider: WatchProvider; href: string; label: string }) => (
+  <a
+    href={href}
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label={label}
+    title={label}
+    className="w-12 h-12 rounded-xl overflow-hidden shadow-sm blueprint-border bg-brand-bg shrink-0 transition-transform active:scale-95 hover:scale-105"
+  >
     <img src={getImageUrl(provider.logo_path, 'w185')} alt={provider.provider_name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-  </div>
+  </a>
 );

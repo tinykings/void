@@ -103,68 +103,6 @@ export interface ContentRatingsResponse {
   results: ContentRating[];
 }
 
-export interface ExternalPlayerOption {
-  id: string;
-  name: string;
-  tvUrlTemplate: string;
-  movieUrlTemplate: string;
-  seriesUrlTemplate?: string;
-}
-
-export const externalPlayerOptions: ExternalPlayerOption[] = [
-  {
-    id: 'flixer.su',
-    name: 'Flixer.su',
-    tvUrlTemplate: 'https://flixer.su/watch/tv/{TMDBID}/{season_num}/{episode_num}',
-    movieUrlTemplate: 'https://flixer.su/watch/movie/{TMDBID}',
-    seriesUrlTemplate: 'https://flixer.su/watch/tv/{TMDBID}/1/1'
-  },
-  {
-    id: 'hexa.su',
-    name: 'Hexa.su',
-    tvUrlTemplate: 'https://hexa.su/watch/tv/{TMDBID}/{season_num}/{episode_num}',
-    movieUrlTemplate: 'https://hexa.su/watch/movie/{TMDBID}',
-    seriesUrlTemplate: 'https://hexa.su/watch/tv/{TMDBID}/1/1'
-  },
-  {
-    id: 'fmovies.gd',
-    name: 'Fmovies.gd',
-    tvUrlTemplate: 'https://www.fmovies.gd/watch/tv/{TMDBID}/{season_num}/{episode_num}?play=true',
-    movieUrlTemplate: 'https://www.fmovies.gd/watch/movie/{TMDBID}?play=true',
-    seriesUrlTemplate: 'https://www.fmovies.gd/tv/{TMDBID}/1/1',
-  },
-  {
-    id: 'xprime.today',
-    name: 'XPrime',
-    tvUrlTemplate: 'https://xprime.today/watch/{TMDBID}/{season_num}/{episode_num}',
-    movieUrlTemplate: 'https://xprime.today/watch/{TMDBID}',
-    seriesUrlTemplate: 'https://xprime.today/title/t{TMDBID}',
-  },
-  {
-    id: 'rivestream.org',
-    name: 'RiveStream',
-    tvUrlTemplate: 'https://rivestream.org/watch?type=tv&id={TMDBID}&season={season_num}&episode={episode_num}',
-    movieUrlTemplate: 'https://rivestream.org/watch?type=movie&id={TMDBID}',
-    seriesUrlTemplate: 'https://rivestream.org/detail?type=tv&id={TMDBID}',
-  },
-  {
-    id: '67movies.net',
-    name: '67movies.net',
-    tvUrlTemplate: 'https://67movies.net/watch/tv/{TMDBID}/{season_num}/{episode_num}',
-    movieUrlTemplate: 'https://67movies.net/watch/movie/{TMDBID}',
-    seriesUrlTemplate: 'https://67movies.net/watch/tv/{TMDBID}/1/1',
-  },
-  {
-    id: 'animekai.to',
-    name: 'animekai.to',
-    tvUrlTemplate: 'https://animekai.to/browser?keyword={title}',
-    movieUrlTemplate: 'https://animekai.to/browser?keyword={title}',
-    seriesUrlTemplate: 'https://animekai.to/browser?keyword={title}',
-  },
-
-  // Add other external player options here in the future
-];
-
 export interface Video {
   id: string;
   key: string;
@@ -228,8 +166,6 @@ export interface UserState {
   tmdbSessionId?: string;
   tmdbAccountId?: number;
   vidAngelEnabled?: boolean;
-  externalPlayerEnabled?: boolean;
-  selectedExternalPlayerId?: string | null;
   filter?: FilterType;
   sort?: SortOption;
   showWatched?: boolean;
@@ -239,7 +175,4 @@ export interface UserState {
   onboardingCompleted?: boolean;
   editedStatusMap: Record<string, boolean>;
   playedEpisodes: Record<string, boolean>;
-  sendToTvEnabled?: boolean;
-  gistId?: string;
-  gistToken?: string;
 }

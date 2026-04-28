@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Media, UserState, ExternalPlayerOption, externalPlayerOptions, SortOption, FilterType } from '@/lib/types';
+import { Media, UserState, SortOption, FilterType } from '@/lib/types';
 import { useStore } from '@/store/useStore';
 import { createSession, getAccountDetails } from '@/lib/tmdb';
 
@@ -18,11 +18,6 @@ interface AppContextType extends UserState {
   logoutTMDB: () => void;
   syncFromTMDB: (force?: boolean) => Promise<void>;
 
-  // New external player settings
-  externalPlayerEnabled: boolean;
-  selectedExternalPlayer: ExternalPlayerOption | null;
-  toggleExternalPlayerEnabled: () => void;
-  setSelectedExternalPlayerId: (id: string | null) => void;
   setFilter: (filter: FilterType) => void;
   setSort: (sort: SortOption) => void;
   setShowWatched: (show: boolean) => void;
@@ -40,15 +35,6 @@ interface AppContextType extends UserState {
   // Episode tracking
   markEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
   unmarkEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
-
-  // Send to TV
-  sendToTvEnabled: boolean;
-  gistId: string;
-  gistToken: string;
-  setSendToTvEnabled: (enabled: boolean) => void;
-  setGistId: (id: string) => void;
-  setGistToken: (token: string) => void;
-  sendToGist: (url: string, title: string) => Promise<void>;
 
   // O(1) lookup helpers
   watchlistIds: Set<string>;
@@ -153,12 +139,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, [isLoaded, processTVMigrations]);
 
-  // Derive selectedExternalPlayer
-  const selectedExternalPlayer = useMemo(() => {
-    if (!store.selectedExternalPlayerId) return null;
-    return externalPlayerOptions.find(opt => opt.id === store.selectedExternalPlayerId) || null;
-  }, [store.selectedExternalPlayerId]);
-
   // O(1) lookup Maps for membership checks
   const watchlistIds = useMemo(() => new Set(store.watchlist.map(m => `${m.media_type}-${m.id}`)), [store.watchlist]);
   const watchedIds = useMemo(() => new Set(store.watched.map(m => `${m.media_type}-${m.id}`)), [store.watched]);
@@ -176,9 +156,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     tmdbSessionId: store.tmdbSessionId,
     tmdbAccountId: store.tmdbAccountId,
     vidAngelEnabled: store.vidAngelEnabled || false,
-    externalPlayerEnabled: store.externalPlayerEnabled || false,
-    selectedExternalPlayerId: store.selectedExternalPlayerId,
-    selectedExternalPlayer,
     filter: store.filter,
     sort: store.sort,
     showWatched: store.showWatched || false,
@@ -187,9 +164,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     isSearchFocused: store.isSearchFocused || false,
     editedStatusMap: store.editedStatusMap,
     playedEpisodes: store.playedEpisodes,
-    sendToTvEnabled: store.sendToTvEnabled || false,
-    gistId: store.gistId || '',
-    gistToken: store.gistToken || '',
     isLoaded: store.isLoaded,
     isSyncing: store.isSyncing,
     
@@ -200,8 +174,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     syncFromTMDB: store.syncFromTMDB,
     loginWithTMDB: store.loginWithTMDB,
     logoutTMDB: store.logoutTMDB,
-    toggleExternalPlayerEnabled: store.toggleExternalPlayerEnabled,
-    setSelectedExternalPlayerId: store.setSelectedExternalPlayerId,
     setFilter: store.setFilter,
     setSort: store.setSort,
     setShowWatched: store.setShowWatched,
@@ -217,17 +189,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     markEpisodePlayed: store.markEpisodePlayed,
     unmarkEpisodePlayed: store.unmarkEpisodePlayed,
 
-    setSendToTvEnabled: store.setSendToTvEnabled,
-    setGistId: store.setGistId,
-    setGistToken: store.setGistToken,
-    sendToGist: store.sendToGist,
-
     watchlistIds,
     watchedIds,
     watchedMap,
   }), [
     store,
-    selectedExternalPlayer,
     watchlistIds,
     watchedIds,
     watchedMap,

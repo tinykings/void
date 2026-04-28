@@ -6,7 +6,6 @@ import {
   Key as KeyIcon, 
   User as UserIcon, 
   ShieldCheck as ShieldIcon, 
-  Play as PlayIcon,
   ArrowRight as ArrowIcon,
   Check as CheckIcon,
   ExternalLink as LinkIcon,
@@ -21,7 +20,6 @@ export const Onboarding = () => {
     apiKey, setApiKey,
     loginWithTMDB, tmdbSessionId,
     vidAngelEnabled, setVidAngelEnabled,
-    externalPlayerEnabled, toggleExternalPlayerEnabled,
     setOnboardingCompleted
   } = useAppContext();
 
@@ -215,50 +213,15 @@ export const Onboarding = () => {
             <div className="flex gap-3 pt-4">
               <button onClick={prevStep} className="flex-1 py-4 text-brand-silver font-bold uppercase tracking-widest text-xs">Back</button>
               <button 
-                onClick={nextStep} 
-                className="flex-[2] py-4 bg-brand-cyan text-brand-bg hover:bg-brand-cyan/90 font-black rounded-xl transition-all uppercase tracking-widest"
-              >
-                Continue
-              </button>
-            </div>
-          </div>
-        );
-
-      case 5:
-        return (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="w-16 h-16 bg-rose-500/10 blueprint-border rounded-2xl flex items-center justify-center mx-auto mb-8">
-              <PlayIcon className="text-rose-400" size={32} />
-            </div>
-            <h2 className="text-2xl font-black text-center uppercase italic tracking-tighter text-white">External Player</h2>
-            <p className="text-brand-silver text-center text-sm leading-relaxed">
-              Optionally enable direct play links using third-party streaming providers.
-            </p>
-            
-            <button
-              onClick={toggleExternalPlayerEnabled}
-              className={clsx(
-                "w-full py-4 rounded-xl font-black transition-all flex items-center justify-center gap-3 uppercase tracking-widest border",
-                externalPlayerEnabled
-                  ? "bg-rose-600 border-rose-600 text-white shadow-[0_0_20px_rgba(225,29,72,0.2)]"
-                  : "bg-transparent border-white/10 text-brand-silver hover:border-white/20"
-              )}
-            >
-              {externalPlayerEnabled ? <CheckIcon size={20} /> : null}
-              {externalPlayerEnabled ? 'Enabled' : 'Enable Player Links'}
-            </button>
-
-            <div className="flex gap-3 pt-4">
-              <button onClick={prevStep} className="flex-1 py-4 text-brand-silver font-bold uppercase tracking-widest text-xs">Back</button>
-              <button 
                 onClick={handleFinish} 
-                className="flex-[2] py-4 bg-green-600 hover:bg-green-500 text-white font-black rounded-xl transition-all uppercase tracking-widest shadow-[0_0_20px_rgba(22,163,74,0.2)]"
+                className="flex-[2] py-4 bg-brand-cyan text-brand-bg hover:bg-brand-cyan/90 font-black rounded-xl transition-all uppercase tracking-widest"
               >
                 Finish Setup
               </button>
             </div>
           </div>
         );
+
     }
   };
 
@@ -269,14 +232,14 @@ export const Onboarding = () => {
         <div className="absolute top-0 left-0 right-0 h-1 bg-white/5">
           <div 
             className="h-full bg-brand-cyan transition-all duration-500 ease-out shadow-[0_0_10px_#22D3EE]" 
-            style={{ width: `${(step / 5) * 100}%` }}
+            style={{ width: `${(step / 4) * 100}%` }}
           />
         </div>
         
         {renderStep()}
         
         <div className="mt-8 text-center">
-          <p className="text-[10px] font-black text-brand-silver uppercase tracking-[0.2em]">Step {step} of 5</p>
+          <p className="text-[10px] font-black text-brand-silver uppercase tracking-[0.2em]">Step {step} of 4</p>
         </div>
       </div>
     </div>
