@@ -21,9 +21,9 @@
 
 ## Overview
 
-VOID is a personal media tracker built as a static Next.js app deployed to GitHub Pages. Track your watchlist and watch history for movies and TV shows, sync with your TMDB account, and browse TMDB metadata from the browser with no backend required.
+VOID is a personal media tracker built as a static Next.js app deployed to GitHub Pages. Track your watchlist and watch history for movies and TV shows, keep your library local, and browse TMDB metadata from the browser with no backend required.
 
-Data lives entirely in your browser (IndexedDB) or within your TMDB profile.
+Data lives entirely in your browser (IndexedDB).
 
 ## Features
 
@@ -36,8 +36,6 @@ Data lives entirely in your browser (IndexedDB) or within your TMDB profile.
 - **Search** — Real-time search across all TMDB movies and TV shows.
 - **Trending** — Browse weekly trending content from TMDB when opening search.
 - **Media Details** — Full detail pages with cast, trailers, watch providers, season/episode info, content ratings, and next episode data.
-
-- **TMDB Account Sync** — OAuth login syncs your TMDB watchlist and rated items with local state. Rate-limited to 30-second cooldowns.
 
 ### Streaming Integration
 - **Watch Providers** — Click provider icons to open JustWatch search results for that title.
@@ -56,8 +54,7 @@ Data lives entirely in your browser (IndexedDB) or within your TMDB profile.
 
 ### Quick Start
 1. Open the app at [tinykings.github.io/void](https://tinykings.github.io/void/)
-2. Click **Login with TMDB** to enable account sync
-3. Browse and use provider links directly from the details page
+2. Browse and use provider links directly from the details page
 
 ## Tech Stack
 
@@ -84,7 +81,7 @@ src/
 │   ├── views/            # Page-level views (HomeView, SettingsView)
 │   └── ...               # Shared UI components
 ├── store/
-│   └── useStore.ts       # Zustand store — all app state, sync logic, TV migration
+│   └── useStore.ts       # Zustand store — all app state and local persistence
 ├── lib/
 │   ├── tmdb.ts           # All TMDB API calls
 │   ├── types.ts          # Core TypeScript interfaces
@@ -93,7 +90,7 @@ src/
     └── AppContext.tsx     # React context wrapper around Zustand store
 ```
 
-**Data flow:** Components → `useAppContext()` → Zustand store → persisted to IndexedDB (`void_user_state`). TMDB sync merges remote watchlist/rated items with local state.
+**Data flow:** Components → `useAppContext()` → Zustand store → persisted to IndexedDB (`void_user_state`). TMDB is used for metadata only.
 
 ## Development
 
@@ -112,7 +109,7 @@ GitHub Actions builds and deploys to GitHub Pages on every push to `main`. The s
 
 | Setting | Description |
 |---|---|
-| TMDB Login | OAuth sync with your TMDB account |
+| Local Library | Watchlist, watched, and favorites stored in IndexedDB |
 | Watch Providers | Open JustWatch search from provider icons |
 | VidAngel | Enable content filtering badges and filter |
 

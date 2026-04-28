@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
-import { Save, ExternalLink, RefreshCw, ArrowLeft, ShieldCheck, User, LogOut, Download } from 'lucide-react';
-import { clsx } from 'clsx';
+import { Save, ExternalLink, ArrowLeft, ShieldCheck, Download, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { Media } from '@/lib/types';
 
@@ -25,40 +24,39 @@ interface LibraryBackup {
 export const SettingsView = () => {
   const router = useRouter();
   const {
-    syncFromTMDB, isSyncing,
-    loginWithTMDB, logoutTMDB,
-    tmdbSessionId, tmdbAccountId,
     vidAngelEnabled, setVidAngelEnabled,
+    gistId, gistToken, setGistId, setGistToken, syncFromGist,
     watchlist, watched,
   } = useAppContext();
 
   const [tempVidAngelEnabled, setTempVidAngelEnabled] = useState(!!vidAngelEnabled);
+  const [tempGistId, setTempGistId] = useState(gistId || '');
+  const [tempGistToken, setTempGistToken] = useState(gistToken || '');
+  const [showToken, setShowToken] = useState(false);
   const [saved, setSaved] = useState(false);
+  const hasGistSync = !!(gistId && gistToken);
 
-  // We'll use a key on the component from the parent to reset it if needed, 
-  // or just rely on initial state since settings are usually edited once per visit.
-  // Removing the useEffect that was causing the lint error.
+  useEffect(() => {
+    setTempGistId(gistId || '');
+    setTempGistToken(gistToken || '');
+  }, [gistId, gistToken]);
 
   const handleSave = () => {
     setVidAngelEnabled(tempVidAngelEnabled);
+    setGistId(tempGistId.trim());
+    setGistToken(tempGistToken.trim());
+
+    if (tempGistId.trim() && tempGistToken.trim()) {
+      void syncFromGist();
+    }
+
     setSaved(true);
     toast.success('Settings saved successfully');
-    
-    // Automatically go home after a short delay to show the "Saved" state
+
     setTimeout(() => {
       setSaved(false);
       router.push('/');
     }, 1000);
-  };
-
-  const handleManualSync = async () => {
-    await syncFromTMDB(true);
-    toast.success('TMDB Synchronization complete');
-  };
-
-  const handleLogout = () => {
-    logoutTMDB();
-    toast.info('Logged out of TMDB');
   };
 
   const handleBackupJson = () => {
@@ -73,9 +71,7 @@ export const SettingsView = () => {
       version: 1,
       watchlist: watchlist.map(toBackupItem),
       watched: watched.map(toBackupItem),
-      favorites: watched
-        .filter((item) => item.isFavorite)
-        .map(toBackupItem),
+      favorites: watched.filter((item) => item.isFavorite).map(toBackupItem),
     };
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -94,7 +90,7 @@ export const SettingsView = () => {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 pt-4">
       <div className="flex items-center gap-4 mb-8">
-        <button 
+        <button
           onClick={() => router.replace('/?tab=home')}
           className="p-2 -ml-2 text-brand-silver hover:text-brand-cyan transition-colors"
         >
@@ -104,58 +100,6 @@ export const SettingsView = () => {
       </div>
 
       <div className="space-y-6">
-        <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">
-          <div className="flex items-center gap-2 mb-4">
-            <User className="text-brand-cyan" size={20} />
-            <h2 className="text-lg font-semibold text-white">TMDB Synchronization</h2>
-          </div>
-
-          <p className="text-sm text-brand-silver mb-4">
-            Log in to your TMDB account to sync your watchlist and history across all your devices.
-          </p>
-
-          {!tmdbSessionId ? (
-            <button
-              onClick={loginWithTMDB}
-              className="w-full py-3 bg-brand-bg blueprint-border rounded-xl font-bold text-white hover:bg-brand-cyan/10 transition-colors disabled:opacity-50"
-            >
-              Login with TMDB
-            </button>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-brand-bg blueprint-border rounded-xl">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-brand-cyan/10 rounded-full flex items-center justify-center text-brand-cyan font-bold">
-                    {tmdbAccountId?.toString().slice(0, 1)}
-                  </div>
-                  <span className="text-sm font-medium text-white">Account ID: {tmdbAccountId}</span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                  title="Logout"
-                >
-                  <LogOut size={18} />
-                </button>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-brand-silver">
-                  {isSyncing ? 'Syncing...' : 'Connected to TMDB'}
-                </span>
-                <button
-                  onClick={handleManualSync}
-                  disabled={isSyncing}
-                  className="text-xs font-bold text-brand-cyan flex items-center gap-1 hover:underline disabled:opacity-50"
-                >
-                  <RefreshCw size={12} className={clsx(isSyncing && "animate-spin")} />
-                  Sync Now
-                </button>
-              </div>
-            </div>
-          )}
-        </section>
-
         <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">
           <div className="flex items-center gap-2 mb-4">
             <ShieldCheck className="text-brand-cyan" size={20} />
@@ -198,21 +142,73 @@ export const SettingsView = () => {
         <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">
           <div className="flex items-center gap-2 mb-4">
             <Download className="text-brand-cyan" size={20} />
-            <h2 className="text-lg font-semibold text-white">Backup Library</h2>
+            <h2 className="text-lg font-semibold text-white">Gist Sync</h2>
           </div>
 
           <p className="text-sm text-brand-silver mb-4">
-            Download a JSON backup of your watchlist, watched items, and favorites for future restore or gist storage.
+            Store your Gist ID and GitHub token to sync your local library across devices.
           </p>
 
-          <button
-            onClick={handleBackupJson}
-            className="w-full py-3 bg-brand-bg blueprint-border rounded-xl font-bold text-white hover:bg-brand-cyan/10 transition-colors flex items-center justify-center gap-2"
-          >
-            <Download size={16} />
-            Download JSON Backup
-          </button>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-brand-silver mb-2">Gist ID</label>
+              <input
+                type="text"
+                value={tempGistId}
+                onChange={(e) => setTempGistId(e.target.value)}
+                placeholder="e.g. 8f7a9b2c3d4e5f6a7b8c9d0e"
+                className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-brand-silver mb-2">GitHub Token</label>
+              <div className="relative">
+                <input
+                  type={showToken ? 'text' : 'password'}
+                  value={tempGistToken}
+                  onChange={(e) => setTempGistToken(e.target.value)}
+                  placeholder="ghp_xxxxxxxxxxxx"
+                  className="w-full p-3 pr-12 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowToken((value) => !value)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-silver hover:text-white"
+                >
+                  {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            {hasGistSync && (
+              <p className="text-[10px] text-brand-silver/70">
+                Gist sync is active. Backup export is hidden.
+              </p>
+            )}
+          </div>
         </section>
+
+        {!hasGistSync && (
+          <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">
+            <div className="flex items-center gap-2 mb-4">
+              <Download className="text-brand-cyan" size={20} />
+              <h2 className="text-lg font-semibold text-white">Backup Library</h2>
+            </div>
+
+            <p className="text-sm text-brand-silver mb-4">
+              Download a JSON backup of your watchlist, watched items, and favorites for future restore or gist storage.
+            </p>
+
+            <button
+              onClick={handleBackupJson}
+              className="w-full py-3 bg-brand-bg blueprint-border rounded-xl font-bold text-white hover:bg-brand-cyan/10 transition-colors flex items-center justify-center gap-2"
+            >
+              <Download size={16} />
+              Download JSON Backup
+            </button>
+          </section>
+        )}
 
         <button
           onClick={handleSave}
@@ -223,9 +219,7 @@ export const SettingsView = () => {
         </button>
 
         <section className="text-center pt-4">
-          <p className="text-xs text-brand-silver/50">
-            Data provided by TMDB.
-          </p>
+          <p className="text-xs text-brand-silver/50">Data provided by TMDB.</p>
         </section>
       </div>
     </div>

@@ -2,10 +2,19 @@ import { create } from 'zustand';
 import { persist, StateStorage, createJSONStorage } from 'zustand/middleware';
 import { get, set, del } from 'idb-keyval';
 import { Media, UserState, FilterType, SortOption } from '@/lib/types';
-import { getMediaDetails, createRequestToken, getAccountLists, toggleWatchlistStatus, rateMedia, deleteRating } from '@/lib/tmdb';
-import { toast } from 'sonner';
+import { buildGistPayload, fromGistItem, getGistContent, isEmptyGistPayload, updateGist } from '@/lib/gist';
+import { getMediaDetails } from '@/lib/tmdb';
 
 const DEFAULT_TMDB_ACCESS_TOKEN = process.env.NEXT_PUBLIC_TMDB_READ_ACCESS_TOKEN || '';
+
+let gistQueue: Promise<void> = Promise.resolve();
+
+const enqueueGistOperation = (operation: () => Promise<void>) => {
+  gistQueue = gistQueue.then(operation).catch((error) => {
+    console.error('Gist sync error:', error);
+  });
+  return gistQueue;
+};
 
 // Custom storage object for IndexedDB
 const storage: StateStorage = {
@@ -25,13 +34,13 @@ const storage: StateStorage = {
 
 interface StoreState extends UserState {
   isLoaded: boolean;
-  isSyncing: boolean;
   setIsLoaded: (loaded: boolean) => void;
-  setIsSyncing: (syncing: boolean) => void;
   
   setApiKey: (apiKey: string) => void;
+  setGistId: (gistId: string) => void;
+  setGistToken: (gistToken: string) => void;
   setVidAngelEnabled: (enabled: boolean) => void;
-   setFilter: (filter: FilterType) => void;
+  setFilter: (filter: FilterType) => void;
   setSort: (sort: SortOption) => void;
   setShowWatched: (show: boolean) => void;
   setShowEditedOnly: (show: boolean) => void;
@@ -43,179 +52,28 @@ interface StoreState extends UserState {
   
   markEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
   unmarkEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
-  
-  // TMDB Sync & Auth
-  loginWithTMDB: () => Promise<void>;
-  logoutTMDB: () => void;
-  syncFromTMDB: (force?: boolean) => Promise<void>;
-  processTVMigrations: () => Promise<void>;
-  
+
   toggleWatchlist: (media: Media) => Promise<void>;
   toggleWatched: (media: Media, rating?: number) => Promise<void>;
   toggleFavorite: (media: Media) => Promise<void>;
   setShowFavoritesOnly: (show: boolean) => void;
   
-  setSession: (sessionId: string, accountId: number) => void;
   setLists: (watchlist: Media[], watched: Media[]) => void;
+  syncFromGist: (force?: boolean) => Promise<void>;
+  syncToGist: () => Promise<void>;
 
 }
 
 export const useStore = create<StoreState>()(
   persist(
     (set, get) => {
-      const lastSyncTime = { current: 0 };
-
-      const syncFromTMDBInternal = async (apiKey: string, sessionId: string, accountId: number) => {
-        const now = Date.now();
-        if (now - lastSyncTime.current < 30000 && lastSyncTime.current !== 0) {
-          return;
-        }
-        
-        set({ isSyncing: true });
-        try {
-          const fetchAll = async (type: 'movies' | 'tv', list: 'watchlist' | 'rated'): Promise<Media[]> => {
-            const firstPage = await getAccountLists(apiKey, sessionId, accountId, type, list, 1);
-            let allItems = [...firstPage.results];
-            const totalPages = firstPage.totalPages;
-
-            if (totalPages > 1) {
-              const pagePromises = [];
-              for (let p = 2; p <= totalPages; p++) {
-                pagePromises.push(getAccountLists(apiKey, sessionId, accountId, type, list, p));
-              }
-              const otherPages = await Promise.all(pagePromises);
-              otherPages.forEach(page => {
-                allItems = [...allItems, ...page.results];
-              });
-            }
-            return allItems;
-          };
-
-          const [wlMovies, wlTv, ratedMovies, ratedTv] = await Promise.all([
-            fetchAll('movies', 'watchlist'),
-            fetchAll('tv', 'watchlist'),
-            fetchAll('movies', 'rated'),
-            fetchAll('tv', 'rated'),
-          ]);
-
-          const state = get();
-
-          // Assign date_added from TMDB's created_at.asc order so it's consistent across devices
-          const assignDateAdded = (items: Media[]) => {
-            const now = Date.now();
-            const baseTime = now - items.length * 1000;
-            return items.map((item, index) => ({
-              ...item,
-              date_added: new Date(baseTime + index * 1000).toISOString()
-            }));
-          };
-
-          const allIncomingRated = assignDateAdded([...ratedMovies, ...ratedTv].map(item => ({
-            ...item,
-            isFavorite: ((item as Media).rating ?? 0) >= 8,
-          })));
-          const allIncomingWatchlist = assignDateAdded([...wlMovies, ...wlTv]);
-
-          const mergeMetadata = (newItem: Media) => {
-            // Find the item in either local list to preserve metadata
-            const oldItem = state.watchlist.find(o => o.id === newItem.id && o.media_type === newItem.media_type) ||
-                            state.watched.find(o => o.id === newItem.id && o.media_type === newItem.media_type);
-            if (oldItem) {
-              return {
-                ...newItem,
-                lastChecked: oldItem.lastChecked,
-                next_episode_to_air: oldItem.next_episode_to_air,
-                status: oldItem.status || newItem.status,
-                isFavorite: newItem.isFavorite ?? oldItem.isFavorite,
-              };
-            }
-            return newItem;
-          };
-
-          // Process Rated list
-          const finalWatched = allIncomingRated.map(mergeMetadata);
-
-          // Process Watchlist with strict exclusivity check
-          // First, we need to fetch fresh details for TV shows that are both watched and on watchlist
-          const tvShowsNeedingFreshData: Media[] = [];
-          for (const w of allIncomingWatchlist) {
-            const isRatedOnTMDB = allIncomingRated.some(r => r.id === w.id && r.media_type === w.media_type);
-            const isWatchedLocally = state.watched.some(o => o.id === w.id && o.media_type === w.media_type);
-            
-            if ((isRatedOnTMDB || isWatchedLocally) && w.media_type === 'tv') {
-              tvShowsNeedingFreshData.push(w);
-            }
-          }
-
-          // Fetch fresh details for these shows
-          const freshShowDetails = new Map<number, Media>();
-          await Promise.all(
-            tvShowsNeedingFreshData.map(async (show) => {
-              try {
-                const details = await getMediaDetails(show.id, 'tv', apiKey);
-                freshShowDetails.set(show.id, details);
-              } catch (err) {
-                console.error(`Failed to fetch details for show ${show.id}:`, err);
-              }
-            })
-          );
-
-          const finalWatchlist = allIncomingWatchlist
-            .filter(w => {
-              const isRatedOnTMDB = allIncomingRated.some(r => r.id === w.id && r.media_type === w.media_type);
-              const isWatchedLocally = state.watched.some(o => o.id === w.id && o.media_type === w.media_type);
-              
-              // If it's considered "Watched" (either on TMDB or in our current local state)
-              if (isRatedOnTMDB || isWatchedLocally) {
-                // For TV shows, use fresh data; for movies, this check doesn't apply
-                if (w.media_type === 'tv') {
-                  const freshDetails = freshShowDetails.get(w.id);
-                  const syncAirDate = freshDetails?.next_episode_to_air?.air_date;
-                  if (syncAirDate) {
-                    const parts = syncAirDate.split('-');
-                    if (parts.length === 3) {
-                      const airDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0);
-                      const cutoff = new Date(today);
-                      cutoff.setDate(today.getDate() + 7);
-                      cutoff.setHours(23, 59, 59, 999);
-                      if (airDate.getTime() >= today.getTime() && airDate.getTime() <= cutoff.getTime()) {
-                        return true;
-                      }
-                    }
-                  }
-                  return false; // No upcoming episode or failed to fetch
-                }
-                return false; // Movies that are watched shouldn't be in watchlist
-              }
-              
-              return true;
-            })
-            .map(mergeMetadata);
-
-          set({ 
-            watchlist: finalWatchlist,
-            watched: finalWatched
-          });
-          lastSyncTime.current = Date.now();
-        } catch (error: unknown) {
-          console.error("TMDB Sync Error:", error);
-          if (error instanceof Error && error.message?.includes('401')) {
-            const { logoutTMDB } = get();
-            logoutTMDB();
-            toast.error('TMDB Session Expired. Please login again in settings.');
-          }
-        } finally {
-          set({ isSyncing: false });
-        }
-      };
-
       return {
         // Initial State
         apiKey: DEFAULT_TMDB_ACCESS_TOKEN,
         watchlist: [],
         watched: [],
+        gistId: '',
+        gistToken: '',
         vidAngelEnabled: false,
         filter: 'movie',
         sort: 'added',
@@ -227,13 +85,15 @@ export const useStore = create<StoreState>()(
         editedStatusMap: {},
         playedEpisodes: {},
         isLoaded: false,
-        isSyncing: false,
 
         // Actions
         setIsLoaded: (loaded) => set({ isLoaded: loaded }),
-        setIsSyncing: (syncing) => set({ isSyncing: syncing }),
         
         setApiKey: (apiKey) => set({ apiKey }),
+
+        setGistId: (gistId) => set({ gistId }),
+
+        setGistToken: (gistToken) => set({ gistToken }),
         
         setVidAngelEnabled: (vidAngelEnabled) => set({ vidAngelEnabled }),
         
@@ -279,140 +139,62 @@ export const useStore = create<StoreState>()(
           return { playedEpisodes: newPlayedEpisodes };
         }),
 
-        setSession: (tmdbSessionId, tmdbAccountId) => set({ tmdbSessionId, tmdbAccountId }),
         setLists: (watchlist, watched) => set({ watchlist, watched }),
 
-        loginWithTMDB: async () => {
-          const { apiKey } = get();
-          if (!apiKey) return;
-          try {
-            const token = await createRequestToken(apiKey);
-            localStorage.setItem('tmdb_request_token', token);
-            const redirectUrl = `${window.location.origin}${window.location.pathname}`;
-            window.location.href = `https://www.themoviedb.org/authenticate/${token}?redirect_to=${encodeURIComponent(redirectUrl)}`;
-          } catch (error) {
-            console.error("Failed to start TMDB login:", error);
-          }
-        },
+        syncFromGist: async () => {
+          const { apiKey, gistId, gistToken, watchlist, watched } = get();
+          if (!gistId || !gistToken) return;
 
-        logoutTMDB: () => set({
-          tmdbSessionId: undefined,
-          tmdbAccountId: undefined,
-          watchlist: [],
-          watched: []
-        }),
+          await enqueueGistOperation(async () => {
+            const gist = await getGistContent(gistId);
 
-        syncFromTMDB: async (force = false) => {
-          const { apiKey, tmdbSessionId, tmdbAccountId } = get();
-          if (apiKey && tmdbSessionId && tmdbAccountId) {
-            if (force) lastSyncTime.current = 0;
-            await syncFromTMDBInternal(apiKey, tmdbSessionId, tmdbAccountId);
-          }
-        },
+            if (isEmptyGistPayload(gist)) {
+              await updateGist(gistId, gistToken, buildGistPayload(watchlist, watched));
+              return;
+            }
 
-        processTVMigrations: async () => {
-          const { apiKey, tmdbSessionId, tmdbAccountId, isSyncing, isLoaded } = get();
-          if (!isLoaded || !apiKey || isSyncing || !tmdbSessionId || !tmdbAccountId) return;
-          
-          const now = Date.now();
-          const checkThreshold = 24 * 60 * 60 * 1000;
-          
-          const { watched, watchlist } = get();
-          
-          // 1. Process Watched shows for potential migration to watchlist
-          const watchedShowsToProcess = watched.filter(m => 
-            m.media_type === 'tv' && 
-            m.status !== 'Ended' && 
-            m.status !== 'Canceled' &&
-            (now - (m.lastChecked || 0) > checkThreshold)
-          );
+            if (!gist) return;
 
-          for (const show of watchedShowsToProcess) {
-            // Re-verify membership in case of simultaneous sync
-            if (!get().watched.some(m => m.id === show.id && m.media_type === 'tv')) continue;
+            const favoriteKeys = new Set(gist.favorites.map((item) => `${item.media_type}-${item.id}`));
+            const localWatchlist = gist.watchlist.map((item) => fromGistItem(item));
+            const localWatched = gist.watched.map((item) => fromGistItem(item, favoriteKeys.has(`${item.media_type}-${item.id}`)));
 
-            try {
-              const details = await getMediaDetails(show.id, 'tv', apiKey);
-              
-              const airDateStr = details.next_episode_to_air?.air_date;
-              const isAiringSoon = (() => {
-                if (!airDateStr) return false;
-                const parts = airDateStr.split('-');
-                if (parts.length !== 3) return false;
-                const airDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-                if (isNaN(airDate.getTime())) return false;
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const cutoff = new Date(today);
-                cutoff.setDate(today.getDate() + 7);
-                cutoff.setHours(23, 59, 59, 999);
-                return airDate.getTime() >= today.getTime() && airDate.getTime() <= cutoff.getTime();
-              })();
-
-              if (isAiringSoon) {
-                console.log(`[TV Migration] "${show.name || show.id}" has an episode airing within 7 days (${airDateStr}), migrating to watchlist`);
-
-                // Migration to watchlist
+            const hydrateList = async (items: Media[]) => {
+              const hydrated = await Promise.all(items.map(async (item) => {
                 try {
-                  await toggleWatchlistStatus(apiKey, tmdbSessionId, tmdbAccountId, show.id, 'tv', true);
-                  try {
-                    await deleteRating(apiKey, tmdbSessionId, show.id, 'tv');
-                  } catch (deleteErr) {
-                    // Revert watchlist addition on TMDB to avoid partial state
-                    console.error(`[TV Migration] deleteRating failed for "${show.name || show.id}", reverting watchlist add`, deleteErr);
-                    await toggleWatchlistStatus(apiKey, tmdbSessionId, tmdbAccountId, show.id, 'tv', false).catch(() => {});
-                    throw deleteErr;
-                  }
-                } catch (tmdbErr) {
-                  console.error(`[TV Migration] TMDB calls failed for "${show.name || show.id}"`, tmdbErr);
-                  // Update lastChecked so we don't retry immediately, but don't migrate locally
-                  set(state => ({
-                    watched: state.watched.map(m => m.id === show.id && m.media_type === 'tv'
-                      ? { ...m, lastChecked: now }
-                      : m)
-                  }));
-                  continue;
+                  const details = await getMediaDetails(item.id, item.media_type, apiKey);
+                  return {
+                    ...details,
+                    date_added: item.date_added,
+                    isFavorite: item.isFavorite,
+                  } as Media;
+                } catch {
+                  return item;
                 }
-
-                set(state => ({
-                  watched: state.watched.filter(m => !(m.id === show.id && m.media_type === 'tv')),
-                  watchlist: [...state.watchlist, { ...show, ...details, lastChecked: now, date_added: new Date().toISOString() }]
-                }));
-              } else {
-                // Metadata update only
-                set(state => ({
-                  watched: state.watched.map(m => m.id === show.id && m.media_type === 'tv' 
-                    ? { ...m, status: details.status, next_episode_to_air: details.next_episode_to_air, lastChecked: now } 
-                    : m)
-                }));
-              }
-            } catch (err) { console.error(err); }
-          }
-
-          // 2. Refresh metadata for shows already in watchlist
-          const watchlistShowsToProcess = watchlist.filter(m => 
-            m.media_type === 'tv' && 
-            m.status !== 'Ended' && 
-            m.status !== 'Canceled' &&
-            (now - (m.lastChecked || 0) > checkThreshold)
-          );
-
-          for (const show of watchlistShowsToProcess) {
-            if (!get().watchlist.some(m => m.id === show.id && m.media_type === 'tv')) continue;
-
-            try {
-              const details = await getMediaDetails(show.id, 'tv', apiKey);
-              set(state => ({
-                watchlist: state.watchlist.map(m => m.id === show.id && m.media_type === 'tv'
-                  ? { ...m, ...details, lastChecked: now }
-                  : m)
               }));
-            } catch (err) { console.error(err); }
-          }
+              return hydrated;
+            };
+
+            const [hydratedWatchlist, hydratedWatched] = await Promise.all([
+              hydrateList(localWatchlist),
+              hydrateList(localWatched),
+            ]);
+
+            set({ watchlist: hydratedWatchlist, watched: hydratedWatched });
+          });
+        },
+
+        syncToGist: async () => {
+          const { gistId, gistToken, watchlist, watched } = get();
+          if (!gistId || !gistToken) return;
+
+          await enqueueGistOperation(async () => {
+            await updateGist(gistId, gistToken, buildGistPayload(watchlist, watched));
+          });
         },
 
         toggleWatchlist: async (media) => {
-          const { apiKey, tmdbSessionId, tmdbAccountId, watchlist, watched } = get();
+          const { watchlist, watched } = get();
           const inWatchlist = watchlist.some((m) => m.id === media.id && m.media_type === media.media_type);
           
           if (inWatchlist) {
@@ -424,43 +206,27 @@ export const useStore = create<StoreState>()(
             });
           }
 
-          if (apiKey && tmdbSessionId && tmdbAccountId) {
-            try {
-              await toggleWatchlistStatus(apiKey, tmdbSessionId, tmdbAccountId, media.id, media.media_type, !inWatchlist);
-              // If we are adding to watchlist, also remove rating (history) on TMDB
-              if (!inWatchlist) {
-                await deleteRating(apiKey, tmdbSessionId, media.id, media.media_type);
-              }
-            } catch (err) { console.error(err); }
-          }
+          void get().syncToGist();
         },
 
         toggleWatched: async (media, rating) => {
-          const { apiKey, tmdbSessionId, tmdbAccountId, watched, watchlist } = get();
+          const { watched, watchlist } = get();
           const inWatched = watched.some((m) => m.id === media.id && m.media_type === media.media_type);
 
           if (inWatched && !rating) {
             set({ watched: watched.filter((m) => !(m.id === media.id && m.media_type === media.media_type)) });
-            if (apiKey && tmdbSessionId && tmdbAccountId) {
-              try { await deleteRating(apiKey, tmdbSessionId, media.id, media.media_type); } catch (err) { console.error(err); }
-            }
           } else {
             set({
               watched: [...watched, { ...media, date_added: new Date().toISOString(), lastChecked: Date.now() }],
               watchlist: watchlist.filter((m) => !(m.id === media.id && m.media_type === media.media_type))
             });
-            if (apiKey && tmdbSessionId && tmdbAccountId) {
-              try {
-                await rateMedia(apiKey, tmdbSessionId, media.id, media.media_type, rating || 1);
-                // Also remove from watchlist on TMDB when marking as watched
-                await toggleWatchlistStatus(apiKey, tmdbSessionId, tmdbAccountId, media.id, media.media_type, false);
-              } catch (err) { console.error(err); }
-            }
           }
+
+          void get().syncToGist();
         },
 
         toggleFavorite: async (media) => {
-          const { apiKey, tmdbSessionId, tmdbAccountId, watched } = get();
+          const { watched } = get();
           const item = watched.find((m) => m.id === media.id && m.media_type === media.media_type);
           if (!item) return;
 
@@ -473,12 +239,7 @@ export const useStore = create<StoreState>()(
             ),
           });
 
-          if (apiKey && tmdbSessionId && tmdbAccountId) {
-            try {
-              // 4 stars (value 8 on TMDB) = favorite, 1 star (value 2 on TMDB) = watched only
-              await rateMedia(apiKey, tmdbSessionId, media.id, media.media_type, newIsFavorite ? 4 : 1);
-            } catch (err) { console.error(err); }
-          }
+          void get().syncToGist();
         },
 
       };
@@ -503,9 +264,8 @@ export const useStore = create<StoreState>()(
                 if (parsed.state) {
                   // Merge localStorage data into current store
                   if (parsed.state.apiKey) rehydratedState.setApiKey(parsed.state.apiKey);
-                  if (parsed.state.tmdbSessionId && parsed.state.tmdbAccountId) {
-                    rehydratedState.setSession(parsed.state.tmdbSessionId, parsed.state.tmdbAccountId);
-                  }
+                  if (parsed.state.gistId) rehydratedState.setGistId(parsed.state.gistId);
+                  if (parsed.state.gistToken) rehydratedState.setGistToken(parsed.state.gistToken);
                   rehydratedState.setLists(parsed.state.watchlist || [], parsed.state.watched || []);
                   console.log('Successfully migrated data from localStorage to IndexedDB');
                 }

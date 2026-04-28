@@ -163,8 +163,8 @@ export interface UserState {
   apiKey: string;
   watchlist: Media[];
   watched: Media[];
-  tmdbSessionId?: string;
-  tmdbAccountId?: number;
+  gistId?: string;
+  gistToken?: string;
   vidAngelEnabled?: boolean;
   filter?: FilterType;
   sort?: SortOption;
