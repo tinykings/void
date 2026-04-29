@@ -84,6 +84,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
+    if (store.sort !== 'added') {
+      store.setSort('added');
+    }
+
     const applyInitialView = () => {
       if (initialViewApplied.current) return;
 
@@ -118,6 +122,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   }, [
     store.isLoaded,
+    store.sort,
     store.gistId,
     store.gistToken,
     store.watchlist.length,

@@ -384,37 +384,6 @@ export const HomeView = () => {
                     >
                       Recently Added
                     </button>
-                    <button
-                      onClick={() => {
-                        startTransition(() => setSort('title'));
-                        showStatus('Title A–Z');
-                        setShowSortMenu(false);
-                      }}
-                      className={clsx(
-                        'w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors',
-                        sort === 'title'
-                          ? 'text-brand-cyan'
-                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
-                      )}
-                    >
-                      Title
-                    </button>
-                    <button
-                      onClick={() => {
-                        startTransition(() => setSort('release'));
-                        showStatus('Release Date');
-                        setShowSortMenu(false);
-                      }}
-                      className={clsx(
-                        'w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors',
-                        sort === 'release'
-                          ? 'text-brand-cyan'
-                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
-                      )}
-                    >
-                      Release Date
-                    </button>
-
                     <div className="h-px bg-white/5 my-1" />
 
                     <button

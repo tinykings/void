@@ -46,7 +46,7 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
     return now.getTime();
   }, []);
 
-  const daysUntilRelease = useMemo(() => {
+  const daysUntilRelease = (() => {
     const isNextEpisode = media.media_type === 'tv' && !!media.next_episode_to_air;
     const releaseDateStr = (isNextEpisode && media.next_episode_to_air?.air_date) || 
                           media.release_date || 
@@ -75,20 +75,15 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
     
     // For movies/first air dates, if it's today, show 'now'
     if (!isNextEpisode && diffDays === 0) return 'now';
-    
+
     return null;
-  }, [media.release_date, media.first_air_date, media.next_episode_to_air, media.media_type, nowTime]);
+  })();
 
-  const showReleaseBadge = useMemo(() => {
-    if (sort === 'release') return true;
-
+  const showReleaseBadge = (() => {
     if (sort !== 'added') return false;
 
-    return (
-      (media.media_type === 'tv' && !!media.next_episode_to_air && daysUntilRelease !== null) ||
-      (media.media_type === 'movie' && daysUntilRelease !== null)
-    );
-  }, [daysUntilRelease, media.media_type, media.next_episode_to_air, sort]);
+    return daysUntilRelease !== null;
+  })();
 
   // Modal State
   const [modalConfig, setModalConfig] = useState<{

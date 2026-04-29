@@ -90,17 +90,5 @@ const sortByAddedWithReleasePriority = (list: Media[]) => {
 };
 
 export const sortMedia = (list: Media[], sort: SortOption): Media[] => {
-  switch (sort) {
-    case 'title':
-      return [...list].sort((a, b) => {
-        const titleA = a.title || a.name || '';
-        const titleB = b.title || b.name || '';
-        return titleA.localeCompare(titleB);
-      });
-    case 'release':
-      return sortByReleasePriority(list);
-    case 'added':
-    default:
-      return sortByAddedWithReleasePriority(list);
-  }
+  return sortByAddedWithReleasePriority(list);
 };
