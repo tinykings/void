@@ -439,6 +439,14 @@ export const HomeView = () => {
                       </div>
                       {showEditedOnly && <Check size={14} className="text-amber-500" />}
                     </button>
+                    {showEditedOnly && (
+                      <a
+                        href="https://www.vidangel.com/login"
+                        className="block px-4 pb-2 -mt-1 text-[11px] font-medium text-brand-silver/70 hover:text-brand-cyan transition-colors"
+                      >
+                        Login to Vidangel
+                      </a>
+                    )}
 
                     <button
                       onClick={() => {
