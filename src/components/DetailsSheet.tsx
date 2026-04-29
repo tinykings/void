@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
-import { getImageUrl, getMediaCredits, getContentRating, getMediaDetails, getMediaVideos, getWatchProviders } from '@/lib/tmdb';
+import { getImageUrl, getMediaCredits, getContentRating, getMediaDetails, getMediaVideos, getSeasonDetails, getWatchProviders } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
-import { CastMember, Media, Video, WatchProvider } from '@/lib/types';
+import { CastMember, Episode, Media, Video, WatchProvider } from '@/lib/types';
 import { Bookmark, Eye, Heart, Play, ShieldCheck, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
@@ -34,6 +34,7 @@ export const DetailsSheet = () => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [watchProviders, setWatchProviders] = useState<WatchProvider[]>([]);
   const [contentRating, setContentRating] = useState<string | null>(null);
+  const [headerEpisode, setHeaderEpisode] = useState<Episode | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [trailersLoading, setTrailersLoading] = useState(false);
   const [providersLoadedFor, setProvidersLoadedFor] = useState<number | null>(null);
@@ -197,6 +198,51 @@ export const DetailsSheet = () => {
   }, [activeDetailsMedia, apiKey, trailersLoadedFor]);
 
   useEffect(() => {
+    const hasNextEpisode = !!selected?.next_episode_to_air;
+
+    if (!selected || selected.media_type !== 'tv' || hasNextEpisode || !apiKey) {
+      setHeaderEpisode(null);
+      return;
+    }
+
+    const latestSeasonNumber = selected.seasons
+      ?.filter((season) => season.season_number > 0)
+      .reduce((latest, season) => Math.max(latest, season.season_number), 0);
+
+    if (!latestSeasonNumber) {
+      setHeaderEpisode(null);
+      return;
+    }
+
+    let cancelled = false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayTime = today.getTime();
+
+    getSeasonDetails(selected.id, latestSeasonNumber, apiKey)
+      .then((season) => {
+        if (cancelled) return;
+
+        const lastAiredEpisode = [...season.episodes]
+          .filter((episode) => episode.air_date && new Date(episode.air_date).getTime() <= todayTime)
+          .sort((a, b) => {
+            const dateDiff = new Date(b.air_date).getTime() - new Date(a.air_date).getTime();
+            if (dateDiff !== 0) return dateDiff;
+            return b.episode_number - a.episode_number;
+          })[0] || null;
+
+        setHeaderEpisode(lastAiredEpisode);
+      })
+      .catch(() => {
+        if (!cancelled) setHeaderEpisode(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apiKey, selected]);
+
+  useEffect(() => {
     if (!activeDetailsMedia) return;
     if ('overflow' in document.body.style) {
       const previous = document.body.style.overflow;
@@ -212,6 +258,12 @@ export const DetailsSheet = () => {
   if (!isOpen || !selected) return null;
 
   const title = selected.title || selected.name || 'Unknown';
+  const nextEpisode = selected.media_type === 'tv' ? selected.next_episode_to_air : null;
+  const episodeLabel = nextEpisode
+    ? `Next • S${nextEpisode.season_number}E${nextEpisode.episode_number} • ${nextEpisode.name}`
+    : headerEpisode
+      ? `Last • S${headerEpisode.season_number}E${headerEpisode.episode_number} • ${headerEpisode.name}`
+    : null;
   const justWatchSearchUrl = `https://www.justwatch.com/us/search?q=${encodeURIComponent(title)}`;
   const year = (selected.release_date || selected.first_air_date || '').split('-')[0];
   const compactActions = inWatched;
@@ -275,8 +327,13 @@ export const DetailsSheet = () => {
             >
               <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-brand-bg/80">
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2 pr-2">
+                  <div className="flex flex-wrap items-center gap-2 pr-2">
                     <h2 className="min-w-0 text-lg font-black text-white uppercase tracking-tight leading-tight">{title}</h2>
+                    {episodeLabel && (
+                      <span className="inline-flex max-w-full items-center rounded-full border border-brand-cyan/30 bg-brand-cyan/10 px-2.5 py-1 text-[10px] font-semibold text-brand-cyan">
+                        {episodeLabel}
+                      </span>
+                    )}
                     {vidAngelEnabled && isVidAngelAvailable && (
                       <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-300/70 bg-amber-500/85 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-brand-bg">
                         <ShieldCheck size={10} />
