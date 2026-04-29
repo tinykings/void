@@ -12,6 +12,7 @@ interface AppContextType extends UserState {
   setVidAngelEnabled: (enabled: boolean) => void;
   toggleWatchlist: (media: Media) => void;
   toggleWatched: (media: Media, rating?: number) => void;
+  setLists: (watchlist: Media[], watched: Media[]) => void;
   isLoaded: boolean;
 
   setFilter: (filter: FilterType) => void;
@@ -192,6 +193,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setVidAngelEnabled: store.setVidAngelEnabled,
     toggleWatchlist: store.toggleWatchlist,
     toggleWatched: store.toggleWatched,
+    setLists: store.setLists,
     syncFromGist: store.syncFromGist,
     setFilter: store.setFilter,
     setSort: store.setSort,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useTransition, useCallback, useRef } from 'react';
+import { useEffect, useState, useMemo, useTransition, useCallback, useRef, type ChangeEvent } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { MediaCard } from '@/components/MediaCard';
 import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
@@ -8,9 +8,11 @@ import { DetailsSheet } from '@/components/DetailsSheet';
 import { PosterSheet } from '@/components/PosterSheet';
 import { SearchSheet } from '@/components/SearchSheet';
 import { sortMedia } from '@/lib/sort';
+import { fromGistItem, type GistLibraryData } from '@/lib/gist';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
-import { AlertCircle, X, Save, Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, X, Save, Eye, EyeOff, Download, Upload } from 'lucide-react';
 import { clsx } from 'clsx';
+import { toast } from 'sonner';
 
 export const HomeView = () => {
   const {
@@ -36,6 +38,7 @@ export const HomeView = () => {
     setMediaEditedStatus,
     isSearchFocused,
     setIsSearchFocused,
+    setLists,
   } = useAppContext();
   
   const [isPending, startTransition] = useTransition();
@@ -80,6 +83,7 @@ export const HomeView = () => {
   const [tempGistId, setTempGistId] = useState(gistId || '');
   const [tempGistToken, setTempGistToken] = useState(gistToken || '');
   const [showSyncToken, setShowSyncToken] = useState(false);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   
   // Pagination for library
   const [visibleItemsCount, setVisibleItemsCount] = useState(() => {
@@ -134,6 +138,62 @@ export const HomeView = () => {
 
     setShowSyncModal(false);
     setShowSortMenu(false);
+  };
+
+  const handleExportBackup = () => {
+    if (hasGistSync) return;
+
+    const toBackupItem = (item: (typeof watchlist)[number]) => ({
+      id: item.id,
+      title: item.title || item.name || 'Unknown',
+      media_type: item.media_type,
+      date_added: item.date_added || new Date().toISOString(),
+    });
+
+    const backup: GistLibraryData = {
+      version: 1,
+      watchlist: watchlist.map(toBackupItem),
+      watched: watched.map(toBackupItem),
+      favorites: watched.filter((item) => item.isFavorite).map(toBackupItem),
+    };
+
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'void-library-backup.json';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+    toast.success('Backup downloaded');
+  };
+
+  const handleImportBackup = async (event: ChangeEvent<HTMLInputElement>) => {
+    if (hasGistSync) return;
+
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text) as Partial<GistLibraryData>;
+
+      if (parsed.version !== 1 || !Array.isArray(parsed.watchlist) || !Array.isArray(parsed.watched) || !Array.isArray(parsed.favorites)) {
+        throw new Error('Invalid backup file');
+      }
+
+      const favoriteKeys = new Set(parsed.favorites.map((item) => `${item.media_type}-${item.id}`));
+      const nextWatchlist = parsed.watchlist.map((item) => fromGistItem(item));
+      const nextWatched = parsed.watched.map((item) => fromGistItem(item, favoriteKeys.has(`${item.media_type}-${item.id}`)));
+
+      setLists(nextWatchlist, nextWatched);
+      toast.success('Backup restored');
+    } catch {
+      toast.error('Could not import backup');
+    }
   };
 
   const selectLibraryMenuOption = (nextFilter: 'movie' | 'tv', mode: 'watchlist' | 'watched' | 'favorites') => {
@@ -410,17 +470,18 @@ export const HomeView = () => {
                 <button
                   onClick={() => {
                     setShowLibraryMenu(null);
-                    setShowSortMenu(!showSortMenu);
+                    setShowSortMenu(false);
+                    setShowSyncModal(true);
                   }}
                   className={clsx(
                     'w-full flex items-center justify-center py-2 px-2 rounded-lg text-xs font-bold transition-all',
-                    showSortMenu
+                    showSyncModal
                       ? 'bg-brand-cyan/10 text-brand-cyan'
                       : 'text-brand-silver hover:text-white'
                   )}
-                  title="Sort & Filter"
+                  title="Settings"
                 >
-                  Filter
+                  Settings
                 </button>
               </div>
 
@@ -627,6 +688,59 @@ export const HomeView = () => {
                 >
                   Login to Vidangel
                 </a>
+              </div>
+
+              <div className="rounded-xl bg-white/[0.03] blueprint-border p-4 space-y-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Backup</h3>
+                  <p className="mt-1 text-xs text-brand-silver">
+                    Export a local JSON backup or restore one when Gist sync is disabled.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={handleExportBackup}
+                    disabled={hasGistSync}
+                    className={clsx(
+                      'flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors blueprint-border',
+                      hasGistSync
+                        ? 'bg-white/5 text-brand-silver/40 cursor-not-allowed'
+                        : 'bg-brand-bg text-white hover:bg-brand-cyan/10'
+                    )}
+                  >
+                    <Download size={16} />
+                    Export
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => importInputRef.current?.click()}
+                    disabled={hasGistSync}
+                    className={clsx(
+                      'flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors blueprint-border',
+                      hasGistSync
+                        ? 'bg-white/5 text-brand-silver/40 cursor-not-allowed'
+                        : 'bg-brand-bg text-white hover:bg-brand-cyan/10'
+                    )}
+                  >
+                    <Upload size={16} />
+                    Import
+                  </button>
+                </div>
+
+                <p className={clsx('text-[11px]', hasGistSync ? 'text-brand-silver/50' : 'text-brand-silver/70')}>
+                  {hasGistSync ? 'Disable Gist sync to use local backup.' : 'Imports replace your current local library.'}
+                </p>
+
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept="application/json,.json"
+                  className="hidden"
+                  onChange={handleImportBackup}
+                />
               </div>
 
               <button
