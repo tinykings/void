@@ -103,7 +103,7 @@ export const DetailsSheet = () => {
 
         const usProviders = data.results?.US;
         const providers = [...(usProviders?.free || []), ...(usProviders?.flatrate || [])]
-          .filter((provider) => !provider.provider_name.includes('Amazon Channel'))
+          .filter((provider) => !provider.provider_name.includes('Channel'))
           .filter((provider, index, array) => array.findIndex((item) => item.provider_id === provider.provider_id) === index);
 
         setWatchProviders({ id: activeDetailsMedia.id, items: providers });
