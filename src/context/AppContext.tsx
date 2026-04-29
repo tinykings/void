@@ -65,21 +65,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const initialGistSyncDone = useRef('');
   const initialViewApplied = useRef(false);
   const hydratedMediaKeys = useRef<Set<string>>(new Set());
-  const sheetHistoryRef = useRef<SheetSnapshot[]>([]);
+  const sheetReturnRef = useRef<SheetSnapshot | null>(null);
   const [pendingLibraryView, setPendingLibraryView] = useState<PendingLibraryView>(null);
   const [activeDetailsMedia, setActiveDetailsMedia] = useState<Media | null>(null);
   const [activePosterMedia, setActivePosterMedia] = useState<Media | null>(null);
   const [activeActorMedia, setActiveActorMedia] = useState<CastMember | null>(null);
-  const pushSheetSnapshot = useCallback(() => {
-    if (!activeDetailsMedia && !activePosterMedia && !activeActorMedia) return;
+  const rememberCurrentSheet = useCallback(() => {
+    if (!activeDetailsMedia && !activePosterMedia && !activeActorMedia) {
+      sheetReturnRef.current = null;
+      return;
+    }
 
-    sheetHistoryRef.current.push({
+    sheetReturnRef.current = {
       details: activeDetailsMedia,
       poster: activePosterMedia,
       actor: activeActorMedia,
-    });
+    };
   }, [activeActorMedia, activeDetailsMedia, activePosterMedia]);
-  const restoreSheetSnapshot = useCallback((snapshot?: SheetSnapshot) => {
+  const restoreSheetSnapshot = useCallback((snapshot?: SheetSnapshot | null) => {
     if (!snapshot) return false;
 
     setActiveDetailsMedia(snapshot.details);
@@ -92,7 +95,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const nextView = pendingLibraryView;
     setPendingLibraryView(null);
-    sheetHistoryRef.current = [];
+    sheetReturnRef.current = null;
     setActiveActorMedia(null);
     setActivePosterMedia(null);
     setActiveDetailsMedia(null);
@@ -102,25 +105,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return true;
   }, [pendingLibraryView, store]);
   const openDetails = useCallback((media: Media) => {
-    pushSheetSnapshot();
+    rememberCurrentSheet();
     setActiveActorMedia(null);
     setActivePosterMedia(null);
     setActiveDetailsMedia(media);
-  }, [pushSheetSnapshot]);
+  }, [rememberCurrentSheet]);
   const openPoster = useCallback((media: Media) => {
-    pushSheetSnapshot();
+    rememberCurrentSheet();
     setActiveDetailsMedia(null);
     setActiveActorMedia(null);
     setActivePosterMedia(media);
-  }, [pushSheetSnapshot]);
+  }, [rememberCurrentSheet]);
   const openActor = useCallback((actor: CastMember) => {
-    pushSheetSnapshot();
+    rememberCurrentSheet();
     setActivePosterMedia(null);
     setActiveDetailsMedia(null);
     setActiveActorMedia(actor);
-  }, [pushSheetSnapshot]);
+  }, [rememberCurrentSheet]);
   const closeCurrentSheet = useCallback(() => {
-    const previous = sheetHistoryRef.current.pop();
+    const previous = sheetReturnRef.current;
+    sheetReturnRef.current = null;
 
     if (previous) {
       restoreSheetSnapshot(previous);
@@ -143,8 +147,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     closeCurrentSheet();
   }, [closeCurrentSheet]);
   const closeAllSheets = useCallback(() => {
-    sheetHistoryRef.current = [];
-    if (applyPendingLibraryView()) return;
+    sheetReturnRef.current = null;
+    applyPendingLibraryView();
 
     setActiveActorMedia(null);
     setActivePosterMedia(null);
