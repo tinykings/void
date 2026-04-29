@@ -78,7 +78,7 @@ export const HomeView = () => {
     }, 1600);
   }, []);
 
-  const [error, setError] = useState<string | null>(null);
+  const [error] = useState<string | null>(null);
 
   // Sort dropdown state
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -100,9 +100,6 @@ export const HomeView = () => {
   const itemsPerPage = 24;
   const observer = useRef<IntersectionObserver | null>(null);
 
-  const showLibrary = !isSearchFocused;
-  const isLibraryEmpty = watchlist.length === 0 && watched.length === 0;
-
   // Combine and process library media
   const baseLibraryMedia = useMemo(() => {
     const combined = showWatched ? watched : watchlist;
@@ -116,8 +113,8 @@ export const HomeView = () => {
       filtered = filtered.filter(m => m.isFavorite);
     }
 
-    return sortMedia(filtered, sort || 'added');
-  }, [baseLibraryMedia, sort, showFavoritesOnly]);
+    return sortMedia(filtered);
+  }, [baseLibraryMedia, showFavoritesOnly]);
 
   const hasGistSync = !!(gistId && gistToken);
   const activeLibraryMode = showFavoritesOnly ? 'favorites' : showWatched ? 'watched' : 'watchlist';

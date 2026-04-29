@@ -10,24 +10,25 @@ import { SheetDragHandle } from '@/components/SheetDragHandle';
 
 export const ActorSheet = () => {
   const { activeActorMedia, closeActor, closeAllSheets, apiKey, openDetails } = useAppContext();
-  const [credits, setCredits] = useState<Media[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [actorCredits, setActorCredits] = useState<{ actorId: number; credits: Media[] } | null>(null);
 
   const actor = activeActorMedia;
 
   const actorName = actor?.name || 'Unknown';
 
-  const topCredits = useMemo(() => credits.slice(0, 20), [credits]);
+  const topCredits = useMemo(() => {
+    if (!actor || actorCredits?.actorId !== actor.id) return [];
+    return actorCredits.credits.slice(0, 20);
+  }, [actor, actorCredits]);
+
+  const loading = !!actor && !!apiKey && actorCredits?.actorId !== actor.id;
 
   useEffect(() => {
     if (!actor || !apiKey) {
-      setCredits([]);
-      setLoading(false);
       return;
     }
 
     let cancelled = false;
-    setLoading(true);
 
     getPersonCredits(actor.id, apiKey)
       .then((data) => {
@@ -55,13 +56,10 @@ export const ActorSheet = () => {
           }, [] as Media[])
           .slice(0, 20);
 
-        setCredits(deduped);
+        setActorCredits({ actorId: actor.id, credits: deduped });
       })
       .catch(() => {
-        if (!cancelled) setCredits([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setActorCredits({ actorId: actor.id, credits: [] });
       });
 
     return () => {

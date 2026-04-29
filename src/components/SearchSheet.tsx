@@ -14,26 +14,24 @@ export const SearchSheet = () => {
   const { isSearchFocused, setIsSearchFocused, closeAllSheets, apiKey, isLoaded, watchlist, watched, vidAngelEnabled } = useAppContext();
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Media[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
   const [trending, setTrending] = useState<Media[]>([]);
-  const [trendingLoading, setTrendingLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const searchAbortController = useRef<AbortController | null>(null);
 
   const searchTerm = query.trim();
   const showSearchResults = searchTerm.length >= 2;
   const isLibraryEmpty = watchlist.length === 0 && watched.length === 0;
+  const trendingLoading = isSearchFocused && !!apiKey && isLoaded && trending.length === 0 && !showSearchResults;
+  const displayError = isSearchFocused ? error : null;
 
   const runSearch = useCallback(async (value: string) => {
     if (!apiKey || value.trim().length < 2) {
-      setSearchResults((current) => (current.length === 0 ? current : []));
       return;
     }
 
     if (searchAbortController.current) searchAbortController.current.abort();
     searchAbortController.current = new AbortController();
 
-    setSearchLoading(true);
     try {
       const results = await searchMedia(value, apiKey, searchAbortController.current.signal);
       setSearchResults(results);
@@ -41,8 +39,6 @@ export const SearchSheet = () => {
       if (err instanceof Error && err.name === 'AbortError') return;
       console.error('Search error:', err);
       setError(err instanceof Error ? err.message : 'Search failed');
-    } finally {
-      setSearchLoading(false);
     }
   }, [apiKey]);
 
@@ -53,7 +49,6 @@ export const SearchSheet = () => {
     if (!apiKey || !isLoaded) return;
     if (trending.length > 0) return;
 
-    setTrendingLoading(true);
     getTrending(apiKey, 'all')
       .then((items) => {
         const processed = items.map((item) => ({
@@ -63,7 +58,6 @@ export const SearchSheet = () => {
         setTrending(processed);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load popular titles'))
-      .finally(() => setTrendingLoading(false));
   }, [apiKey, isLoaded, isSearchFocused, trending.length]);
 
   useEffect(() => {
@@ -71,9 +65,8 @@ export const SearchSheet = () => {
 
     if (searchTerm.length >= 2) {
       debouncedSearch(query);
-    } else {
-      setSearchResults([]);
-      if (searchAbortController.current) searchAbortController.current.abort();
+    } else if (searchAbortController.current) {
+      searchAbortController.current.abort();
     }
   }, [query, searchTerm.length, debouncedSearch, isSearchFocused]);
 
@@ -82,12 +75,6 @@ export const SearchSheet = () => {
       if (searchAbortController.current) searchAbortController.current.abort();
     };
   }, []);
-
-  useEffect(() => {
-    if (!isSearchFocused) {
-      setError(null);
-    }
-  }, [isSearchFocused]);
 
   const closeSheet = () => {
     if (isLibraryEmpty) return;
@@ -155,8 +142,8 @@ export const SearchSheet = () => {
 
           <div className="px-4 pb-24 overflow-y-auto custom-scrollbar flex-1">
 
-            {error && (
-              <p className="text-sm text-red-400 mb-4">{error}</p>
+            {displayError && (
+              <p className="text-sm text-red-400 mb-4">{displayError}</p>
             )}
 
             {trendingLoading && !showSearchResults ? (

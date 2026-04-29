@@ -32,12 +32,11 @@ export const DetailsSheet = () => {
     updateMediaMetadata,
   } = useAppContext();
 
-  const [details, setDetails] = useState<Media | null>(null);
-  const [cast, setCast] = useState<CastMember[]>([]);
-  const [watchProviders, setWatchProviders] = useState<WatchProvider[]>([]);
-  const [contentRating, setContentRating] = useState<string | null>(null);
-  const [headerEpisode, setHeaderEpisode] = useState<Episode | null>(null);
-  const [overviewLoading, setOverviewLoading] = useState(false);
+  const [details, setDetails] = useState<{ id: number; media: Media } | null>(null);
+  const [cast, setCast] = useState<{ id: number; items: CastMember[] } | null>(null);
+  const [watchProviders, setWatchProviders] = useState<{ id: number; items: WatchProvider[] } | null>(null);
+  const [contentRating, setContentRating] = useState<{ id: number; value: string | null } | null>(null);
+  const [headerEpisode, setHeaderEpisode] = useState<{ id: number; episode: Episode | null } | null>(null);
   const [providersLoadedFor, setProvidersLoadedFor] = useState<number | null>(null);
   const [overviewLoadedFor, setOverviewLoadedFor] = useState<number | null>(null);
   const [modalConfig, setModalConfig] = useState<{
@@ -56,7 +55,7 @@ export const DetailsSheet = () => {
     confirmText: 'Confirm',
   });
 
-  const selected = details || activeDetailsMedia;
+  const selected = activeDetailsMedia && details?.id === activeDetailsMedia.id ? details.media : activeDetailsMedia;
 
   const mediaKey = useMemo(() => {
     if (!selected) return '';
@@ -68,6 +67,11 @@ export const DetailsSheet = () => {
   const watchedItem = mediaKey ? watchedMap.get(mediaKey) : undefined;
   const isFavorite = watchedItem?.isFavorite || false;
   const isVidAngelAvailable = mediaKey ? editedStatusMap[mediaKey] : undefined;
+  const castItems = selected && cast?.id === selected.id ? cast.items : [];
+  const watchProviderItems = selected && watchProviders?.id === selected.id ? watchProviders.items : [];
+  const contentRatingValue = selected && contentRating?.id === selected.id ? contentRating.value : null;
+  const headerEpisodeValue = selected && headerEpisode?.id === selected.id ? headerEpisode.episode : null;
+  const overviewLoading = !!activeDetailsMedia && overviewLoadedFor !== activeDetailsMedia.id;
 
   useEffect(() => {
     if (!selected || !vidAngelEnabled || isVidAngelAvailable !== undefined) return;
@@ -88,17 +92,6 @@ export const DetailsSheet = () => {
   }, [isVidAngelAvailable, selected, setMediaEditedStatus, vidAngelEnabled]);
 
   useEffect(() => {
-    if (!activeDetailsMedia) return;
-    setDetails(activeDetailsMedia);
-    setCast([]);
-    setWatchProviders([]);
-    setContentRating(null);
-    setOverviewLoading(false);
-    setProvidersLoadedFor(null);
-    setOverviewLoadedFor(null);
-  }, [activeDetailsMedia?.id, activeDetailsMedia?.media_type]);
-
-  useEffect(() => {
     if (!activeDetailsMedia || !apiKey || providersLoadedFor === activeDetailsMedia.id) return;
 
     let cancelled = false;
@@ -112,7 +105,7 @@ export const DetailsSheet = () => {
           .filter((provider) => !provider.provider_name.includes('Amazon Channel'))
           .filter((provider, index, array) => array.findIndex((item) => item.provider_id === provider.provider_id) === index);
 
-        setWatchProviders(providers);
+        setWatchProviders({ id: activeDetailsMedia.id, items: providers });
         setProvidersLoadedFor(activeDetailsMedia.id);
       })
       .catch(console.error);
@@ -126,7 +119,6 @@ export const DetailsSheet = () => {
     if (!activeDetailsMedia || !apiKey || overviewLoadedFor === activeDetailsMedia.id) return;
 
     let cancelled = false;
-    setOverviewLoading(true);
 
     Promise.all([
       getMediaDetails(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey),
@@ -134,18 +126,15 @@ export const DetailsSheet = () => {
     ])
       .then(([mediaData, creditsData]) => {
         if (cancelled) return;
-        setDetails(mediaData);
-        setCast(creditsData.cast.slice(0, 4));
+        setDetails({ id: mediaData.id, media: mediaData });
+        setCast({ id: mediaData.id, items: creditsData.cast.slice(0, 4) });
         setOverviewLoadedFor(activeDetailsMedia.id);
         updateMediaMetadata(mediaData.id, mediaData.media_type, {
           ...mediaData,
           lastChecked: Date.now(),
         });
       })
-      .catch(console.error)
-      .finally(() => {
-        if (!cancelled) setOverviewLoading(false);
-      });
+      .catch(console.error);
 
     return () => {
       cancelled = true;
@@ -159,7 +148,7 @@ export const DetailsSheet = () => {
 
     getContentRating(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey)
       .then((rating) => {
-        if (!cancelled) setContentRating(rating);
+        if (!cancelled) setContentRating({ id: activeDetailsMedia.id, value: rating });
       })
       .catch(console.error);
 
@@ -171,19 +160,13 @@ export const DetailsSheet = () => {
   useEffect(() => {
     const hasNextEpisode = !!selected?.next_episode_to_air;
 
-    if (!selected || selected.media_type !== 'tv' || hasNextEpisode || !apiKey) {
-      setHeaderEpisode(null);
-      return;
-    }
+    if (!selected || selected.media_type !== 'tv' || hasNextEpisode || !apiKey) return;
 
     const latestSeasonNumber = selected.seasons
       ?.filter((season) => season.season_number > 0)
       .reduce((latest, season) => Math.max(latest, season.season_number), 0);
 
-    if (!latestSeasonNumber) {
-      setHeaderEpisode(null);
-      return;
-    }
+    if (!latestSeasonNumber) return;
 
     let cancelled = false;
     const today = new Date();
@@ -202,10 +185,10 @@ export const DetailsSheet = () => {
             return b.episode_number - a.episode_number;
           })[0] || null;
 
-        setHeaderEpisode(lastAiredEpisode);
+        setHeaderEpisode({ id: selected.id, episode: lastAiredEpisode });
       })
       .catch(() => {
-        if (!cancelled) setHeaderEpisode(null);
+        if (!cancelled) setHeaderEpisode({ id: selected.id, episode: null });
       });
 
     return () => {
@@ -232,8 +215,8 @@ export const DetailsSheet = () => {
   const nextEpisode = selected.media_type === 'tv' ? selected.next_episode_to_air : null;
   const episodeLabel = nextEpisode
     ? `Next • S${nextEpisode.season_number}E${nextEpisode.episode_number} • ${nextEpisode.name}`
-    : headerEpisode
-      ? `Last • S${headerEpisode.season_number}E${headerEpisode.episode_number} • ${headerEpisode.name}`
+    : headerEpisodeValue
+      ? `Last • S${headerEpisodeValue.season_number}E${headerEpisodeValue.episode_number} • ${headerEpisodeValue.name}`
     : null;
   const movieReleaseLabel = (() => {
     if (selected.media_type !== 'movie' || !selected.release_date) return null;
@@ -370,7 +353,7 @@ export const DetailsSheet = () => {
                       <span className="px-2 py-1 rounded-full bg-white/5">{selected.media_type}</span>
                       {year && <span className="px-2 py-1 rounded-full bg-white/5">{year}</span>}
                       <span className="px-2 py-1 rounded-full bg-white/5">★ {selected.vote_average?.toFixed(1) || '0.0'}</span>
-                      <span className="px-2 py-1 rounded-full bg-white/5">{contentRating || 'N/A'}</span>
+                      <span className="px-2 py-1 rounded-full bg-white/5">{contentRatingValue || 'N/A'}</span>
                     </div>
 
                   </div>
@@ -433,8 +416,8 @@ export const DetailsSheet = () => {
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="mt-1 text-sm text-white truncate">
-                          {watchProviders.length > 0
-                            ? watchProviders.map((provider) => provider.provider_name).join(' · ')
+                          {watchProviderItems.length > 0
+                            ? watchProviderItems.map((provider) => provider.provider_name).join(' · ')
                             : 'View streaming options on JustWatch'}
                         </p>
                         <p className="mt-1 text-[10px] uppercase tracking-widest text-brand-silver">
@@ -447,7 +430,7 @@ export const DetailsSheet = () => {
 
                   <div>
                     <div className="grid grid-cols-2 gap-2">
-                      {overviewLoading && cast.length === 0 ? (
+                      {overviewLoading && castItems.length === 0 ? (
                         [...Array(4)].map((_, index) => (
                           <div key={index} className="flex items-center gap-3 p-2 rounded-xl bg-white/5 blueprint-border">
                             <div className="w-10 h-10 rounded-full bg-white/10 animate-pulse" />
@@ -457,8 +440,8 @@ export const DetailsSheet = () => {
                             </div>
                           </div>
                         ))
-                      ) : cast.length > 0 ? (
-                        cast.map((member) => (
+                      ) : castItems.length > 0 ? (
+                        castItems.map((member) => (
                         <button
                           key={member.id}
                           type="button"

@@ -1,4 +1,4 @@
-import { Media, SortOption } from './types';
+import { Media } from './types';
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 const MOVIE_PRIORITY_WINDOW_DAYS = 30;
@@ -31,38 +31,6 @@ const isPriorityMovie = (item: Media, nowTime: number) => {
   return diffDays >= -MOVIE_PRIORITY_WINDOW_DAYS && diffDays <= MOVIE_PRIORITY_WINDOW_DAYS;
 };
 
-const sortByReleasePriority = (list: Media[]) => {
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const nowTime = now.getTime();
-
-  const upcoming: Media[] = [];
-  const released: Media[] = [];
-
-  list.forEach((item) => {
-    const date = getRelevantDate(item);
-    if (date && !isNaN(date)) {
-      const diffDays = Math.ceil((date - nowTime) / DAY_MS);
-
-      // Include in upcoming if it's in the future OR it's a TV show next episode in the "recent past" (within 3 days)
-      if (diffDays > 0 || isUpcomingTv(item, nowTime)) {
-        upcoming.push(item);
-        return;
-      }
-    }
-
-    released.push(item);
-  });
-
-  // Sort upcoming: Soonest to Latest (Ascending)
-  upcoming.sort((a, b) => (getRelevantDate(a) || 0) - (getRelevantDate(b) || 0));
-
-  // Sort released: Newest to Oldest (Descending)
-  released.sort((a, b) => (getRelevantDate(b) || 0) - (getRelevantDate(a) || 0));
-
-  return [...upcoming, ...released];
-};
-
 const sortByAddedWithReleasePriority = (list: Media[]) => {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
@@ -89,6 +57,6 @@ const sortByAddedWithReleasePriority = (list: Media[]) => {
   return [...upcoming, ...added];
 };
 
-export const sortMedia = (list: Media[], sort: SortOption): Media[] => {
+export const sortMedia = (list: Media[]): Media[] => {
   return sortByAddedWithReleasePriority(list);
 };
