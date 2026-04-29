@@ -69,6 +69,7 @@ export interface TmdbResult {
   overview: string;
   release_date?: string;
   first_air_date?: string;
+  genre_ids?: number[];
   vote_average: number;
   vote_count?: number;
   rating?: number;

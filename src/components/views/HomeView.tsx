@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, useTransition, useCallback, useRef, type ChangeEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
+import { ActorSheet } from '@/components/ActorSheet';
 import { MediaCard } from '@/components/MediaCard';
 import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
 import { DetailsSheet } from '@/components/DetailsSheet';
@@ -406,6 +407,7 @@ export const HomeView = () => {
       )}
 
       <DetailsSheet />
+      <ActorSheet />
       <PosterSheet />
       <SearchSheet />
 

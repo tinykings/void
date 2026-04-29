@@ -6,7 +6,7 @@ import { useAppContext } from '@/context/AppContext';
 import { getTrending, searchMedia } from '@/lib/tmdb';
 import { Media } from '@/lib/types';
 import { MediaCard } from '@/components/MediaCard';
-import { Search as SearchIcon, ArrowRight, X } from 'lucide-react';
+import { Search as SearchIcon, X } from 'lucide-react';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 
 export const SearchSheet = () => {
@@ -138,18 +138,9 @@ export const SearchSheet = () => {
                 autoFocus
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search movies, shows..."
-                className="w-full pl-12 pr-20 bg-brand-bg blueprint-border rounded-2xl outline-none font-medium text-white placeholder:text-brand-silver/50 py-4 text-base shadow-[0_0_30px_rgba(34,211,238,0.15)] ring-1 ring-brand-cyan/30"
+                className="w-full pl-12 pr-12 bg-brand-bg blueprint-border rounded-2xl outline-none font-medium text-white placeholder:text-brand-silver/50 py-4 text-base shadow-[0_0_30px_rgba(34,211,238,0.15)] ring-1 ring-brand-cyan/30"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                {query.trim().length >= 2 && (
-                  <button
-                    onClick={() => debouncedSearch(query)}
-                    className="p-2 bg-brand-cyan text-brand-bg rounded-xl shadow-lg hover:bg-brand-cyan/80 transition-all active:scale-95"
-                    title="Search"
-                  >
-                    <ArrowRight size={16} />
-                  </button>
-                )}
                 <button
                   onClick={() => setQuery('')}
                   className="p-2 text-brand-silver hover:text-white transition-colors"

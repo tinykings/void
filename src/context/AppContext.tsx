@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { Media, UserState, SortOption, FilterType } from '@/lib/types';
+import { Media, UserState, SortOption, FilterType, CastMember } from '@/lib/types';
 import { useStore } from '@/store/useStore';
 import { getMediaDetails } from '@/lib/tmdb';
 
@@ -28,10 +28,13 @@ interface AppContextType extends UserState {
   syncFromGist: () => Promise<void>;
   activeDetailsMedia: Media | null;
   activePosterMedia: Media | null;
+  activeActorMedia: CastMember | null;
   openDetails: (media: Media) => void;
   closeDetails: () => void;
   openPoster: (media: Media) => void;
   closePoster: () => void;
+  openActor: (actor: CastMember) => void;
+  closeActor: () => void;
 
   // Episode tracking
   markEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
@@ -50,8 +53,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const initialGistSyncDone = useRef('');
   const initialViewApplied = useRef(false);
   const hydratedMediaKeys = useRef<Set<string>>(new Set());
+  const actorReturnDetailsMedia = useRef<Media | null>(null);
   const [activeDetailsMedia, setActiveDetailsMedia] = useState<Media | null>(null);
   const [activePosterMedia, setActivePosterMedia] = useState<Media | null>(null);
+  const [activeActorMedia, setActiveActorMedia] = useState<CastMember | null>(null);
   const openDetails = useCallback((media: Media) => {
     setActivePosterMedia(null);
     setActiveDetailsMedia(media);
@@ -62,6 +67,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
   const openPoster = useCallback((media: Media) => setActivePosterMedia(media), []);
   const closePoster = useCallback(() => setActivePosterMedia(null), []);
+  const openActor = useCallback((actor: CastMember) => {
+    actorReturnDetailsMedia.current = activeDetailsMedia;
+    setActivePosterMedia(null);
+    setActiveDetailsMedia(null);
+    setActiveActorMedia(actor);
+  }, [activeDetailsMedia]);
+  const closeActor = useCallback(() => {
+    setActiveActorMedia(null);
+    setActiveDetailsMedia(actorReturnDetailsMedia.current);
+    actorReturnDetailsMedia.current = null;
+  }, []);
 
   // Service worker registration
   useEffect(() => {
@@ -205,10 +221,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsSearchFocused: store.setIsSearchFocused,
     activeDetailsMedia,
     activePosterMedia,
+    activeActorMedia,
     openDetails,
     closeDetails,
     openPoster,
     closePoster,
+    openActor,
+    closeActor,
 
     markEpisodePlayed: store.markEpisodePlayed,
     unmarkEpisodePlayed: store.unmarkEpisodePlayed,
@@ -223,10 +242,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     watchedMap,
     activeDetailsMedia,
     activePosterMedia,
+    activeActorMedia,
     openDetails,
     closeDetails,
     openPoster,
     closePoster,
+    openActor,
+    closeActor,
   ]);
 
   return (

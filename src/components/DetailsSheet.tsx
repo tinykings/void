@@ -23,6 +23,7 @@ export const DetailsSheet = () => {
     watchedMap,
     openDetails,
     openPoster,
+    openActor,
     toggleWatchlist,
     toggleWatched,
     toggleFavorite,
@@ -456,17 +457,22 @@ export const DetailsSheet = () => {
                         ))
                       ) : cast.length > 0 ? (
                         cast.map((member) => (
-                          <div key={member.id} className="flex items-center gap-3 p-2 rounded-xl bg-white/5 blueprint-border">
-                            <div className="w-10 h-10 rounded-full overflow-hidden bg-brand-bg shrink-0">
-                              {member.profile_path ? (
-                                <img src={getImageUrl(member.profile_path, 'w185')} alt={member.name} className="w-full h-full object-cover" decoding="async" />
-                              ) : null}
-                            </div>
+                        <button
+                          key={member.id}
+                          type="button"
+                          onClick={() => openActor(member)}
+                          className="flex items-center gap-3 p-2 rounded-xl bg-white/5 blueprint-border hover:bg-white/10 transition-colors text-left"
+                        >
+                          <div className="w-10 h-10 rounded-full overflow-hidden bg-brand-bg shrink-0">
+                            {member.profile_path ? (
+                              <img src={getImageUrl(member.profile_path, 'w185')} alt={member.name} className="w-full h-full object-cover" decoding="async" />
+                            ) : null}
+                          </div>
                             <div className="min-w-0">
                               <p className="text-xs font-bold text-white truncate">{member.name}</p>
                               <p className="text-[10px] text-brand-silver truncate">{member.character}</p>
                             </div>
-                          </div>
+                          </button>
                         ))
                       ) : (
                         <p className="text-sm text-brand-silver">Cast will load when available.</p>
