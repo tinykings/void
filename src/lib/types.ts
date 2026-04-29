@@ -122,6 +122,15 @@ export interface CastMember {
   order: number;
 }
 
+export interface PersonDetails {
+  id: number;
+  name: string;
+  biography: string;
+  birthday: string | null;
+  place_of_birth: string | null;
+  profile_path: string | null;
+}
+
 export interface CreditsResponse {
   id: number;
   cast: CastMember[];
