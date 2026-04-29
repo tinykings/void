@@ -29,6 +29,8 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
   
   const cardRef = useRef<HTMLDivElement>(null);
   const isEdited = editedStatusMap[`${media.media_type}-${media.id}`];
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
 
   const mediaKey = `${media.media_type}-${media.id}`;
   const inWatchlist = watchlistIds.has(mediaKey);
@@ -97,6 +99,11 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
 
   const title = media.title || media.name;
 
+  useEffect(() => {
+    setImageLoaded(false);
+    setImageFailed(false);
+  }, [media.poster_path, media.id, media.media_type]);
+
   return (
     <>
       <div ref={cardRef} className="relative group bg-brand-bg rounded-xl overflow-hidden transition-colors duration-300">
@@ -108,14 +115,22 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
             onClick?.();
           }}
         >
-          {media.poster_path ? (
-            <img
-              src={getImageUrl(media.poster_path)}
-              alt={title}
-              className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300 rounded-xl shadow-2xl shadow-brand-cyan/10"
-              loading="lazy"
-              decoding="async"
-            />
+          {media.poster_path && !imageFailed ? (
+            <>
+              {!imageLoaded && <div className="absolute inset-0 bg-brand-bg/80 animate-pulse" />}
+              <img
+                src={getImageUrl(media.poster_path)}
+                alt={title}
+                className={clsx(
+                  'object-cover w-full h-full group-hover:scale-105 transition-all duration-300 rounded-xl shadow-2xl shadow-brand-cyan/10',
+                  imageLoaded ? 'opacity-100' : 'opacity-0'
+                )}
+                loading="lazy"
+                decoding="async"
+                onLoad={() => setImageLoaded(true)}
+                onError={() => setImageFailed(true)}
+              />
+            </>
           ) : (
             <div className="w-full h-full flex items-center justify-center p-4 text-center text-brand-silver bg-brand-bg/80">
               <span className="text-sm font-medium">{title}</span>

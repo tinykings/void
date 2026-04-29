@@ -9,6 +9,7 @@ import { DetailsSheet } from '@/components/DetailsSheet';
 import { PosterSheet } from '@/components/PosterSheet';
 import { SearchSheet } from '@/components/SearchSheet';
 import { sortMedia } from '@/lib/sort';
+import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { AlertCircle, X, ShieldCheck, Check, Save, Eye, EyeOff } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -32,7 +33,9 @@ export const HomeView = () => {
     setGistId,
     setGistToken,
     syncFromGist,
+    vidAngelEnabled,
     editedStatusMap,
+    setMediaEditedStatus,
     isSearchFocused,
     setIsSearchFocused,
   } = useAppContext();
@@ -184,6 +187,28 @@ export const HomeView = () => {
   };
     
   const displayMedia = useMemo(() => libraryMedia.slice(0, visibleItemsCount), [libraryMedia, visibleItemsCount]);
+
+  useEffect(() => {
+    if (!showEditedOnly || !vidAngelEnabled || displayMedia.length === 0) return;
+
+    const pendingItems = displayMedia.filter((item) => editedStatusMap[`${item.media_type}-${item.id}`] === undefined);
+    if (pendingItems.length === 0) return;
+
+    let cancelled = false;
+
+    void Promise.all(
+      pendingItems.map(async (item) => {
+        const slug = await checkVidAngelAvailability(item.title || item.name || '', item.id);
+        if (!cancelled) {
+          setMediaEditedStatus(item.id, item.media_type, !!slug);
+        }
+      })
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [displayMedia, editedStatusMap, setMediaEditedStatus, showEditedOnly, vidAngelEnabled]);
 
   const isLoading = isPending;
 
