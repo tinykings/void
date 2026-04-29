@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getImageUrl, getMediaCredits, getContentRating, getMediaDetails, getSeasonDetails, getWatchProviders } from '@/lib/tmdb';
@@ -22,7 +22,6 @@ export const DetailsSheet = () => {
     watchlistIds,
     watchedIds,
     watchedMap,
-    openDetails,
     openPoster,
     openActor,
     closeAllSheets,
@@ -39,6 +38,8 @@ export const DetailsSheet = () => {
   const [headerEpisode, setHeaderEpisode] = useState<{ id: number; episode: Episode | null } | null>(null);
   const [providersLoadedFor, setProvidersLoadedFor] = useState<number | null>(null);
   const [overviewLoadedFor, setOverviewLoadedFor] = useState<number | null>(null);
+  const [actionPulse, setActionPulse] = useState<'watchlist' | 'watched' | null>(null);
+  const closeActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -142,6 +143,16 @@ export const DetailsSheet = () => {
   }, [activeDetailsMedia, apiKey, overviewLoadedFor, updateMediaMetadata]);
 
   useEffect(() => {
+    return () => {
+      if (closeActionTimerRef.current) clearTimeout(closeActionTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    setActionPulse(null);
+  }, [activeDetailsMedia?.id]);
+
+  useEffect(() => {
     if (!activeDetailsMedia || !apiKey) return;
 
     let cancelled = false;
@@ -242,6 +253,18 @@ export const DetailsSheet = () => {
     return `https://www.youtube.com/results?search_query=${encodeURIComponent(parts.join(' '))}`;
   })();
   const compactActions = inWatched;
+  const runActionAndClose = async (action: 'watchlist' | 'watched', commit: () => Promise<void> | void) => {
+    if (closeActionTimerRef.current) clearTimeout(closeActionTimerRef.current);
+
+    setActionPulse(action);
+    await Promise.resolve(commit());
+
+    closeActionTimerRef.current = setTimeout(() => {
+      closeDetails();
+      setActionPulse(null);
+    }, 180);
+  };
+
   const handleWatchlistToggle = () => {
     if (inWatchlist) {
       setModalConfig({
@@ -251,14 +274,13 @@ export const DetailsSheet = () => {
         type: 'danger',
         confirmText: 'Remove',
         onConfirm: async () => {
-          await toggleWatchlist(selected);
-          openDetails(selected);
+          await runActionAndClose('watchlist', () => toggleWatchlist(selected));
         },
       });
       return;
     }
 
-    toggleWatchlist(selected);
+    void runActionAndClose('watchlist', () => toggleWatchlist(selected));
   };
 
   const handleWatchedToggle = () => {
@@ -270,14 +292,13 @@ export const DetailsSheet = () => {
         type: 'danger',
         confirmText: 'Remove',
         onConfirm: async () => {
-          await toggleWatched(selected);
-          openDetails(selected);
+          await runActionAndClose('watched', () => toggleWatched(selected));
         },
       });
       return;
     }
 
-    toggleWatched(selected);
+    void runActionAndClose('watched', () => toggleWatched(selected));
   };
 
   return (
@@ -360,10 +381,13 @@ export const DetailsSheet = () => {
                 </div>
 
                 <div className={`mt-4 grid gap-2 ${inWatched ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                  <button
+                  <motion.button
                     onClick={handleWatchlistToggle}
                     title={inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
                     aria-label={inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
+                    disabled={!!actionPulse}
+                    animate={actionPulse === 'watchlist' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
                     className={clsx(
                       'w-full flex items-center justify-center rounded-xl px-3 py-3 transition-colors blueprint-border',
                       compactActions ? 'gap-2' : 'gap-2 min-[1000px]:gap-2',
@@ -373,11 +397,14 @@ export const DetailsSheet = () => {
                     <Bookmark size={14} className="hidden min-[1000px]:inline" />
                     <span className={compactActions ? 'hidden min-[1000px]:inline text-xs font-black uppercase tracking-widest' : 'text-xs font-black uppercase tracking-widest'}>Watchlist</span>
                     <span className={compactActions ? 'text-xs font-black uppercase tracking-widest min-[1000px]:hidden' : 'hidden'}>List</span>
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
                     onClick={handleWatchedToggle}
                     title={inWatched ? 'Watched' : 'Mark Watched'}
                     aria-label={inWatched ? 'Watched' : 'Mark Watched'}
+                    disabled={!!actionPulse}
+                    animate={actionPulse === 'watched' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
                     className={clsx(
                       'w-full flex items-center justify-center rounded-xl px-3 py-3 transition-colors blueprint-border',
                       compactActions ? 'gap-2' : 'gap-2 min-[1000px]:gap-2',
@@ -387,7 +414,7 @@ export const DetailsSheet = () => {
                     <Eye size={14} className="hidden min-[1000px]:inline" />
                     <span className={compactActions ? 'hidden min-[1000px]:inline text-xs font-black uppercase tracking-widest' : 'text-xs font-black uppercase tracking-widest'}>Watched</span>
                     <span className={compactActions ? 'text-xs font-black uppercase tracking-widest min-[1000px]:hidden' : 'hidden'}>Watched</span>
-                  </button>
+                  </motion.button>
                   {inWatched && (
                     <button
                       onClick={() => toggleFavorite(selected)}

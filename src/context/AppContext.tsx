@@ -5,6 +5,17 @@ import { Media, UserState, SortOption, FilterType, CastMember } from '@/lib/type
 import { useStore } from '@/store/useStore';
 import { getMediaDetails } from '@/lib/tmdb';
 
+type PendingLibraryView = {
+  mode: 'watchlist' | 'watched';
+  filter: FilterType;
+} | null;
+
+type SheetSnapshot = {
+  details: Media | null;
+  poster: Media | null;
+  actor: CastMember | null;
+};
+
 interface AppContextType extends UserState {
   setApiKey: (key: string) => void;
   setGistId: (id: string) => void;
@@ -54,37 +65,107 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const initialGistSyncDone = useRef('');
   const initialViewApplied = useRef(false);
   const hydratedMediaKeys = useRef<Set<string>>(new Set());
-  const actorReturnDetailsMedia = useRef<Media | null>(null);
+  const sheetHistoryRef = useRef<SheetSnapshot[]>([]);
+  const [pendingLibraryView, setPendingLibraryView] = useState<PendingLibraryView>(null);
   const [activeDetailsMedia, setActiveDetailsMedia] = useState<Media | null>(null);
   const [activePosterMedia, setActivePosterMedia] = useState<Media | null>(null);
   const [activeActorMedia, setActiveActorMedia] = useState<CastMember | null>(null);
-  const openDetails = useCallback((media: Media) => {
-    setActivePosterMedia(null);
-    setActiveDetailsMedia(media);
+  const pushSheetSnapshot = useCallback(() => {
+    if (!activeDetailsMedia && !activePosterMedia && !activeActorMedia) return;
+
+    sheetHistoryRef.current.push({
+      details: activeDetailsMedia,
+      poster: activePosterMedia,
+      actor: activeActorMedia,
+    });
+  }, [activeActorMedia, activeDetailsMedia, activePosterMedia]);
+  const restoreSheetSnapshot = useCallback((snapshot?: SheetSnapshot) => {
+    if (!snapshot) return false;
+
+    setActiveDetailsMedia(snapshot.details);
+    setActivePosterMedia(snapshot.poster);
+    setActiveActorMedia(snapshot.actor);
+    return true;
   }, []);
-  const closeDetails = useCallback(() => {
+  const applyPendingLibraryView = useCallback(() => {
+    if (!pendingLibraryView) return false;
+
+    const nextView = pendingLibraryView;
+    setPendingLibraryView(null);
+    sheetHistoryRef.current = [];
+    setActiveActorMedia(null);
     setActivePosterMedia(null);
     setActiveDetailsMedia(null);
-  }, []);
-  const openPoster = useCallback((media: Media) => setActivePosterMedia(media), []);
-  const closePoster = useCallback(() => setActivePosterMedia(null), []);
+    store.setFilter(nextView.filter);
+    store.setShowWatched(nextView.mode === 'watched');
+    store.setShowFavoritesOnly(false);
+    return true;
+  }, [pendingLibraryView, store]);
+  const openDetails = useCallback((media: Media) => {
+    pushSheetSnapshot();
+    setActiveActorMedia(null);
+    setActivePosterMedia(null);
+    setActiveDetailsMedia(media);
+  }, [pushSheetSnapshot]);
+  const openPoster = useCallback((media: Media) => {
+    pushSheetSnapshot();
+    setActiveDetailsMedia(null);
+    setActiveActorMedia(null);
+    setActivePosterMedia(media);
+  }, [pushSheetSnapshot]);
   const openActor = useCallback((actor: CastMember) => {
-    actorReturnDetailsMedia.current = activeDetailsMedia;
+    pushSheetSnapshot();
     setActivePosterMedia(null);
     setActiveDetailsMedia(null);
     setActiveActorMedia(actor);
-  }, [activeDetailsMedia]);
-  const closeActor = useCallback(() => {
+  }, [pushSheetSnapshot]);
+  const closeCurrentSheet = useCallback(() => {
+    const previous = sheetHistoryRef.current.pop();
+
+    if (previous) {
+      restoreSheetSnapshot(previous);
+      return;
+    }
+
+    if (applyPendingLibraryView()) return;
+
     setActiveActorMedia(null);
-    setActiveDetailsMedia(actorReturnDetailsMedia.current);
-    actorReturnDetailsMedia.current = null;
-  }, []);
+    setActivePosterMedia(null);
+    setActiveDetailsMedia(null);
+  }, [applyPendingLibraryView, restoreSheetSnapshot]);
+  const closeDetails = useCallback(() => {
+    closeCurrentSheet();
+  }, [closeCurrentSheet]);
+  const closePoster = useCallback(() => {
+    closeCurrentSheet();
+  }, [closeCurrentSheet]);
+  const closeActor = useCallback(() => {
+    closeCurrentSheet();
+  }, [closeCurrentSheet]);
   const closeAllSheets = useCallback(() => {
-    actorReturnDetailsMedia.current = null;
+    sheetHistoryRef.current = [];
+    if (applyPendingLibraryView()) return;
+
     setActiveActorMedia(null);
     setActivePosterMedia(null);
     setActiveDetailsMedia(null);
     store.setIsSearchFocused(false);
+  }, [applyPendingLibraryView, store]);
+
+  const toggleWatchlist = useCallback(async (media: Media) => {
+    const mediaKey = `${media.media_type}-${media.id}`;
+    const inWatchlist = store.watchlist.some((item) => `${item.media_type}-${item.id}` === mediaKey);
+
+    setPendingLibraryView(inWatchlist ? null : { mode: 'watchlist', filter: media.media_type });
+    await store.toggleWatchlist(media);
+  }, [store]);
+
+  const toggleWatched = useCallback(async (media: Media, rating?: number) => {
+    const mediaKey = `${media.media_type}-${media.id}`;
+    const inWatched = store.watched.some((item) => `${item.media_type}-${item.id}` === mediaKey);
+
+    setPendingLibraryView(inWatched ? null : { mode: 'watched', filter: media.media_type });
+    await store.toggleWatched(media, rating);
   }, [store]);
 
   // Service worker registration
@@ -215,8 +296,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setGistId: store.setGistId,
     setGistToken: store.setGistToken,
     setVidAngelEnabled: store.setVidAngelEnabled,
-    toggleWatchlist: store.toggleWatchlist,
-    toggleWatched: store.toggleWatched,
+    toggleWatchlist,
+    toggleWatched,
     setLists: store.setLists,
     syncFromGist: store.syncFromGist,
     setFilter: store.setFilter,

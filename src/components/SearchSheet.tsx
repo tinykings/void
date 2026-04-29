@@ -81,7 +81,7 @@ export const SearchSheet = () => {
 
   const closeSheet = () => {
     if (isLibraryEmpty) return;
-    setIsSearchFocused(false);
+    closeAllSheets();
   };
   const displayedMedia = useMemo(() => (showSearchResults ? searchResults : trending), [showSearchResults, searchResults, trending]);
 
