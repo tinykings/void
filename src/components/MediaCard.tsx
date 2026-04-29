@@ -16,10 +16,11 @@ const MOVIE_PRIORITY_WINDOW_DAYS = 30;
 interface MediaCardProps {
   media: Media;
   showBadge?: boolean;
+  showReleaseBadge?: boolean;
   onClick?: () => void;
 }
 
-export const MediaCard = React.memo(({ media, showBadge = false, onClick }: MediaCardProps) => {
+export const MediaCard = React.memo(({ media, showBadge = false, showReleaseBadge = true, onClick }: MediaCardProps) => {
   const {
     vidAngelEnabled,
     editedStatusMap,
@@ -79,7 +80,8 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
     return null;
   })();
 
-  const showReleaseBadge = (() => {
+  const shouldShowReleaseBadge = (() => {
+    if (!showReleaseBadge) return false;
     if (sort !== 'added') return false;
 
     return daysUntilRelease !== null;
@@ -153,7 +155,7 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
             </div>
           )}
 
-          {showReleaseBadge && daysUntilRelease !== null && (
+          {shouldShowReleaseBadge && daysUntilRelease !== null && (
             <div className="absolute top-2 left-2 z-10">
               <div className="bg-brand-bg/90 backdrop-blur-md text-brand-cyan text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded shadow-lg border border-brand-cyan/40">
                 {daysUntilRelease === 'now' ? 'now' : `${daysUntilRelease} ${daysUntilRelease === 1 ? 'day' : 'days'}`}

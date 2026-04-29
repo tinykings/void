@@ -159,6 +159,7 @@ export const SearchSheet = () => {
                     key={`${item.media_type}-${item.id}`}
                     media={item}
                     showBadge={vidAngelEnabled}
+                    showReleaseBadge={false}
                   />
                 ))}
               </div>
