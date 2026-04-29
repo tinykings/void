@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { usePathname } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
 import { getTrending, searchMedia } from '@/lib/tmdb';
 import { Media } from '@/lib/types';
@@ -12,6 +13,7 @@ import { SheetDragHandle } from '@/components/SheetDragHandle';
 
 export const SearchSheet = () => {
   const { isSearchFocused, setIsSearchFocused, closeAllSheets, apiKey, isLoaded, watchlist, watched, vidAngelEnabled } = useAppContext();
+  const pathname = usePathname();
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Media[]>([]);
   const [trending, setTrending] = useState<Media[]>([]);
@@ -21,6 +23,7 @@ export const SearchSheet = () => {
   const searchTerm = query.trim();
   const showSearchResults = searchTerm.length >= 2;
   const isLibraryEmpty = watchlist.length === 0 && watched.length === 0;
+  const assetBase = pathname.startsWith('/void') ? '/void' : '';
   const trendingLoading = isSearchFocused && !!apiKey && isLoaded && trending.length === 0 && !showSearchResults;
   const displayError = isSearchFocused ? error : null;
 
@@ -111,34 +114,75 @@ export const SearchSheet = () => {
               <button
                 onClick={closeSheet}
                 className="p-2 rounded-lg bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/25 shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:bg-brand-cyan/20 hover:text-white hover:border-brand-cyan/40"
-              >
-                <X size={18} />
-              </button>
-            </div>
-          )}
-
-          <div className="p-4 pb-2">
-            <div className="relative">
-              <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-cyan" size={20} />
-              <input
-                type="text"
-                value={query}
-                autoFocus
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search movies, shows..."
-                className="w-full pl-12 pr-12 bg-brand-bg blueprint-border rounded-2xl outline-none font-medium text-white placeholder:text-brand-silver/50 py-4 text-base shadow-[0_0_30px_rgba(34,211,238,0.15)] ring-1 ring-brand-cyan/30"
-              />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                <button
-                  onClick={() => setQuery('')}
-                  className="p-2 text-brand-silver hover:text-white transition-colors"
-                  title="Clear search"
                 >
                   <X size={18} />
                 </button>
+            </div>
+          )}
+
+          {isLibraryEmpty ? (
+            <div className="px-4 pt-5 pb-3">
+              <div className="flex items-center gap-4">
+                <img
+                  src={`${assetBase}/logo.png`}
+                  alt="Void"
+                  className="h-20 w-20 rounded-2xl object-cover blueprint-border bg-brand-bg shrink-0"
+                  decoding="async"
+                />
+                <div className="relative flex-1">
+                  <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-cyan" size={20} />
+                  <input
+                    type="text"
+                    value={query}
+                    autoFocus
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="VOID: Search and add to your library"
+                    className="w-full pl-12 pr-12 bg-brand-bg blueprint-border rounded-2xl outline-none font-medium text-white placeholder:text-brand-silver/50 py-4 text-base shadow-[0_0_30px_rgba(34,211,238,0.15)] ring-1 ring-brand-cyan/30"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <button
+                      onClick={() => setQuery('')}
+                      className="p-2 text-brand-silver hover:text-white transition-colors"
+                      title="Clear search"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="p-4 pb-2">
+              <div className="flex items-center gap-4">
+                <img
+                  src={`${assetBase}/logo.png`}
+                  alt="Void"
+                  className="h-20 w-20 rounded-2xl object-cover blueprint-border bg-brand-bg shrink-0"
+                  decoding="async"
+                />
+                <div className="relative flex-1">
+                  <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-cyan" size={20} />
+                  <input
+                    type="text"
+                    value={query}
+                    autoFocus
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="VOID: Search and add to your library"
+                    className="w-full pl-12 pr-12 bg-brand-bg blueprint-border rounded-2xl outline-none font-medium text-white placeholder:text-brand-silver/50 py-4 text-base shadow-[0_0_30px_rgba(34,211,238,0.15)] ring-1 ring-brand-cyan/30"
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <button
+                      onClick={() => setQuery('')}
+                      className="p-2 text-brand-silver hover:text-white transition-colors"
+                      title="Clear search"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="px-4 pb-24 overflow-y-auto custom-scrollbar flex-1">
 
@@ -176,7 +220,7 @@ export const SearchSheet = () => {
             )}
           </div>
 
-          <SheetDragHandle onClose={closeSheet} />
+          {!isLibraryEmpty && <SheetDragHandle onClose={closeSheet} />}
         </motion.div>
       </div>
     </AnimatePresence>
