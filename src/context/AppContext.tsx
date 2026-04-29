@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Media, UserState, SortOption, FilterType } from '@/lib/types';
 import { useStore } from '@/store/useStore';
+import { getMediaDetails } from '@/lib/tmdb';
 
 interface AppContextType extends UserState {
   setApiKey: (key: string) => void;
@@ -47,6 +48,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const store = useStore();
   const initialGistSyncDone = useRef('');
   const initialViewApplied = useRef(false);
+  const hydratedMediaKeys = useRef<Set<string>>(new Set());
   const [activeDetailsMedia, setActiveDetailsMedia] = useState<Media | null>(null);
   const [activePosterMedia, setActivePosterMedia] = useState<Media | null>(null);
   const openDetails = useCallback((media: Media) => {
@@ -78,6 +80,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!store.isLoaded) {
       initialGistSyncDone.current = '';
       initialViewApplied.current = false;
+      hydratedMediaKeys.current.clear();
       return;
     }
 
@@ -123,6 +126,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     store.isSearchFocused,
     store.syncFromGist,
   ]);
+
+  useEffect(() => {
+    if (!store.isLoaded || !store.apiKey) return;
+
+    const incompleteItems = [...store.watchlist, ...store.watched].filter((item) => !item.poster_path);
+    const itemsToHydrate = incompleteItems.filter((item) => {
+      const key = `${item.media_type}-${item.id}`;
+      if (hydratedMediaKeys.current.has(key)) return false;
+      hydratedMediaKeys.current.add(key);
+      return true;
+    });
+
+    if (itemsToHydrate.length === 0) return;
+
+    void Promise.all(itemsToHydrate.map(async (item) => {
+      try {
+        const details = await getMediaDetails(item.id, item.media_type, store.apiKey);
+        store.updateMediaMetadata(item.id, item.media_type, {
+          ...details,
+          date_added: item.date_added,
+          isFavorite: item.isFavorite,
+          lastChecked: Date.now(),
+        });
+      } catch (error) {
+        console.error('Failed to hydrate library metadata:', error);
+      }
+    }));
+  }, [store.isLoaded, store.apiKey, store.watchlist, store.watched, store.updateMediaMetadata]);
 
   // O(1) lookup Maps for membership checks
   const watchlistIds = useMemo(() => new Set(store.watchlist.map(m => `${m.media_type}-${m.id}`)), [store.watchlist]);
