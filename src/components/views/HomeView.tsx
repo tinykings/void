@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useTransition, useCallback, useRef, type ChangeEvent } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { MediaCard } from '@/components/MediaCard';
 import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
@@ -610,23 +611,38 @@ export const HomeView = () => {
         </div>
       )}
 
-      {showSyncModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-brand-bg blueprint-border shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
-              <div>
-                <h2 className="text-lg font-semibold text-white">Settings</h2>
-                <p className="text-xs text-brand-silver mt-1">Enter your Gist details to sync your library.</p>
-              </div>
-              <button
-                onClick={() => setShowSyncModal(false)}
-                className="p-2 text-brand-silver hover:text-white transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
+      <AnimatePresence>
+        {showSyncModal && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowSyncModal(false)}>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            />
 
-            <div className="p-5 space-y-4">
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-4xl h-[86vh] sm:h-[80vh] lg:h-[74vh] max-h-[92vh] bg-brand-bg/95 blueprint-border rounded-t-3xl shadow-2xl overflow-hidden flex flex-col"
+            >
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-brand-bg/80">
+                <div>
+                  <h2 className="text-lg font-semibold text-white">Settings</h2>
+                  <p className="text-xs text-brand-silver mt-1">Enter your Gist details to sync your library.</p>
+                </div>
+                <button
+                  onClick={() => setShowSyncModal(false)}
+                  className="p-2 text-brand-silver hover:text-white transition-colors bg-white/5 rounded-full"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
               <div>
                 <label className="block text-xs font-medium text-brand-silver mb-2">Gist ID</label>
                 <input
@@ -750,10 +766,23 @@ export const HomeView = () => {
                 <Save size={18} />
                 Save
               </button>
-            </div>
+
+              <div className="pt-2 text-center space-y-1">
+                <p className="text-xs text-brand-silver/50">Data provided by TMDB.</p>
+                <a
+                  href="https://github.com/tinykings/void"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block text-xs text-brand-silver/70 hover:text-brand-cyan transition-colors"
+                >
+                  github.com/tinykings/void
+                </a>
+              </div>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 };

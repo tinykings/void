@@ -44,9 +44,6 @@ export default function RootLayout({
             <main className="w-full min-h-screen flex-1 transition-colors duration-300">
               {children}
             </main>
-            <footer className="w-full py-4 text-center text-xs text-brand-silver/50">
-              Data provided by TMDB.
-            </footer>
           </OfflineGuard>
           <Toaster position="bottom-center" theme="dark" closeButton />
         </AppProvider>
