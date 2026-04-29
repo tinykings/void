@@ -156,6 +156,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     store.setIsSearchFocused(false);
   }, [applyPendingLibraryView, store]);
 
+  useEffect(() => {
+    if (!store.isLoaded) return;
+
+    if (store.watchlist.length === 0 && store.watched.length === 0) {
+      store.setShowWatched(false);
+      store.setShowFavoritesOnly(false);
+      store.setIsSearchFocused(true);
+    }
+  }, [store.isLoaded, store.watchlist.length, store.watched.length]);
+
   const toggleWatchlist = useCallback(async (media: Media) => {
     const mediaKey = `${media.media_type}-${media.id}`;
     const inWatchlist = store.watchlist.some((item) => `${item.media_type}-${item.id}` === mediaKey);
