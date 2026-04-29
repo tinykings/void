@@ -37,9 +37,13 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
   const inWatchlist = watchlistIds.has(mediaKey);
   const inWatched = watchedIds.has(mediaKey);
 
+  const nowTime = useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return now.getTime();
+  }, []);
+
   const daysUntilRelease = useMemo(() => {
-    if (sort !== 'release') return null;
-    
     const isNextEpisode = media.media_type === 'tv' && !!media.next_episode_to_air;
     const releaseDateStr = (isNextEpisode && media.next_episode_to_air?.air_date) || 
                           media.release_date || 
@@ -48,10 +52,7 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
     if (!releaseDateStr) return null;
     
     const releaseDate = new Date(releaseDateStr);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const diffTime = releaseDate.getTime() - today.getTime();
+    const diffTime = releaseDate.getTime() - nowTime;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
     if (diffDays > 0) return diffDays;
@@ -63,7 +64,15 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
     if (!isNextEpisode && diffDays === 0) return 'now';
     
     return null;
-  }, [sort, media.release_date, media.first_air_date, media.next_episode_to_air, media.media_type]);
+  }, [media.release_date, media.first_air_date, media.next_episode_to_air, media.media_type, nowTime]);
+
+  const showReleaseBadge = useMemo(() => {
+    if (sort === 'release') return true;
+
+    if (sort !== 'added') return false;
+
+    return media.media_type === 'tv' && !!media.next_episode_to_air && daysUntilRelease !== null;
+  }, [daysUntilRelease, media.media_type, media.next_episode_to_air, sort]);
 
   // Modal State
   const [modalConfig, setModalConfig] = useState<{
@@ -133,7 +142,7 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
             </div>
           )}
 
-          {daysUntilRelease !== null && (
+          {showReleaseBadge && daysUntilRelease !== null && (
             <div className="absolute top-2 left-2 z-10">
               <div className="bg-brand-bg/90 backdrop-blur-md text-brand-cyan text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded shadow-lg border border-brand-cyan/40">
                 {daysUntilRelease === 'now' ? 'now' : `${daysUntilRelease} ${daysUntilRelease === 1 ? 'day' : 'days'}`}
