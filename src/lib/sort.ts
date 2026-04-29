@@ -1,6 +1,7 @@
 import { Media, SortOption } from './types';
 
 const DAY_MS = 1000 * 60 * 60 * 24;
+const MOVIE_PRIORITY_WINDOW_DAYS = 30;
 
 const getRelevantDate = (item: Media) => {
   const dateStr =
@@ -18,6 +19,16 @@ const isUpcomingTv = (item: Media, nowTime: number) => {
 
   const diffDays = Math.ceil((date - nowTime) / DAY_MS);
   return item.media_type === 'tv' && !!item.next_episode_to_air && diffDays >= -3;
+};
+
+const isPriorityMovie = (item: Media, nowTime: number) => {
+  if (item.media_type !== 'movie') return false;
+
+  const date = getRelevantDate(item);
+  if (!date || isNaN(date)) return false;
+
+  const diffDays = Math.ceil((date - nowTime) / DAY_MS);
+  return diffDays >= -MOVIE_PRIORITY_WINDOW_DAYS && diffDays <= MOVIE_PRIORITY_WINDOW_DAYS;
 };
 
 const sortByReleasePriority = (list: Media[]) => {
@@ -61,7 +72,7 @@ const sortByAddedWithReleasePriority = (list: Media[]) => {
   const added: Media[] = [];
 
   list.forEach((item) => {
-    if (isUpcomingTv(item, nowTime)) {
+    if (isUpcomingTv(item, nowTime) || isPriorityMovie(item, nowTime)) {
       upcoming.push(item);
     } else {
       added.push(item);

@@ -10,6 +10,9 @@ import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { vidAngelObserver } from '@/lib/observerManager';
 import { Bookmark, Check, ShieldCheck } from 'lucide-react';
 
+const DAY_MS = 1000 * 60 * 60 * 24;
+const MOVIE_PRIORITY_WINDOW_DAYS = 30;
+
 interface MediaCardProps {
   media: Media;
   showBadge?: boolean;
@@ -53,8 +56,18 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
     
     const releaseDate = new Date(releaseDateStr);
     const diffTime = releaseDate.getTime() - nowTime;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil(diffTime / DAY_MS);
     
+    if (media.media_type === 'movie') {
+      if (diffDays > MOVIE_PRIORITY_WINDOW_DAYS) return null;
+
+      if (diffDays >= 0) return diffDays;
+
+      if (diffDays >= -MOVIE_PRIORITY_WINDOW_DAYS) return 'now';
+
+      return null;
+    }
+
     if (diffDays > 0) return diffDays;
     
     // For TV shows, if it aired within the last 3 days, show 'now'
@@ -71,7 +84,10 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
 
     if (sort !== 'added') return false;
 
-    return media.media_type === 'tv' && !!media.next_episode_to_air && daysUntilRelease !== null;
+    return (
+      (media.media_type === 'tv' && !!media.next_episode_to_air && daysUntilRelease !== null) ||
+      (media.media_type === 'movie' && daysUntilRelease !== null)
+    );
   }, [daysUntilRelease, media.media_type, media.next_episode_to_air, sort]);
 
   // Modal State
