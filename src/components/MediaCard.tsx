@@ -8,6 +8,7 @@ import { useAppContext } from '@/context/AppContext';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { vidAngelObserver } from '@/lib/observerManager';
+import { Bookmark, Check, ShieldCheck } from 'lucide-react';
 
 interface MediaCardProps {
   media: Media;
@@ -82,7 +83,7 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
   });
 
   useEffect(() => {
-    // Only check if VidAngel is enabled, we don't have a status yet, AND the Edited filter is active
+    // Resolve VidAngel availability lazily as library cards enter view.
     if (!vidAngelEnabled || !showBadge || isEdited !== undefined || !cardRef.current) return;
 
     const element = cardRef.current;
@@ -98,11 +99,6 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
   }, [media.id, media.media_type, media.title, media.name, vidAngelEnabled, isEdited, setMediaEditedStatus, showBadge]);
 
   const title = media.title || media.name;
-
-  useEffect(() => {
-    setImageLoaded(false);
-    setImageFailed(false);
-  }, [media.poster_path, media.id, media.media_type]);
 
   return (
     <>
@@ -139,24 +135,33 @@ export const MediaCard = React.memo(({ media, showBadge = false, onClick }: Medi
 
           {daysUntilRelease !== null && (
             <div className="absolute top-2 left-2 z-10">
-              <div className="bg-brand-bg/60 backdrop-blur-md text-brand-cyan text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded shadow-lg border border-brand-cyan/30">
+              <div className="bg-brand-bg/90 backdrop-blur-md text-brand-cyan text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded shadow-lg border border-brand-cyan/40">
                 {daysUntilRelease === 'now' ? 'now' : `${daysUntilRelease} ${daysUntilRelease === 1 ? 'day' : 'days'}`}
               </div>
             </div>
           )}
 
-          {isSearchFocused && (inWatched || inWatchlist) && (
-            <div className="absolute top-2 right-2 z-10">
-              <div className={clsx(
-                "backdrop-blur-md text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded shadow-lg border",
-                inWatched 
-                  ? "bg-green-500/20 text-green-400 border-green-500/30" 
-                  : "bg-brand-cyan/20 text-brand-cyan border-brand-cyan/30"
-              )}>
-                {inWatched ? 'Watched' : 'Watchlist'}
-              </div>
+          {(showBadge && isEdited) || (isSearchFocused && (inWatched || inWatchlist)) ? (
+            <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1.5">
+              {isSearchFocused && inWatchlist && !inWatched && (
+                <div className="flex items-center justify-center w-6 h-6 bg-brand-cyan/65 backdrop-blur-md text-brand-bg rounded-full shadow-lg border border-brand-cyan/55">
+                  <Bookmark size={12} className="fill-current" />
+                </div>
+              )}
+
+              {isSearchFocused && inWatched && (
+                <div className="flex items-center justify-center w-6 h-6 bg-green-500/65 backdrop-blur-md text-brand-bg rounded-full shadow-lg border border-green-300/55">
+                  <Check size={12} strokeWidth={3} />
+                </div>
+              )}
+
+              {showBadge && isEdited && (
+                <div className="flex items-center justify-center w-6 h-6 bg-amber-500/65 backdrop-blur-md text-brand-bg rounded-full shadow-lg border border-amber-300/55">
+                  <ShieldCheck size={12} />
+                </div>
+              )}
             </div>
-          )}
+          ) : null}
         </button>
       </div>
 

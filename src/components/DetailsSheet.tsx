@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getImageUrl, getMediaCredits, getContentRating, getMediaDetails, getMediaVideos, getWatchProviders } from '@/lib/tmdb';
+import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { CastMember, Media, Video, WatchProvider } from '@/lib/types';
-import { Bookmark, Eye, Heart, Play, X } from 'lucide-react';
+import { Bookmark, Eye, Heart, Play, ShieldCheck, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 
@@ -14,6 +15,9 @@ export const DetailsSheet = () => {
     activeDetailsMedia,
     closeDetails,
     apiKey,
+    vidAngelEnabled,
+    editedStatusMap,
+    setMediaEditedStatus,
     watchlistIds,
     watchedIds,
     watchedMap,
@@ -62,6 +66,25 @@ export const DetailsSheet = () => {
   const inWatched = mediaKey ? watchedIds.has(mediaKey) : false;
   const watchedItem = mediaKey ? watchedMap.get(mediaKey) : undefined;
   const isFavorite = watchedItem?.isFavorite || false;
+  const isVidAngelAvailable = mediaKey ? editedStatusMap[mediaKey] : undefined;
+
+  useEffect(() => {
+    if (!selected || !vidAngelEnabled || isVidAngelAvailable !== undefined) return;
+
+    let cancelled = false;
+
+    checkVidAngelAvailability(selected.title || selected.name || '', selected.id)
+      .then((slug) => {
+        if (!cancelled) {
+          setMediaEditedStatus(selected.id, selected.media_type, !!slug);
+        }
+      })
+      .catch(console.error);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isVidAngelAvailable, selected, setMediaEditedStatus, vidAngelEnabled]);
 
   useEffect(() => {
     if (!activeDetailsMedia) return;
@@ -252,7 +275,15 @@ export const DetailsSheet = () => {
             >
               <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-brand-bg/80">
                 <div className="min-w-0">
-                  <h2 className="text-lg font-black text-white uppercase tracking-tight leading-tight pr-2">{title}</h2>
+                  <div className="flex items-center gap-2 pr-2">
+                    <h2 className="min-w-0 text-lg font-black text-white uppercase tracking-tight leading-tight">{title}</h2>
+                    {vidAngelEnabled && isVidAngelAvailable && (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-300/70 bg-amber-500/85 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-brand-bg">
+                        <ShieldCheck size={10} />
+                        Edited
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <button

@@ -16,7 +16,6 @@ interface AppContextType extends UserState {
   setFilter: (filter: FilterType) => void;
   setSort: (sort: SortOption) => void;
   setShowWatched: (show: boolean) => void;
-  setShowEditedOnly: (show: boolean) => void;
   showFavoritesOnly: boolean;
   setShowFavoritesOnly: (show: boolean) => void;
   toggleFavorite: (media: Media) => void;
@@ -145,7 +144,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     filter: store.filter,
     sort: store.sort,
     showWatched: store.showWatched || false,
-    showEditedOnly: store.showEditedOnly || false,
     showFavoritesOnly: store.showFavoritesOnly || false,
     isSearchFocused: store.isSearchFocused || false,
     editedStatusMap: store.editedStatusMap,
@@ -162,7 +160,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setFilter: store.setFilter,
     setSort: store.setSort,
     setShowWatched: store.setShowWatched,
-    setShowEditedOnly: store.setShowEditedOnly,
     setShowFavoritesOnly: store.setShowFavoritesOnly,
     toggleFavorite: store.toggleFavorite,
     updateMediaMetadata: store.updateMediaMetadata,

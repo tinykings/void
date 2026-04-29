@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo, useTransition, useCallback, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
-import { Media } from '@/lib/types';
 import { MediaCard } from '@/components/MediaCard';
 import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
 import { DetailsSheet } from '@/components/DetailsSheet';
@@ -10,7 +9,7 @@ import { PosterSheet } from '@/components/PosterSheet';
 import { SearchSheet } from '@/components/SearchSheet';
 import { sortMedia } from '@/lib/sort';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
-import { AlertCircle, X, ShieldCheck, Check, Save, Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, X, Save, Eye, EyeOff } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const HomeView = () => {
@@ -24,8 +23,6 @@ export const HomeView = () => {
     setSort,
     showWatched,
     setShowWatched,
-    showEditedOnly,
-    setShowEditedOnly,
     showFavoritesOnly,
     setShowFavoritesOnly,
     gistId,
@@ -33,6 +30,7 @@ export const HomeView = () => {
     setGistId,
     setGistToken,
     syncFromGist,
+    setVidAngelEnabled,
     vidAngelEnabled,
     editedStatusMap,
     setMediaEditedStatus,
@@ -49,13 +47,12 @@ export const HomeView = () => {
 
   const persistentStatus = useMemo(() => {
     if (showFavoritesOnly) return 'Favorites';
-    if (showEditedOnly) return 'Edited';
     return showWatched ? 'Watched' : 'Watchlist';
-  }, [showFavoritesOnly, showEditedOnly, showWatched]);
+  }, [showFavoritesOnly, showWatched]);
 
   const showStatus = useCallback((label: string) => {
     // If it matches a persistent state, we don't need a timer
-    if (label === 'Favorites' || label === 'Edited' || label === 'Watched' || label === 'Watchlist') {
+    if (label === 'Favorites' || label === 'Watched' || label === 'Watchlist') {
       if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
       setStatusLabel(null);
       setStatusFading(false);
@@ -106,18 +103,13 @@ export const HomeView = () => {
 
   const libraryMedia = useMemo(() => {
     let filtered = [...baseLibraryMedia];
-
-    if (showEditedOnly) {
-      // Show items that are confirmed edited OR haven't been checked yet
-      filtered = filtered.filter(m => editedStatusMap[`${m.media_type}-${m.id}`] !== false);
-    }
     
     if (showFavoritesOnly) {
       filtered = filtered.filter(m => m.isFavorite);
     }
 
     return sortMedia(filtered, sort || 'added');
-  }, [baseLibraryMedia, sort, showEditedOnly, editedStatusMap, showFavoritesOnly]);
+  }, [baseLibraryMedia, sort, showFavoritesOnly]);
 
   const hasGistSync = !!(gistId && gistToken);
   const activeLibraryMode = showFavoritesOnly ? 'favorites' : showWatched ? 'watched' : 'watchlist';
@@ -144,25 +136,6 @@ export const HomeView = () => {
     setShowSortMenu(false);
   };
 
-  const handleEditedFilterClick = () => {
-    if (showEditedOnly) {
-      startTransition(() => {
-        setShowEditedOnly(false);
-        setShowFavoritesOnly(false);
-      });
-      showStatus('Showing All');
-      setShowSortMenu(false);
-      return;
-    }
-
-    startTransition(() => {
-      setShowEditedOnly(true);
-      setShowFavoritesOnly(false);
-    });
-    showStatus('Edited');
-    setShowSortMenu(false);
-  };
-
   const selectLibraryMenuOption = (nextFilter: 'movie' | 'tv', mode: 'watchlist' | 'watched' | 'favorites') => {
     startTransition(() => {
       setFilter(nextFilter);
@@ -176,7 +149,6 @@ export const HomeView = () => {
       } else {
         setShowWatched(true);
         setShowFavoritesOnly(true);
-        setShowEditedOnly(false);
       }
     });
 
@@ -189,7 +161,7 @@ export const HomeView = () => {
   const displayMedia = useMemo(() => libraryMedia.slice(0, visibleItemsCount), [libraryMedia, visibleItemsCount]);
 
   useEffect(() => {
-    if (!showEditedOnly || !vidAngelEnabled || displayMedia.length === 0) return;
+    if (!vidAngelEnabled || displayMedia.length === 0) return;
 
     const pendingItems = displayMedia.filter((item) => editedStatusMap[`${item.media_type}-${item.id}`] === undefined);
     if (pendingItems.length === 0) return;
@@ -208,7 +180,7 @@ export const HomeView = () => {
     return () => {
       cancelled = true;
     };
-  }, [displayMedia, editedStatusMap, setMediaEditedStatus, showEditedOnly, vidAngelEnabled]);
+  }, [displayMedia, editedStatusMap, setMediaEditedStatus, vidAngelEnabled]);
 
   const isLoading = isPending;
 
@@ -287,7 +259,7 @@ export const HomeView = () => {
     // Clear saved state if user manually changes view
     sessionStorage.removeItem('void_home_scroll');
     sessionStorage.removeItem('void_home_count');
-  }, [filter, sort, showWatched, showEditedOnly, showFavoritesOnly]);
+  }, [filter, sort, showWatched, showFavoritesOnly]);
 
   // Reset favorites filter when leaving watched view
   useEffect(() => {
@@ -349,7 +321,7 @@ export const HomeView = () => {
                       ...item,
                       isEdited: editedStatusMap[`${item.media_type}-${item.id}`]
                     }}
-                    showBadge={showEditedOnly}
+                    showBadge={vidAngelEnabled}
                     onClick={() => {
                       sessionStorage.setItem('void_home_count', String(visibleItemsCount));
                     }}
@@ -361,12 +333,10 @@ export const HomeView = () => {
             <div className="text-center py-20 text-brand-silver">
               <div className="flex flex-col items-center gap-4">
                 <p className="text-lg font-medium text-white">
-                  {showEditedOnly ? 'No edited titles found' : 'Your list is empty'}
+                  Your list is empty
                 </p>
                 <p className="text-sm text-brand-silver max-w-xs mx-auto">
-                  {showEditedOnly
-                    ? 'If you just logged into VidAngel, come back and try again. Otherwise there may simply be no edited matches in this view.'
-                    : 'Search for movies and shows to add them to your watchlist.'}
+                  Search for movies and shows to add them to your watchlist.
                 </p>
               </div>
             </div>
@@ -449,32 +419,6 @@ export const HomeView = () => {
 
                     <button
                       onClick={() => {
-                        void handleEditedFilterClick();
-                      }}
-                      className={clsx(
-                        'w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors',
-                        showEditedOnly
-                          ? 'text-amber-500 bg-amber-500/5'
-                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <ShieldCheck size={16} className={showEditedOnly ? 'fill-current' : ''} />
-                        Edited
-                      </div>
-                      {showEditedOnly && <Check size={14} className="text-amber-500" />}
-                    </button>
-                    {showEditedOnly && (
-                      <a
-                        href="https://www.vidangel.com/login"
-                        className="block px-4 pb-2 -mt-1 text-[11px] font-medium text-brand-silver/70 hover:text-brand-cyan transition-colors"
-                      >
-                        Login to Vidangel
-                      </a>
-                    )}
-
-                    <button
-                      onClick={() => {
                         setShowSyncModal(true);
                         setShowSortMenu(false);
                       }}
@@ -489,7 +433,7 @@ export const HomeView = () => {
                         <span className="relative flex items-center justify-center w-4 h-4">
                           {hasGistSync && <span className="absolute w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]" />}
                         </span>
-                        Sync
+                        Settings
                       </div>
                     </button>
                   </div>
@@ -641,7 +585,7 @@ export const HomeView = () => {
           <div className="w-full max-w-lg rounded-2xl bg-brand-bg blueprint-border shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
               <div>
-                <h2 className="text-lg font-semibold text-white">Sync</h2>
+                <h2 className="text-lg font-semibold text-white">Settings</h2>
                 <p className="text-xs text-brand-silver mt-1">Enter your Gist details to sync your library.</p>
               </div>
               <button
@@ -684,12 +628,44 @@ export const HomeView = () => {
                 </div>
               </div>
 
+              <div className="rounded-xl bg-white/[0.03] blueprint-border p-4 space-y-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-white">VidAngel</h3>
+                  <p className="mt-1 text-xs text-brand-silver">
+                    Show VidAngel availability badges in your library and details view.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setVidAngelEnabled(!vidAngelEnabled)}
+                  className={clsx(
+                    'w-full flex items-center justify-between rounded-xl px-4 py-3 transition-colors blueprint-border',
+                    vidAngelEnabled ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' : 'bg-white/5 text-brand-silver hover:text-white'
+                  )}
+                >
+                  <span className="text-sm font-bold">VidAngel badges</span>
+                  <span className="text-[11px] font-black uppercase tracking-widest">
+                    {vidAngelEnabled ? 'On' : 'Off'}
+                  </span>
+                </button>
+
+                <a
+                  href="https://www.vidangel.com/login"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block text-[11px] font-medium text-brand-silver/70 hover:text-brand-cyan transition-colors"
+                >
+                  Login to Vidangel
+                </a>
+              </div>
+
               <button
                 onClick={handleSaveSync}
                 className="w-full bg-brand-cyan text-brand-bg font-black py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-brand-cyan/90 active:scale-95 transition-all uppercase tracking-widest"
               >
                 <Save size={18} />
-                Save Sync
+                Save
               </button>
             </div>
           </div>

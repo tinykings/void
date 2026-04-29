@@ -170,7 +170,6 @@ export interface UserState {
   filter?: FilterType;
   sort?: SortOption;
   showWatched?: boolean;
-  showEditedOnly?: boolean;
   showFavoritesOnly?: boolean;
   isSearchFocused?: boolean;
   editedStatusMap: Record<string, boolean>;

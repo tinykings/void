@@ -10,7 +10,7 @@ import { Search as SearchIcon, ArrowRight, X } from 'lucide-react';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 
 export const SearchSheet = () => {
-  const { isSearchFocused, setIsSearchFocused, apiKey, isLoaded, watchlist, watched } = useAppContext();
+  const { isSearchFocused, setIsSearchFocused, apiKey, isLoaded, watchlist, watched, vidAngelEnabled } = useAppContext();
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Media[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -179,6 +179,7 @@ export const SearchSheet = () => {
                   <MediaCard
                     key={`${item.media_type}-${item.id}`}
                     media={item}
+                    showBadge={vidAngelEnabled}
                   />
                 ))}
               </div>

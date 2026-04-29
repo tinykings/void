@@ -43,7 +43,6 @@ interface StoreState extends UserState {
   setFilter: (filter: FilterType) => void;
   setSort: (sort: SortOption) => void;
   setShowWatched: (show: boolean) => void;
-  setShowEditedOnly: (show: boolean) => void;
   setIsSearchFocused: (focused: boolean) => void;
 
   setMediaEditedStatus: (id: number, type: 'movie' | 'tv', isEdited: boolean) => void;
@@ -77,7 +76,6 @@ export const useStore = create<StoreState>()(
         filter: 'movie',
         sort: 'added',
         showWatched: false,
-        showEditedOnly: false,
         showFavoritesOnly: false,
         isSearchFocused: false,
         editedStatusMap: {},
@@ -100,8 +98,6 @@ export const useStore = create<StoreState>()(
         setSort: (sort) => set({ sort }),
         
         setShowWatched: (showWatched) => set({ showWatched }),
-        
-        setShowEditedOnly: (showEditedOnly) => set({ showEditedOnly }),
 
         setShowFavoritesOnly: (showFavoritesOnly) => set({ showFavoritesOnly }),
         
