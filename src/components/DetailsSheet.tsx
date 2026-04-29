@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
-import { getImageUrl, getMediaCredits, getContentRating, getMediaDetails, getMediaVideos, getSeasonDetails, getWatchProviders } from '@/lib/tmdb';
+import { getImageUrl, getMediaCredits, getContentRating, getMediaDetails, getSeasonDetails, getWatchProviders } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
-import { CastMember, Episode, Media, Video, WatchProvider } from '@/lib/types';
+import { CastMember, Episode, Media, WatchProvider } from '@/lib/types';
 import { Bookmark, Eye, Heart, Play, ShieldCheck, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
@@ -31,15 +31,12 @@ export const DetailsSheet = () => {
 
   const [details, setDetails] = useState<Media | null>(null);
   const [cast, setCast] = useState<CastMember[]>([]);
-  const [videos, setVideos] = useState<Video[]>([]);
   const [watchProviders, setWatchProviders] = useState<WatchProvider[]>([]);
   const [contentRating, setContentRating] = useState<string | null>(null);
   const [headerEpisode, setHeaderEpisode] = useState<Episode | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
-  const [trailersLoading, setTrailersLoading] = useState(false);
   const [providersLoadedFor, setProvidersLoadedFor] = useState<number | null>(null);
   const [overviewLoadedFor, setOverviewLoadedFor] = useState<number | null>(null);
-  const [trailersLoadedFor, setTrailersLoadedFor] = useState<number | null>(null);
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -91,14 +88,11 @@ export const DetailsSheet = () => {
     if (!activeDetailsMedia) return;
     setDetails(activeDetailsMedia);
     setCast([]);
-    setVideos([]);
     setWatchProviders([]);
     setContentRating(null);
     setOverviewLoading(false);
-    setTrailersLoading(false);
     setProvidersLoadedFor(null);
     setOverviewLoadedFor(null);
-    setTrailersLoadedFor(null);
   }, [activeDetailsMedia?.id, activeDetailsMedia?.media_type]);
 
   useEffect(() => {
@@ -170,32 +164,6 @@ export const DetailsSheet = () => {
       cancelled = true;
     };
   }, [activeDetailsMedia, apiKey]);
-
-  useEffect(() => {
-    if (!activeDetailsMedia || !apiKey || trailersLoadedFor === activeDetailsMedia.id) return;
-
-    let cancelled = false;
-    setTrailersLoading(true);
-
-    getMediaVideos(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey)
-      .then((data) => {
-        if (cancelled) return;
-        const trailerVideos = data.results
-          .filter((video) => video.site === 'YouTube' && video.type === 'Trailer')
-          .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime())
-          .slice(0, 2);
-        setVideos(trailerVideos);
-        setTrailersLoadedFor(activeDetailsMedia.id);
-      })
-      .catch(console.error)
-      .finally(() => {
-        if (!cancelled) setTrailersLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeDetailsMedia, apiKey, trailersLoadedFor]);
 
   useEffect(() => {
     const hasNextEpisode = !!selected?.next_episode_to_air;
@@ -281,6 +249,12 @@ export const DetailsSheet = () => {
   })();
   const justWatchSearchUrl = `https://www.justwatch.com/us/search?q=${encodeURIComponent(title)}`;
   const year = (selected.release_date || selected.first_air_date || '').split('-')[0];
+  const trailerSearchUrl = (() => {
+    const parts = [title];
+    if (year) parts.push(year);
+    parts.push('trailer');
+    return `https://www.youtube.com/results?search_query=${encodeURIComponent(parts.join(' '))}`;
+  })();
   const compactActions = inWatched;
   const handleWatchlistToggle = () => {
     if (inWatchlist) {
@@ -469,7 +443,6 @@ export const DetailsSheet = () => {
                   </a>
 
                   <div>
-                    <h3 className="text-xs font-black uppercase tracking-widest text-brand-cyan mb-2">Cast</h3>
                     <div className="grid grid-cols-2 gap-2">
                       {overviewLoading && cast.length === 0 ? (
                         [...Array(4)].map((_, index) => (
@@ -502,35 +475,23 @@ export const DetailsSheet = () => {
                   </div>
 
                   <div>
-                    <h3 className="text-xs font-black uppercase tracking-widest text-brand-cyan mb-2">Trailers</h3>
-                    {trailersLoading ? (
-                      <div className="flex items-center justify-center py-10">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-cyan" />
+                    <a
+                      href={trailerSearchUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/5 blueprint-border hover:bg-white/10 transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold truncate">
+                          <span className="text-white">Trailers</span>{' '}
+                          <span className="text-brand-silver/70">(YouTube)</span>
+                        </p>
                       </div>
-                    ) : videos.length > 0 ? (
-                      <div className="space-y-3">
-                        {videos.map((video) => (
-                          <a
-                            key={video.id}
-                            href={`https://www.youtube.com/watch?v=${video.key}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/5 blueprint-border hover:bg-white/10 transition-colors"
-                          >
-                            <div className="min-w-0">
-                              <p className="text-sm font-bold text-white truncate">{video.name}</p>
-                              <p className="text-[10px] text-brand-silver uppercase tracking-widest">YouTube trailer</p>
-                            </div>
-                            <Play className="text-brand-cyan shrink-0" size={16} />
-                          </a>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-brand-silver py-10 text-center">No trailers found.</p>
-                    )}
+                      <Play className="text-brand-cyan shrink-0" size={16} />
+                    </a>
 
-                    <p className="pt-1 text-center text-[10px] uppercase tracking-[0.2em] text-brand-silver/60">
-                      Data provided by TMDB
+                    <p className="mt-2 text-center text-[10px] uppercase tracking-[0.2em] text-brand-silver/60">
+                      Data provided by TMDB.
                     </p>
                   </div>
                 </div>

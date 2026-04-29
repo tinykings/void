@@ -632,7 +632,6 @@ export const HomeView = () => {
               <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-brand-bg/80">
                 <div>
                   <h2 className="text-lg font-semibold text-white">Settings</h2>
-                  <p className="text-xs text-brand-silver mt-1">Enter your Gist details to sync your library.</p>
                 </div>
                 <button
                   onClick={() => setShowSyncModal(false)}
@@ -643,43 +642,46 @@ export const HomeView = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-brand-silver mb-2">Gist ID</label>
-                <input
-                  type="text"
-                  value={tempGistId}
-                  onChange={(e) => setTempGistId(e.target.value)}
-                  placeholder="e.g. 8f7a9b2c3d4e5f6a7b8c9d0e"
-                  className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
-                />
-              </div>
+               <div className="rounded-xl bg-white/[0.03] blueprint-border p-4 space-y-3">
+                 <div>
+                   <h3 className="text-sm font-semibold text-white">Gist Sync</h3>
+                 </div>
 
-              <div>
-                <label className="block text-xs font-medium text-brand-silver mb-2">GitHub Token</label>
-                <div className="relative">
-                  <input
-                    type={showSyncToken ? 'text' : 'password'}
-                    value={tempGistToken}
-                    onChange={(e) => setTempGistToken(e.target.value)}
-                    placeholder="ghp_xxxxxxxxxxxx"
-                    className="w-full p-3 pr-12 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowSyncToken((value) => !value)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-silver hover:text-white"
-                  >
-                    {showSyncToken ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
+                 <div>
+                   <label className="block text-xs font-medium text-brand-silver mb-2">Gist ID</label>
+                   <input
+                     type="text"
+                     value={tempGistId}
+                     onChange={(e) => setTempGistId(e.target.value)}
+                     placeholder="e.g. 8f7a9b2c3d4e5f6a7b8c9d0e"
+                     className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
+                   />
+                 </div>
+
+                 <div>
+                   <label className="block text-xs font-medium text-brand-silver mb-2">GitHub Token</label>
+                   <div className="relative">
+                     <input
+                       type={showSyncToken ? 'text' : 'password'}
+                       value={tempGistToken}
+                       onChange={(e) => setTempGistToken(e.target.value)}
+                       placeholder="ghp_xxxxxxxxxxxx"
+                       className="w-full p-3 pr-12 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
+                     />
+                     <button
+                       type="button"
+                       onClick={() => setShowSyncToken((value) => !value)}
+                       className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-silver hover:text-white"
+                     >
+                       {showSyncToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                     </button>
+                   </div>
+                 </div>
+               </div>
 
               <div className="rounded-xl bg-white/[0.03] blueprint-border p-4 space-y-3">
                 <div>
                   <h3 className="text-sm font-semibold text-white">VidAngel</h3>
-                  <p className="mt-1 text-xs text-brand-silver">
-                    Show VidAngel availability badges in your library and details view.
-                  </p>
                 </div>
 
                 <button
@@ -709,9 +711,6 @@ export const HomeView = () => {
               <div className="rounded-xl bg-white/[0.03] blueprint-border p-4 space-y-3">
                 <div>
                   <h3 className="text-sm font-semibold text-white">Backup</h3>
-                  <p className="mt-1 text-xs text-brand-silver">
-                    Export a local JSON backup or restore one when Gist sync is disabled.
-                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
