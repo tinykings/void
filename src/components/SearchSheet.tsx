@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { usePathname } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
 import { getTrending, searchMedia } from '@/lib/tmdb';
 import { Media } from '@/lib/types';
@@ -10,10 +9,10 @@ import { MediaCard } from '@/components/MediaCard';
 import { Search as SearchIcon, X } from 'lucide-react';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
+import logoPng from '../../public/logo.png';
 
 export const SearchSheet = () => {
   const { isSearchFocused, setIsSearchFocused, closeAllSheets, apiKey, isLoaded, watchlist, watched, vidAngelEnabled } = useAppContext();
-  const pathname = usePathname();
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Media[]>([]);
   const [trending, setTrending] = useState<Media[]>([]);
@@ -23,7 +22,6 @@ export const SearchSheet = () => {
   const searchTerm = query.trim();
   const showSearchResults = searchTerm.length >= 2;
   const isLibraryEmpty = watchlist.length === 0 && watched.length === 0;
-  const assetBase = pathname.startsWith('/void') ? '/void' : '';
   const trendingLoading = isSearchFocused && !!apiKey && isLoaded && trending.length === 0 && !showSearchResults;
   const displayError = isSearchFocused ? error : null;
 
@@ -124,7 +122,7 @@ export const SearchSheet = () => {
             <div className="px-4 pt-5 pb-3">
               <div className="flex items-center gap-4">
                 <img
-                  src={`${assetBase}/logo.png`}
+                  src={logoPng.src}
                   alt="Void"
                   className="h-20 w-20 rounded-2xl object-cover blueprint-border bg-brand-bg shrink-0"
                   decoding="async"
@@ -155,7 +153,7 @@ export const SearchSheet = () => {
             <div className="p-4 pb-2">
               <div className="flex items-center gap-4">
                 <img
-                  src={`${assetBase}/logo.png`}
+                  src={logoPng.src}
                   alt="Void"
                   className="h-20 w-20 rounded-2xl object-cover blueprint-border bg-brand-bg shrink-0"
                   decoding="async"
