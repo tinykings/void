@@ -264,6 +264,21 @@ export const DetailsSheet = () => {
     : headerEpisode
       ? `Last • S${headerEpisode.season_number}E${headerEpisode.episode_number} • ${headerEpisode.name}`
     : null;
+  const movieReleaseLabel = (() => {
+    if (selected.media_type !== 'movie' || !selected.release_date) return null;
+
+    const releaseDate = new Date(selected.release_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (releaseDate.getTime() <= today.getTime()) return null;
+
+    return `Release • ${new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(releaseDate)}`;
+  })();
   const justWatchSearchUrl = `https://www.justwatch.com/us/search?q=${encodeURIComponent(title)}`;
   const year = (selected.release_date || selected.first_air_date || '').split('-')[0];
   const compactActions = inWatched;
@@ -329,9 +344,9 @@ export const DetailsSheet = () => {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2 pr-2">
                     <h2 className="min-w-0 text-lg font-black text-white uppercase tracking-tight leading-tight">{title}</h2>
-                    {episodeLabel && (
+                    {(episodeLabel || movieReleaseLabel) && (
                       <span className="inline-flex max-w-full items-center rounded-full border border-brand-cyan/30 bg-brand-cyan/10 px-2.5 py-1 text-[10px] font-semibold text-brand-cyan">
-                        {episodeLabel}
+                        {episodeLabel || movieReleaseLabel}
                       </span>
                     )}
                     {vidAngelEnabled && isVidAngelAvailable && (
