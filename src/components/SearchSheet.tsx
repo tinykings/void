@@ -11,7 +11,7 @@ import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 
 export const SearchSheet = () => {
-  const { isSearchFocused, setIsSearchFocused, apiKey, isLoaded, watchlist, watched, vidAngelEnabled } = useAppContext();
+  const { isSearchFocused, setIsSearchFocused, closeAllSheets, apiKey, isLoaded, watchlist, watched, vidAngelEnabled } = useAppContext();
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Media[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -99,7 +99,7 @@ export const SearchSheet = () => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[340] flex items-end justify-center" onClick={isLibraryEmpty ? undefined : closeSheet}>
+      <div className="fixed inset-0 z-[340] flex items-end justify-center" onClick={closeAllSheets}>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

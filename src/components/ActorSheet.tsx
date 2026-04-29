@@ -9,7 +9,7 @@ import { X, User } from 'lucide-react';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 
 export const ActorSheet = () => {
-  const { activeActorMedia, closeActor, apiKey, openDetails } = useAppContext();
+  const { activeActorMedia, closeActor, closeAllSheets, apiKey, openDetails } = useAppContext();
   const [credits, setCredits] = useState<Media[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -84,7 +84,7 @@ export const ActorSheet = () => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[345] flex items-end justify-center" onClick={closeActor}>
+      <div className="fixed inset-0 z-[345] flex items-end justify-center" onClick={closeAllSheets}>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

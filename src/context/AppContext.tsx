@@ -35,6 +35,7 @@ interface AppContextType extends UserState {
   closePoster: () => void;
   openActor: (actor: CastMember) => void;
   closeActor: () => void;
+  closeAllSheets: () => void;
 
   // Episode tracking
   markEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
@@ -78,6 +79,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setActiveDetailsMedia(actorReturnDetailsMedia.current);
     actorReturnDetailsMedia.current = null;
   }, []);
+  const closeAllSheets = useCallback(() => {
+    actorReturnDetailsMedia.current = null;
+    setActiveActorMedia(null);
+    setActivePosterMedia(null);
+    setActiveDetailsMedia(null);
+    store.setIsSearchFocused(false);
+  }, [store]);
 
   // Service worker registration
   useEffect(() => {
@@ -228,6 +236,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     closePoster,
     openActor,
     closeActor,
+    closeAllSheets,
 
     markEpisodePlayed: store.markEpisodePlayed,
     unmarkEpisodePlayed: store.unmarkEpisodePlayed,
@@ -249,6 +258,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     closePoster,
     openActor,
     closeActor,
+    closeAllSheets,
   ]);
 
   return (

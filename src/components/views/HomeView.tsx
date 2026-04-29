@@ -41,6 +41,7 @@ export const HomeView = () => {
     setMediaEditedStatus,
     isSearchFocused,
     setIsSearchFocused,
+    closeAllSheets,
     setLists,
   } = useAppContext();
   
@@ -616,7 +617,7 @@ export const HomeView = () => {
 
       <AnimatePresence>
         {showSyncModal && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowSyncModal(false)}>
+          <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => { closeAllSheets(); setShowSyncModal(false); }}>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

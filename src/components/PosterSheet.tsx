@@ -8,7 +8,7 @@ import { X } from 'lucide-react';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 
 export const PosterSheet = () => {
-  const { activePosterMedia, closePoster } = useAppContext();
+  const { activePosterMedia, closePoster, closeAllSheets } = useAppContext();
 
   useEffect(() => {
     if (!activePosterMedia) return;
@@ -28,7 +28,7 @@ export const PosterSheet = () => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[355] flex items-end justify-center" onClick={closePoster}>
+      <div className="fixed inset-0 z-[355] flex items-end justify-center" onClick={closeAllSheets}>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

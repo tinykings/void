@@ -25,6 +25,7 @@ export const DetailsSheet = () => {
     openDetails,
     openPoster,
     openActor,
+    closeAllSheets,
     toggleWatchlist,
     toggleWatched,
     toggleFavorite,
@@ -300,7 +301,7 @@ export const DetailsSheet = () => {
     <AnimatePresence>
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-[350] flex items-end justify-center" onClick={closeDetails}>
+          <div className="fixed inset-0 z-[350] flex items-end justify-center" onClick={closeAllSheets}>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
