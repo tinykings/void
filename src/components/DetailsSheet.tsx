@@ -9,6 +9,7 @@ import { CastMember, Episode, Media, WatchProvider } from '@/lib/types';
 import { Bookmark, Eye, Heart, Play, ShieldCheck, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
+import { SheetDragHandle } from '@/components/SheetDragHandle';
 
 export const DetailsSheet = () => {
   const {
@@ -341,7 +342,7 @@ export const DetailsSheet = () => {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pb-2">
+              <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pb-24">
                 <div className="pt-4 grid grid-cols-[88px_1fr] gap-4 items-start">
                   <button
                     type="button"
@@ -502,6 +503,8 @@ export const DetailsSheet = () => {
                   </div>
                 </div>
               </div>
+
+              <SheetDragHandle onClose={closeDetails} />
             </motion.div>
 
             <ConfirmationModal

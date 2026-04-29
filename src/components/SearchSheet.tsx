@@ -8,6 +8,7 @@ import { Media } from '@/lib/types';
 import { MediaCard } from '@/components/MediaCard';
 import { Search as SearchIcon, X } from 'lucide-react';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
+import { SheetDragHandle } from '@/components/SheetDragHandle';
 
 export const SearchSheet = () => {
   const { isSearchFocused, setIsSearchFocused, apiKey, isLoaded, watchlist, watched, vidAngelEnabled } = useAppContext();
@@ -152,7 +153,7 @@ export const SearchSheet = () => {
             </div>
           </div>
 
-          <div className="px-4 pb-4 overflow-y-auto custom-scrollbar flex-1">
+          <div className="px-4 pb-24 overflow-y-auto custom-scrollbar flex-1">
 
             {error && (
               <p className="text-sm text-red-400 mb-4">{error}</p>
@@ -186,6 +187,8 @@ export const SearchSheet = () => {
               </div>
             )}
           </div>
+
+          <SheetDragHandle onClose={closeSheet} />
         </motion.div>
       </div>
     </AnimatePresence>

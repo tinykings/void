@@ -6,6 +6,7 @@ import { useAppContext } from '@/context/AppContext';
 import { getImageUrl, getPersonCredits } from '@/lib/tmdb';
 import { Media } from '@/lib/types';
 import { X, User } from 'lucide-react';
+import { SheetDragHandle } from '@/components/SheetDragHandle';
 
 export const ActorSheet = () => {
   const { activeActorMedia, closeActor, apiKey, openDetails } = useAppContext();
@@ -123,7 +124,7 @@ export const ActorSheet = () => {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pb-4">
+          <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pb-24">
             <div className="pt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
               {loading ? (
                 [...Array(20)].map((_, index) => (
@@ -150,6 +151,8 @@ export const ActorSheet = () => {
               )}
             </div>
           </div>
+
+          <SheetDragHandle onClose={closeActor} />
         </motion.div>
       </div>
     </AnimatePresence>

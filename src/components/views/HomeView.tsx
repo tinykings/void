@@ -15,6 +15,7 @@ import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { AlertCircle, X, Save, Eye, EyeOff, Download, Upload } from 'lucide-react';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
+import { SheetDragHandle } from '@/components/SheetDragHandle';
 
 export const HomeView = () => {
   const {
@@ -643,7 +644,7 @@ export const HomeView = () => {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-5 pb-24 space-y-4">
                <div className="rounded-xl bg-white/[0.03] blueprint-border p-4 space-y-3">
                  <div>
                    <h3 className="text-sm font-semibold text-white">Gist Sync</h3>
@@ -777,9 +778,11 @@ export const HomeView = () => {
                   className="block text-xs text-brand-silver/70 hover:text-brand-cyan transition-colors"
                 >
                   github.com/tinykings/void
-                </a>
+                  </a>
               </div>
+
               </div>
+              <SheetDragHandle onClose={() => setShowSyncModal(false)} />
             </motion.div>
           </div>
         )}

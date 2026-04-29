@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { getImageUrl } from '@/lib/tmdb';
 import { X } from 'lucide-react';
+import { SheetDragHandle } from '@/components/SheetDragHandle';
 
 export const PosterSheet = () => {
   const { activePosterMedia, closePoster } = useAppContext();
@@ -56,7 +57,7 @@ export const PosterSheet = () => {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 flex items-center justify-center">
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 pb-24 flex items-center justify-center">
             {posterSrc ? (
               <img
                 src={posterSrc}
@@ -68,6 +69,8 @@ export const PosterSheet = () => {
               <div className="text-brand-silver text-sm">No poster available.</div>
             )}
           </div>
+
+          <SheetDragHandle onClose={closePoster} />
         </motion.div>
       </div>
     </AnimatePresence>
