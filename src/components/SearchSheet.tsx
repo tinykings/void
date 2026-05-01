@@ -12,7 +12,7 @@ import { SheetDragHandle } from '@/components/SheetDragHandle';
 import logoPng from '../../public/logo.png';
 
 export const SearchSheet = () => {
-  const { isSearchFocused, setIsSearchFocused, closeAllSheets, apiKey, isLoaded, watchlist, watched, vidAngelEnabled } = useAppContext();
+  const { isSearchFocused, closeAllSheets, apiKey, isLoaded, watchlist, watched, vidAngelEnabled } = useAppContext();
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Media[]>([]);
   const [trending, setTrending] = useState<Media[]>([]);
@@ -82,6 +82,36 @@ export const SearchSheet = () => {
     closeAllSheets();
   };
   const displayedMedia = useMemo(() => (showSearchResults ? searchResults : trending), [showSearchResults, searchResults, trending]);
+  const searchControls = (
+    <div className="flex min-w-0 flex-1 items-center gap-3">
+      <img
+        src={logoPng.src}
+        alt="Void"
+        className="h-10 w-10 rounded-xl object-cover blueprint-border bg-brand-bg shrink-0"
+        decoding="async"
+      />
+      <div className="relative min-w-0 flex-1 max-w-2xl">
+        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-cyan" size={16} />
+        <input
+          type="text"
+          value={query}
+          autoFocus
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search movies, shows..."
+          className="w-full rounded-xl border border-brand-cyan/20 bg-brand-bg/90 py-2.5 pl-10 pr-11 text-sm font-medium text-white outline-none shadow-[0_0_20px_rgba(34,211,238,0.08)] ring-1 ring-brand-cyan/10 placeholder:text-brand-silver/50"
+        />
+        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          <button
+            onClick={() => setQuery('')}
+            className="p-1.5 text-brand-silver transition-colors hover:text-white"
+            title="Clear search"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   if (!isSearchFocused) return null;
 
@@ -106,79 +136,24 @@ export const SearchSheet = () => {
             : "relative w-full max-w-4xl h-[86vh] sm:h-[80vh] lg:h-[74vh] max-h-[92vh] bg-brand-bg/95 blueprint-border rounded-t-3xl shadow-2xl overflow-hidden flex flex-col"
           }
         >
-          {!isLibraryEmpty && (
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-brand-bg/80">
-              <h2 className="text-lg font-black text-white uppercase tracking-tight leading-tight">Search</h2>
+          <div className="flex items-center gap-2 border-b border-white/5 bg-brand-bg/80 px-3 py-3 sm:px-4">
+            {searchControls}
+            {!isLibraryEmpty && (
               <button
                 onClick={closeSheet}
-                className="p-2 rounded-lg bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/25 shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:bg-brand-cyan/20 hover:text-white hover:border-brand-cyan/40"
-                >
-                  <X size={18} />
-                </button>
-            </div>
-          )}
+                className="shrink-0 rounded-lg border border-brand-cyan/25 bg-brand-cyan/10 p-2 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:border-brand-cyan/40 hover:bg-brand-cyan/20 hover:text-white"
+                title="Close search"
+              >
+                <X size={18} />
+              </button>
+            )}
+          </div>
 
-          {isLibraryEmpty ? (
-            <div className="px-4 pt-5 pb-3">
-              <div className="flex items-center gap-4">
-                <img
-                  src={logoPng.src}
-                  alt="Void"
-                  className="h-20 w-20 rounded-2xl object-cover blueprint-border bg-brand-bg shrink-0"
-                  decoding="async"
-                />
-                <div className="relative flex-1">
-                  <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-cyan" size={20} />
-                  <input
-                    type="text"
-                    value={query}
-                    autoFocus
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="VOID: Search and add to your library"
-                    className="w-full pl-12 pr-12 bg-brand-bg blueprint-border rounded-2xl outline-none font-medium text-white placeholder:text-brand-silver/50 py-4 text-base shadow-[0_0_30px_rgba(34,211,238,0.15)] ring-1 ring-brand-cyan/30"
-                  />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <button
-                      onClick={() => setQuery('')}
-                      className="p-2 text-brand-silver hover:text-white transition-colors"
-                      title="Clear search"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="p-4 pb-2">
-              <div className="flex items-center gap-4">
-                <img
-                  src={logoPng.src}
-                  alt="Void"
-                  className="h-20 w-20 rounded-2xl object-cover blueprint-border bg-brand-bg shrink-0"
-                  decoding="async"
-                />
-                <div className="relative flex-1">
-                  <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-cyan" size={20} />
-                  <input
-                    type="text"
-                    value={query}
-                    autoFocus
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="VOID: Search and add to your library"
-                    className="w-full pl-12 pr-12 bg-brand-bg blueprint-border rounded-2xl outline-none font-medium text-white placeholder:text-brand-silver/50 py-4 text-base shadow-[0_0_30px_rgba(34,211,238,0.15)] ring-1 ring-brand-cyan/30"
-                  />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <button
-                      onClick={() => setQuery('')}
-                      className="p-2 text-brand-silver hover:text-white transition-colors"
-                      title="Clear search"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-                </div>
-              </div>
+          {isLibraryEmpty && (
+            <div className="px-4 pt-3 pb-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-brand-silver/60">
+                Search and add titles to your library
+              </p>
             </div>
           )}
 
