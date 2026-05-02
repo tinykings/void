@@ -24,7 +24,9 @@ export const PosterSheet = () => {
   if (!activePosterMedia) return null;
 
   const title = activePosterMedia.title || activePosterMedia.name || 'Unknown';
-  const posterSrc = activePosterMedia.poster_path ? getImageUrl(activePosterMedia.poster_path, 'original') : '';
+  const posterSrc = activePosterMedia.poster_path || activePosterMedia.backdrop_path
+    ? getImageUrl(activePosterMedia.poster_path || activePosterMedia.backdrop_path, 'original')
+    : '';
 
   return (
     <AnimatePresence>

@@ -57,6 +57,7 @@ export const DetailsSheet = () => {
   });
 
   const selected = activeDetailsMedia && details?.id === activeDetailsMedia.id ? details.media : activeDetailsMedia;
+  const posterPath = selected?.poster_path || selected?.backdrop_path;
 
   const mediaKey = useMemo(() => {
     if (!selected) return '';
@@ -351,15 +352,15 @@ export const DetailsSheet = () => {
                 <div className="pt-4 grid grid-cols-[88px_1fr] gap-4 items-start">
                   <button
                     type="button"
-                    onClick={() => selected.poster_path && openPoster(selected)}
-                    disabled={!selected.poster_path}
+                    onClick={() => posterPath && openPoster(selected)}
+                    disabled={!posterPath}
                     className={clsx(
                       'aspect-[2/3] rounded-xl overflow-hidden blueprint-border bg-brand-bg/50 text-left',
-                      selected.poster_path ? 'cursor-zoom-in' : 'cursor-default'
+                      posterPath ? 'cursor-zoom-in' : 'cursor-default'
                     )}
                   >
-                    {selected.poster_path ? (
-                      <img src={getImageUrl(selected.poster_path, 'w342')} alt={title} className="w-full h-full object-cover" decoding="async" />
+                    {posterPath ? (
+                      <img src={getImageUrl(posterPath, 'w342')} alt={title} className="w-full h-full object-cover" decoding="async" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-brand-silver text-xs text-center p-2">No poster</div>
                     )}

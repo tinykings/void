@@ -20,6 +20,53 @@ interface MediaCardProps {
   onClick?: () => void;
 }
 
+interface PosterImageProps {
+  candidates: string[];
+  title?: string;
+}
+
+const PosterImage = ({ candidates, title }: PosterImageProps) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageIndex, setImageIndex] = useState(0);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  const imageSrc = candidates[imageIndex] || '';
+
+  if (!imageSrc || imageFailed) {
+    return (
+      <div className="w-full h-full flex items-center justify-center p-4 text-center text-brand-silver bg-brand-bg/80">
+        <span className="text-sm font-medium">{title || 'No poster available'}</span>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {!imageLoaded && <div className="absolute inset-0 bg-brand-bg/80 animate-pulse" />}
+      <img
+        src={imageSrc}
+        alt={title}
+        className={clsx(
+          'object-cover w-full h-full group-hover:scale-105 transition-all duration-300 rounded-xl shadow-2xl shadow-brand-cyan/10',
+          imageLoaded ? 'opacity-100' : 'opacity-0'
+        )}
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setImageLoaded(true)}
+        onError={() => {
+          if (imageIndex < candidates.length - 1) {
+            setImageLoaded(false);
+            setImageIndex((index) => index + 1);
+            return;
+          }
+
+          setImageFailed(true);
+        }}
+      />
+    </>
+  );
+};
+
 export const MediaCard = React.memo(({ media, showBadge = false, showReleaseBadge = true, onClick }: MediaCardProps) => {
   const {
     vidAngelEnabled,
@@ -34,8 +81,11 @@ export const MediaCard = React.memo(({ media, showBadge = false, showReleaseBadg
   
   const cardRef = useRef<HTMLDivElement>(null);
   const isEdited = editedStatusMap[`${media.media_type}-${media.id}`];
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageFailed, setImageFailed] = useState(false);
+
+  const imageCandidates = useMemo(() => {
+    const paths = [media.poster_path, media.backdrop_path].filter((path): path is string => !!path);
+    return [...new Set(paths)].map((path) => getImageUrl(path));
+  }, [media.backdrop_path, media.poster_path]);
 
   const mediaKey = `${media.media_type}-${media.id}`;
   const inWatchlist = watchlistIds.has(mediaKey);
@@ -120,7 +170,7 @@ export const MediaCard = React.memo(({ media, showBadge = false, showReleaseBadg
     return () => vidAngelObserver.unobserve(element);
   }, [media.id, media.media_type, media.title, media.name, vidAngelEnabled, isEdited, setMediaEditedStatus, showBadge]);
 
-  const title = media.title || media.name;
+  const title = media.title || media.name || 'Untitled';
 
   return (
     <>
@@ -133,22 +183,8 @@ export const MediaCard = React.memo(({ media, showBadge = false, showReleaseBadg
             onClick?.();
           }}
         >
-          {media.poster_path && !imageFailed ? (
-            <>
-              {!imageLoaded && <div className="absolute inset-0 bg-brand-bg/80 animate-pulse" />}
-              <img
-                src={getImageUrl(media.poster_path)}
-                alt={title}
-                className={clsx(
-                  'object-cover w-full h-full group-hover:scale-105 transition-all duration-300 rounded-xl shadow-2xl shadow-brand-cyan/10',
-                  imageLoaded ? 'opacity-100' : 'opacity-0'
-                )}
-                loading="lazy"
-                decoding="async"
-                onLoad={() => setImageLoaded(true)}
-                onError={() => setImageFailed(true)}
-              />
-            </>
+          {imageCandidates.length > 0 ? (
+            <PosterImage key={imageCandidates.join('|')} candidates={imageCandidates} title={title} />
           ) : (
             <div className="w-full h-full flex items-center justify-center p-4 text-center text-brand-silver bg-brand-bg/80">
               <span className="text-sm font-medium">{title}</span>

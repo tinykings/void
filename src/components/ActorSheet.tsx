@@ -29,12 +29,12 @@ export const ActorSheet = () => {
     return personDetails.details;
   }, [actor, personDetails]);
 
-  const biography = useMemo(() => {
+  const biography = (() => {
     const text = details?.biography?.trim() || '';
     return text.split(/\n\s*\n/)[0] || '';
-  }, [details?.biography]);
+  })();
 
-  const bornLabel = useMemo(() => {
+  const bornLabel = (() => {
     if (!details?.birthday) return 'Unknown';
 
     const date = new Date(details.birthday);
@@ -44,7 +44,7 @@ export const ActorSheet = () => {
     const day = String(date.getUTCDate()).padStart(2, '0');
     const year = date.getUTCFullYear();
     return `${month}-${day}-${year}`;
-  }, [details?.birthday]);
+  })();
 
   useEffect(() => {
     if (!actor || !apiKey) {
@@ -58,7 +58,7 @@ export const ActorSheet = () => {
         if (cancelled) return;
 
         const deduped = data.cast
-          .filter((item) => item.poster_path)
+          .filter((item) => item.poster_path || item.backdrop_path)
           .filter((item) => !(item.genre_ids || []).includes(10767))
           .sort((a, b) => {
             const countDiff = (b.vote_count || 0) - (a.vote_count || 0);
@@ -210,14 +210,18 @@ export const ActorSheet = () => {
                       onClick={() => openDetails(media)}
                       className="group aspect-[2/3] rounded-xl overflow-hidden blueprint-border bg-brand-bg/50 text-left"
                     >
-                      {media.poster_path ? (
+                      {media.poster_path || media.backdrop_path ? (
                         <img
-                          src={getImageUrl(media.poster_path, 'w342')}
+                          src={getImageUrl(media.poster_path || media.backdrop_path, 'w342')}
                           alt={media.title || media.name || 'Unknown'}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           decoding="async"
                         />
-                      ) : null}
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center p-3 text-center text-brand-silver text-xs">
+                          {media.title || media.name || 'Unknown'}
+                        </div>
+                      )}
                     </button>
                   ))
                 )}
