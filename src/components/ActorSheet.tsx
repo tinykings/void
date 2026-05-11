@@ -140,7 +140,7 @@ export const ActorSheet = () => {
           exit={{ y: '100%' }}
           transition={{ duration: 0.12, ease: 'easeOut' }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-4xl h-[86vh] sm:h-[80vh] lg:h-[74vh] max-h-[92vh] bg-brand-bg/95 blueprint-border rounded-t-3xl shadow-2xl overflow-hidden flex flex-col"
+          className="relative w-full max-w-4xl h-[86vh] sm:h-[80vh] lg:h-[74vh] max-h-[92vh] bg-brand-bg/95 embossed-edge rounded-t-3xl overflow-hidden flex flex-col"
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-brand-bg/80">
             <div className="min-w-0">

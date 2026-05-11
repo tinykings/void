@@ -34,6 +34,7 @@ export const DetailsSheet = () => {
   const [backdrops, setBackdrops] = useState<{ id: number; items: TmdbImage[] } | null>(null);
   const [trailers, setTrailers] = useState<{ id: number; items: Video[] } | null>(null);
   const [watchProviders, setWatchProviders] = useState<{ id: number; items: WatchProvider[] } | null>(null);
+  const [seasonEpisodes, setSeasonEpisodes] = useState<{ id: number; items: Episode[] } | null>(null);
   const [contentRating, setContentRating] = useState<{ id: number; value: string | null } | null>(null);
   const [headerEpisode, setHeaderEpisode] = useState<{ id: number; episode: Episode | null } | null>(null);
   const [overviewLoadedFor, setOverviewLoadedFor] = useState<number | null>(null);
@@ -71,6 +72,7 @@ export const DetailsSheet = () => {
   const backdropItems = selected && backdrops?.id === selected.id ? backdrops.items : [];
   const trailerItems = selected && trailers?.id === selected.id ? trailers.items : [];
   const watchProviderItems = selected && watchProviders?.id === selected.id ? watchProviders.items : [];
+  const seasonEpisodeItems = selected && seasonEpisodes?.id === selected.id ? seasonEpisodes.items : [];
   const contentRatingValue = selected && contentRating?.id === selected.id ? contentRating.value : null;
   const backdropPath = selected?.backdrop_path;
   const headerEpisodeValue = selected && headerEpisode?.id === selected.id ? headerEpisode.episode : null;
@@ -138,7 +140,9 @@ export const DetailsSheet = () => {
   useEffect(() => {
     const section = activeInfoSection && activeDetailsMedia && activeInfoSection.id === activeDetailsMedia.id ? activeInfoSection.section : null;
     if (!activeDetailsMedia || !apiKey || !section) return;
-    if (section === 'overview' && watchProviders?.id === activeDetailsMedia.id) return;
+
+    const mediaForSection = details?.id === activeDetailsMedia.id && details?.media ? details.media : activeDetailsMedia;
+    if (section === 'overview' && watchProviders?.id === activeDetailsMedia.id && (mediaForSection.media_type !== 'tv' || seasonEpisodes?.id === activeDetailsMedia.id)) return;
     if (section === 'cast' && cast?.id === activeDetailsMedia.id) return;
     if (section === 'images' && backdrops?.id === activeDetailsMedia.id) return;
     if (section === 'trailers' && trailers?.id === activeDetailsMedia.id) return;
@@ -149,14 +153,30 @@ export const DetailsSheet = () => {
     });
 
     const request = section === 'overview'
-      ? getWatchProviders(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey).then((data) => {
+      ? (async () => {
+          const data = await getWatchProviders(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey);
+          if (cancelled) return;
           const usProviders = data.results?.US;
           const providers = [...(usProviders?.free || []), ...(usProviders?.flatrate || [])]
             .filter((provider) => !provider.provider_name.includes('Channel'))
             .filter((provider, index, array) => array.findIndex((item) => item.provider_id === provider.provider_id) === index);
+          setWatchProviders({ id: activeDetailsMedia.id, items: providers });
 
-          if (!cancelled) setWatchProviders({ id: activeDetailsMedia.id, items: providers });
-        })
+          if (mediaForSection.media_type === 'tv' && !cancelled && seasonEpisodes?.id !== activeDetailsMedia.id) {
+            const seasons = mediaForSection.seasons?.filter((s) => s.season_number > 0) || [];
+            const episodePromises = seasons.map((season) =>
+              getSeasonDetails(activeDetailsMedia.id, season.season_number, apiKey)
+                .then((seasonData) => seasonData.episodes)
+                .catch(() => [] as Episode[])
+            );
+            const episodeResults = await Promise.all(episodePromises);
+            const allEpisodes = episodeResults.flat().sort((a, b) => {
+              if (a.season_number !== b.season_number) return a.season_number - b.season_number;
+              return a.episode_number - b.episode_number;
+            });
+            if (!cancelled) setSeasonEpisodes({ id: activeDetailsMedia.id, items: allEpisodes });
+          }
+        })()
       : section === 'cast'
       ? getMediaCredits(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey).then((data) => {
           if (!cancelled) setCast({ id: activeDetailsMedia.id, items: data.cast });
@@ -193,7 +213,7 @@ export const DetailsSheet = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeDetailsMedia, activeInfoSection, apiKey, backdrops?.id, cast?.id, trailers?.id, watchProviders?.id]);
+  }, [activeDetailsMedia, activeInfoSection, apiKey, backdrops?.id, cast?.id, trailers?.id, watchProviders?.id, seasonEpisodes?.id]);
 
   useEffect(() => {
     if (!activeDetailsMedia || !apiKey) return;
@@ -354,7 +374,7 @@ export const DetailsSheet = () => {
               exit={{ y: '100%' }}
               transition={{ duration: 0.12, ease: 'easeOut' }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-4xl h-[92vh] max-h-[96vh] bg-brand-bg/95 blueprint-border rounded-t-3xl shadow-2xl overflow-hidden flex flex-col"
+              className="relative w-full max-w-4xl h-[92vh] max-h-[96vh] bg-brand-bg/95 embossed-edge rounded-t-3xl overflow-hidden flex flex-col"
             >
               {backdropPath && (
                 <div className="absolute inset-0 pointer-events-none">
@@ -436,17 +456,31 @@ export const DetailsSheet = () => {
                 </div>
 
                 {currentInfoSection && (
-                  <div className="mt-3 min-h-[calc(92vh-15rem)] rounded-2xl bg-brand-bg/88 blueprint-border p-3 shadow-2xl shadow-black/35">
+                  <div className="mt-3 min-h-[calc(92vh-15rem)] rounded-2xl bg-brand-bg/88 embossed-edge p-3 shadow-2xl shadow-black/35">
                     {currentInfoSection === 'overview' && (
                       currentLoadingInfoSection === 'overview' ? (
                         <div className="space-y-3">
                           <div className="h-24 rounded-xl bg-white/10 animate-pulse" />
                           <div className="h-14 rounded-xl bg-white/10 animate-pulse" />
+                          {selected?.media_type === 'tv' && (
+                            <div className="space-y-3 rounded-xl bg-white/[0.03] p-3">
+                              <div className="h-3 w-20 rounded bg-white/10 animate-pulse" />
+                              {[...Array(3)].map((_, index) => (
+                                <div key={index} className="flex gap-3">
+                                  <div className="h-16 w-28 shrink-0 rounded-lg bg-white/10 animate-pulse" />
+                                  <div className="flex-1 space-y-2">
+                                    <div className="h-3 w-32 rounded bg-white/10 animate-pulse" />
+                                    <div className="h-2 w-full rounded bg-white/10 animate-pulse" />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="space-y-4">
                           <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
-                            <p className="text-sm leading-relaxed text-white/90">
+                            <p className="text-sm leading-relaxed text-white/90 line-clamp-3">
                               {selected.overview || 'No overview available.'}
                             </p>
                           </div>
@@ -466,6 +500,52 @@ export const DetailsSheet = () => {
                               <Play className="shrink-0 text-brand-cyan" size={16} />
                             </div>
                           </div>
+
+                          {selected.media_type === 'tv' && (
+                            <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
+                            <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-brand-silver">Episodes</h3>
+                            {seasonEpisodes?.id !== selected.id && seasonEpisodeItems.length === 0 ? (
+                              <div className="space-y-3">
+                                {[...Array(3)].map((_, index) => (
+                                  <div key={index} className="flex gap-3">
+                                    <div className="h-20 w-32 shrink-0 rounded-lg bg-white/10 animate-pulse" />
+                                    <div className="flex-1 space-y-2">
+                                      <div className="h-3 w-32 rounded bg-white/10 animate-pulse" />
+                                      <div className="h-2 w-full rounded bg-white/10 animate-pulse" />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : seasonEpisodeItems.length > 0 ? (
+                              <div className="space-y-2">
+                                {seasonEpisodeItems.map((episode) => (
+                                  <div key={episode.id} className="flex gap-3 rounded-lg bg-white/[0.03] p-2">
+                                    <div className="h-20 w-32 shrink-0">
+                                      <div className="h-full w-full overflow-hidden rounded-lg bg-white/5">
+                                        {episode.still_path ? (
+                                          <img src={getImageUrl(episode.still_path, 'w342')} alt="" className="h-full w-full object-cover" decoding="async" />
+                                        ) : null}
+                                      </div>
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-[11px] font-black uppercase text-white">
+                                        S{episode.season_number}E{episode.episode_number} · {episode.name}
+                                      </p>
+                                      {episode.air_date && (
+                                        <p className="mt-0.5 text-[10px] font-medium uppercase tracking-widest text-brand-silver/70">
+                                          {new Date(episode.air_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                        </p>
+                                      )}
+                                      <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-brand-silver">
+                                        {episode.overview || 'No overview available.'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
+                          )}
                         </div>
                       )
                     )}
@@ -571,15 +651,7 @@ export const DetailsSheet = () => {
                                   </button>
                                 )}
                               </div>
-                              <div className="flex items-center justify-between gap-3 p-3 text-left">
-                                <div className="min-w-0">
-                                  <p className="truncate text-sm font-black text-white">{video.name}</p>
-                                  <p className="mt-1 text-[10px] uppercase tracking-widest text-brand-silver">
-                                    {currentActiveTrailerId === video.id ? 'Playing inline' : video.official ? 'Official trailer' : 'Trailer'}
-                                  </p>
-                                </div>
-                                {currentActiveTrailerId !== video.id && <Play className="shrink-0 text-brand-cyan" size={16} />}
-                              </div>
+
                             </div>
                           ))}
                         </div>
