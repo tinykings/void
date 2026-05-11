@@ -129,7 +129,7 @@ export const SearchSheet = () => {
           initial={{ y: '100%' }}
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
+          transition={{ duration: 0.12, ease: 'easeOut' }}
           onClick={(e) => e.stopPropagation()}
           className={isLibraryEmpty
             ? "relative w-full h-full bg-brand-bg/95 shadow-2xl overflow-hidden flex flex-col"
