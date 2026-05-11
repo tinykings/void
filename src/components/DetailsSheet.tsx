@@ -36,7 +36,6 @@ export const DetailsSheet = () => {
   const [watchProviders, setWatchProviders] = useState<{ id: number; items: WatchProvider[] } | null>(null);
   const [seasonEpisodes, setSeasonEpisodes] = useState<{ id: number; items: Episode[] } | null>(null);
   const [contentRating, setContentRating] = useState<{ id: number; value: string | null } | null>(null);
-  const [headerEpisode, setHeaderEpisode] = useState<{ id: number; episode: Episode | null } | null>(null);
   const [overviewLoadedFor, setOverviewLoadedFor] = useState<number | null>(null);
   const [activeInfoSection, setActiveInfoSection] = useState<{ id: number; section: InfoSection } | null>(null);
   const [loadingInfoSection, setLoadingInfoSection] = useState<{ id: number; section: InfoSection } | null>(null);
@@ -75,7 +74,6 @@ export const DetailsSheet = () => {
   const seasonEpisodeItems = selected && seasonEpisodes?.id === selected.id ? seasonEpisodes.items : [];
   const contentRatingValue = selected && contentRating?.id === selected.id ? contentRating.value : null;
   const backdropPath = selected?.backdrop_path;
-  const headerEpisodeValue = selected && headerEpisode?.id === selected.id ? headerEpisode.episode : null;
   const currentActionPulse = selected && actionPulse?.id === selected.id ? actionPulse.action : null;
   const currentInfoSection = selected && activeInfoSection?.id === selected.id ? activeInfoSection.section : null;
   const currentLoadingInfoSection = selected && loadingInfoSection?.id === selected.id ? loadingInfoSection.section : null;
@@ -232,45 +230,6 @@ export const DetailsSheet = () => {
   }, [activeDetailsMedia, apiKey]);
 
   useEffect(() => {
-    const hasNextEpisode = !!selected?.next_episode_to_air;
-
-    if (!selected || selected.media_type !== 'tv' || hasNextEpisode || !apiKey) return;
-
-    const latestSeasonNumber = selected.seasons
-      ?.filter((season) => season.season_number > 0)
-      .reduce((latest, season) => Math.max(latest, season.season_number), 0);
-
-    if (!latestSeasonNumber) return;
-
-    let cancelled = false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayTime = today.getTime();
-
-    getSeasonDetails(selected.id, latestSeasonNumber, apiKey)
-      .then((season) => {
-        if (cancelled) return;
-
-        const lastAiredEpisode = [...season.episodes]
-          .filter((episode) => episode.air_date && new Date(episode.air_date).getTime() <= todayTime)
-          .sort((a, b) => {
-            const dateDiff = new Date(b.air_date).getTime() - new Date(a.air_date).getTime();
-            if (dateDiff !== 0) return dateDiff;
-            return b.episode_number - a.episode_number;
-          })[0] || null;
-
-        setHeaderEpisode({ id: selected.id, episode: lastAiredEpisode });
-      })
-      .catch(() => {
-        if (!cancelled) setHeaderEpisode({ id: selected.id, episode: null });
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [apiKey, selected]);
-
-  useEffect(() => {
     if (!activeDetailsMedia) return;
     if ('overflow' in document.body.style) {
       const previous = document.body.style.overflow;
@@ -289,8 +248,6 @@ export const DetailsSheet = () => {
   const nextEpisode = selected.media_type === 'tv' ? selected.next_episode_to_air : null;
   const episodeLabel = nextEpisode
     ? `Next • S${nextEpisode.season_number}E${nextEpisode.episode_number} • ${nextEpisode.name}`
-    : headerEpisodeValue
-      ? `Last • S${headerEpisodeValue.season_number}E${headerEpisodeValue.episode_number} • ${headerEpisodeValue.name}`
     : null;
   const movieReleaseLabel = (() => {
     if (selected.media_type !== 'movie' || !selected.release_date) return null;
@@ -480,26 +437,29 @@ export const DetailsSheet = () => {
                       ) : (
                         <div className="space-y-4">
                           <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
-                            <p className="text-sm leading-relaxed text-white/90 line-clamp-3">
+                            <p className="text-sm leading-relaxed text-white/90">
                               {selected.overview || 'No overview available.'}
                             </p>
                           </div>
 
-                          <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="text-sm text-white truncate">
-                                  {watchProviderItems.length > 0
-                                    ? watchProviderItems.map((provider) => provider.provider_name).join(' · ')
-                                    : 'No US streaming providers found'}
-                                </p>
-                                <p className="mt-1 text-[10px] uppercase tracking-widest text-brand-silver">
-                                  Streaming providers
-                                </p>
-                              </div>
-                              <Play className="shrink-0 text-brand-cyan" size={16} />
+                          <a
+                            href={`https://www.justwatch.com/us/search?q=${encodeURIComponent(selected.title || selected.name || '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between gap-3 rounded-xl bg-brand-bg/80 blueprint-border p-3 transition-colors hover:bg-brand-bg"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm text-white truncate">
+                                {watchProviderItems.length > 0
+                                  ? watchProviderItems.map((provider) => provider.provider_name).join(' · ')
+                                  : 'No US streaming providers found'}
+                              </p>
+                              <p className="mt-1 text-[10px] uppercase tracking-widest text-brand-silver">
+                                Streaming Providers - JustWatch.com
+                              </p>
                             </div>
-                          </div>
+                            <Play className="shrink-0 text-brand-cyan" size={16} />
+                          </a>
 
                           {selected.media_type === 'tv' && (
                             <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
@@ -691,7 +651,7 @@ export const DetailsSheet = () => {
                   <button
                     type="button"
                     onClick={closeDetails}
-                    className="flex h-11 w-full items-center justify-center rounded-lg bg-brand-cyan/15 text-brand-cyan border border-brand-cyan/30 shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:bg-brand-cyan/25 hover:text-white hover:border-brand-cyan/45"
+                    className="flex h-11 w-full items-center justify-center rounded-lg bg-white/10 text-gray-300 border border-white/20 transition-all hover:bg-white/20 hover:text-white hover:border-white/30"
                     aria-label="Close sheet"
                     title="Tap to close"
                   >
