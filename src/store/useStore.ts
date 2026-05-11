@@ -4,8 +4,10 @@ import { get, set, del } from 'idb-keyval';
 import { Media, UserState, FilterType, SortOption } from '@/lib/types';
 import { buildGistPayload, fromGistItem, getGistContent, isEmptyGistPayload, updateGist } from '@/lib/gist';
 import { getMediaDetails } from '@/lib/tmdb';
+import { mapWithConcurrency } from '@/lib/concurrency';
 
 const DEFAULT_TMDB_ACCESS_TOKEN = process.env.NEXT_PUBLIC_TMDB_READ_ACCESS_TOKEN || '';
+const METADATA_HYDRATION_CONCURRENCY = 1;
 
 let gistQueue: Promise<void> = Promise.resolve();
 
@@ -73,7 +75,7 @@ export const useStore = create<StoreState>()(
         gistId: '',
         gistToken: '',
         vidAngelEnabled: false,
-        filter: 'movie',
+        filter: 'all',
         sort: 'added',
         showWatched: false,
         showFavoritesOnly: false,
@@ -152,7 +154,7 @@ export const useStore = create<StoreState>()(
             const localWatched = gist.watched.map((item) => fromGistItem(item, favoriteKeys.has(`${item.media_type}-${item.id}`)));
 
             const hydrateList = async (items: Media[]) => {
-              const hydrated = await Promise.all(items.map(async (item) => {
+              const hydrated = await mapWithConcurrency(items, METADATA_HYDRATION_CONCURRENCY, async (item) => {
                 try {
                   const details = await getMediaDetails(item.id, item.media_type, apiKey);
                   return {
@@ -163,7 +165,7 @@ export const useStore = create<StoreState>()(
                 } catch {
                   return item;
                 }
-              }));
+              });
               return hydrated;
             };
 
@@ -239,7 +241,18 @@ export const useStore = create<StoreState>()(
     {
       name: 'void_user_state',
       storage: createJSONStorage(() => storage),
-        onRehydrateStorage: () => {
+      version: 2,
+      migrate: (persistedState, version) => {
+        const state = persistedState as Partial<StoreState> | undefined;
+        if (!state) return state;
+
+        if (version < 2) {
+          return { ...state, filter: 'all' as FilterType };
+        }
+
+        return state;
+      },
+      onRehydrateStorage: () => {
           // Migration bridge: If IndexedDB is empty, try to import from localStorage
           return async (rehydratedState, error) => {
           if (error) {

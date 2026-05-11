@@ -4,6 +4,9 @@ import React, { createContext, useContext, useEffect, useMemo, useRef, useState,
 import { Media, UserState, SortOption, FilterType, CastMember } from '@/lib/types';
 import { useStore } from '@/store/useStore';
 import { getMediaDetails } from '@/lib/tmdb';
+import { mapWithConcurrency } from '@/lib/concurrency';
+
+const METADATA_HYDRATION_CONCURRENCY = 1;
 
 type PendingLibraryView = {
   mode: 'watchlist' | 'watched';
@@ -65,6 +68,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const initialGistSyncDone = useRef('');
   const initialViewApplied = useRef(false);
   const hydratedMediaKeys = useRef<Set<string>>(new Set());
+  const hydratingMediaKeys = useRef<Set<string>>(new Set());
   const sheetReturnRef = useRef<SheetSnapshot | null>(null);
   const [pendingLibraryView, setPendingLibraryView] = useState<PendingLibraryView>(null);
   const [activeDetailsMedia, setActiveDetailsMedia] = useState<Media | null>(null);
@@ -156,6 +160,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     store.setIsSearchFocused(false);
   }, [applyPendingLibraryView, store]);
 
+  const getClientBasePath = useCallback(() => {
+    if (typeof window === 'undefined') return '';
+    return window.location.pathname.startsWith('/void') ? '/void' : '';
+  }, []);
+
   useEffect(() => {
     if (!store.isLoaded) return;
 
@@ -170,7 +179,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const mediaKey = `${media.media_type}-${media.id}`;
     const inWatchlist = store.watchlist.some((item) => `${item.media_type}-${item.id}` === mediaKey);
 
-    setPendingLibraryView(inWatchlist ? null : { mode: 'watchlist', filter: media.media_type });
+    setPendingLibraryView(inWatchlist ? null : { mode: 'watchlist', filter: 'all' });
     await store.toggleWatchlist(media);
   }, [store]);
 
@@ -178,7 +187,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const mediaKey = `${media.media_type}-${media.id}`;
     const inWatched = store.watched.some((item) => `${item.media_type}-${item.id}` === mediaKey);
 
-    setPendingLibraryView(inWatched ? null : { mode: 'watched', filter: media.media_type });
+    setPendingLibraryView(inWatched ? null : { mode: 'watched', filter: 'all' });
     await store.toggleWatched(media, rating);
   }, [store]);
 
@@ -187,20 +196,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
       const registerServiceWorker = async () => {
         try {
-          await navigator.serviceWorker.register('/void/sw.js');
+          const basePath = getClientBasePath();
+          await navigator.serviceWorker.register(`${basePath}/sw.js`, { scope: `${basePath || '/'}` });
         } catch (error) {
           console.error('Service worker registration failed:', error);
         }
       };
       registerServiceWorker();
     }
-  }, []);
+  }, [getClientBasePath]);
 
   useEffect(() => {
     if (!store.isLoaded) {
       initialGistSyncDone.current = '';
       initialViewApplied.current = false;
       hydratedMediaKeys.current.clear();
+      hydratingMediaKeys.current.clear();
       return;
     }
 
@@ -259,13 +270,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const itemsToHydrate = incompleteItems.filter((item) => {
       const key = `${item.media_type}-${item.id}`;
       if (hydratedMediaKeys.current.has(key)) return false;
-      hydratedMediaKeys.current.add(key);
+      if (hydratingMediaKeys.current.has(key)) return false;
+      hydratingMediaKeys.current.add(key);
       return true;
     });
 
     if (itemsToHydrate.length === 0) return;
 
-    void Promise.all(itemsToHydrate.map(async (item) => {
+    void mapWithConcurrency(itemsToHydrate, METADATA_HYDRATION_CONCURRENCY, async (item) => {
+      const key = `${item.media_type}-${item.id}`;
+
       try {
         const details = await getMediaDetails(item.id, item.media_type, store.apiKey);
         store.updateMediaMetadata(item.id, item.media_type, {
@@ -274,10 +288,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           isFavorite: item.isFavorite,
           lastChecked: Date.now(),
         });
+        hydratedMediaKeys.current.add(key);
       } catch (error) {
         console.error('Failed to hydrate library metadata:', error);
+      } finally {
+        hydratingMediaKeys.current.delete(key);
       }
-    }));
+    });
   }, [store.isLoaded, store.apiKey, store.watchlist, store.watched, store.updateMediaMetadata]);
 
   // O(1) lookup Maps for membership checks

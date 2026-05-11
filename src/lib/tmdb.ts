@@ -1,6 +1,10 @@
 import { Media, WatchProvidersResponse, SeasonDetails, TmdbResult, ReleaseDatesResponse, ContentRatingsResponse, ReleaseDatesResult, ContentRating, ReleaseDate, VideosResponse, CreditsResponse, PersonCreditsResponse, PersonDetails } from './types';
 
 const BASE_URL = 'https://api.themoviedb.org/3';
+const TMDB_MAX_RETRIES = 2;
+const TMDB_RETRY_DELAY_MS = 1500;
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const buildHeaders = (accessToken: string) => ({
   Accept: 'application/json',
@@ -12,14 +16,26 @@ export const fetchFromTMDB = async (endpoint: string, apiKey: string, params: Re
     ...params,
   });
 
-  const response = await fetch(`${BASE_URL}${endpoint}?${queryParams}`, {
-    signal,
-    headers: buildHeaders(apiKey),
-  });
-  if (!response.ok) {
-    throw new Error(`TMDB API error: ${response.statusText}`);
+  for (let attempt = 0; attempt <= TMDB_MAX_RETRIES; attempt += 1) {
+    const response = await fetch(`${BASE_URL}${endpoint}?${queryParams}`, {
+      signal,
+      headers: buildHeaders(apiKey),
+    });
+
+    if (response.ok) {
+      return response.json();
+    }
+
+    if (response.status === 429 && attempt < TMDB_MAX_RETRIES) {
+      const retryAfterSeconds = Number(response.headers.get('Retry-After'));
+      await delay(Number.isFinite(retryAfterSeconds) ? retryAfterSeconds * 1000 : TMDB_RETRY_DELAY_MS * (attempt + 1));
+      continue;
+    }
+
+    throw new Error(`TMDB API error: ${response.status} ${response.statusText}`.trim());
   }
-  return response.json();
+
+  throw new Error('TMDB API error');
 };
 
 export const searchMedia = async (query: string, apiKey: string, signal?: AbortSignal): Promise<Media[]> => {

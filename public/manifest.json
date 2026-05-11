@@ -2,13 +2,13 @@
   "name": "Void",
   "short_name": "Void",
   "description": "Mobile-first movie and TV show watchlist tracker",
-  "start_url": "/void/",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#030712",
   "theme_color": "#030712",
   "icons": [
     {
-      "src": "/void/icon.svg",
+      "src": "icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

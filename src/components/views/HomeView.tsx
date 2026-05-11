@@ -12,10 +12,13 @@ import { SearchSheet } from '@/components/SearchSheet';
 import { sortMedia } from '@/lib/sort';
 import { fromGistItem, type GistLibraryData } from '@/lib/gist';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
-import { AlertCircle, X, Save, Eye, EyeOff, Download, Upload } from 'lucide-react';
+import { AlertCircle, Bookmark, Clapperboard, Download, Eye, EyeOff, Film, Heart, Library, Save, Search, Settings, SlidersHorizontal, Tv, Upload, X } from 'lucide-react';
+import type { FilterType } from '@/lib/types';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
+
+type LibraryMode = 'library' | 'watchlist';
 
 export const HomeView = () => {
   const {
@@ -25,7 +28,6 @@ export const HomeView = () => {
     filter,
     setFilter,
     sort,
-    setSort,
     showWatched,
     setShowWatched,
     showFavoritesOnly,
@@ -52,14 +54,18 @@ export const HomeView = () => {
   const [statusFading, setStatusFading] = useState(false);
   const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const activeFilter = filter || 'all';
+  const activeLibraryMode: LibraryMode = showWatched ? 'library' : 'watchlist';
+  const activeModeLabel = showFavoritesOnly ? 'Favorites' : activeLibraryMode === 'library' ? 'Library' : 'Watchlist';
+  const activeFilterLabel = activeFilter === 'all' ? 'All' : activeFilter === 'movie' ? 'Movies' : 'Shows';
+
   const persistentStatus = useMemo(() => {
-    if (showFavoritesOnly) return 'Favorites';
-    return showWatched ? 'Watched' : 'Watchlist';
-  }, [showFavoritesOnly, showWatched]);
+    return `${activeModeLabel} · ${activeFilterLabel}`;
+  }, [activeFilterLabel, activeModeLabel]);
 
   const showStatus = useCallback((label: string) => {
     // If it matches a persistent state, we don't need a timer
-    if (label === 'Favorites' || label === 'Watched' || label === 'Watchlist') {
+    if (label === persistentStatus) {
       if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
       setStatusLabel(null);
       setStatusFading(false);
@@ -76,13 +82,12 @@ export const HomeView = () => {
         setStatusFading(false);
       }, 400);
     }, 1600);
-  }, []);
+  }, [persistentStatus]);
 
   const [error] = useState<string | null>(null);
 
-  // Sort dropdown state
-  const [showSortMenu, setShowSortMenu] = useState(false);
-  const [showLibraryMenu, setShowLibraryMenu] = useState<'movie' | 'tv' | null>(null);
+  // Footer popover state
+  const [showTypeMenu, setShowTypeMenu] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [tempGistId, setTempGistId] = useState(gistId || '');
   const [tempGistToken, setTempGistToken] = useState(gistToken || '');
@@ -103,8 +108,9 @@ export const HomeView = () => {
   // Combine and process library media
   const baseLibraryMedia = useMemo(() => {
     const combined = showWatched ? watched : watchlist;
-    return combined.filter(m => m.media_type === (filter || 'movie'));
-  }, [watchlist, watched, filter, showWatched]);
+    if (activeFilter === 'all') return combined;
+    return combined.filter(m => m.media_type === activeFilter);
+  }, [watchlist, watched, activeFilter, showWatched]);
 
   const libraryMedia = useMemo(() => {
     let filtered = [...baseLibraryMedia];
@@ -117,7 +123,20 @@ export const HomeView = () => {
   }, [baseLibraryMedia, showFavoritesOnly]);
 
   const hasGistSync = !!(gistId && gistToken);
-  const activeLibraryMode = showFavoritesOnly ? 'favorites' : showWatched ? 'watched' : 'watchlist';
+  const emptyTitle = (() => {
+    if (showFavoritesOnly) return 'No favorites yet';
+    if (activeLibraryMode === 'library') return 'Your library is empty';
+    return 'Your watchlist is empty';
+  })();
+  const emptyDescription = (() => {
+    if (activeFilter !== 'all') {
+      return `No ${activeFilterLabel.toLowerCase()} found in ${activeModeLabel.toLowerCase()}.`;
+    }
+
+    if (showFavoritesOnly) return 'Mark watched movies and shows as favorites to see them here.';
+    if (activeLibraryMode === 'library') return 'Mark movies and shows as watched to build your library.';
+    return 'Search for movies and shows to add them to your watchlist.';
+  })();
 
   useEffect(() => {
     if (!showSyncModal) return;
@@ -138,7 +157,7 @@ export const HomeView = () => {
     }
 
     setShowSyncModal(false);
-    setShowSortMenu(false);
+    setShowTypeMenu(false);
   };
 
   const handleExportBackup = () => {
@@ -197,25 +216,37 @@ export const HomeView = () => {
     }
   };
 
-  const selectLibraryMenuOption = (nextFilter: 'movie' | 'tv', mode: 'watchlist' | 'watched' | 'favorites') => {
+  const selectTypeFilter = (nextFilter: FilterType) => {
     startTransition(() => {
       setFilter(nextFilter);
-
-      if (mode === 'watchlist') {
-        setShowWatched(false);
-        setShowFavoritesOnly(false);
-      } else if (mode === 'watched') {
-        setShowWatched(true);
-        setShowFavoritesOnly(false);
-      } else {
-        setShowWatched(true);
-        setShowFavoritesOnly(true);
-      }
     });
 
-    showStatus(mode === 'watchlist' ? 'Watchlist' : mode === 'watched' ? 'Watched' : 'Favorites');
-    setShowSortMenu(false);
-    setShowLibraryMenu(null);
+    showStatus(nextFilter === 'all' ? 'All' : nextFilter === 'movie' ? 'Movies' : 'Shows');
+    setShowTypeMenu(false);
+    window.scrollTo(0, 0);
+  };
+
+  const selectFavoritesFilter = () => {
+    startTransition(() => {
+      setShowWatched(true);
+      setShowFavoritesOnly(!showFavoritesOnly);
+      setIsSearchFocused(false);
+    });
+
+    showStatus(showFavoritesOnly ? 'Favorites Off' : 'Favorites');
+    setShowTypeMenu(false);
+    window.scrollTo(0, 0);
+  };
+
+  const selectLibraryMode = (mode: LibraryMode) => {
+    startTransition(() => {
+      setShowWatched(mode !== 'watchlist');
+      setShowFavoritesOnly(false);
+      setIsSearchFocused(false);
+    });
+
+    showStatus(mode === 'library' ? 'Library' : 'Watchlist');
+    setShowTypeMenu(false);
     window.scrollTo(0, 0);
   };
     
@@ -394,14 +425,32 @@ export const HomeView = () => {
             <div className="text-center py-20 text-brand-silver">
               <div className="flex flex-col items-center gap-4">
                 <p className="text-lg font-medium text-white">
-                  Your list is empty
+                  {emptyTitle}
                 </p>
                 <p className="text-sm text-brand-silver max-w-xs mx-auto">
-                  Search for movies and shows to add them to your watchlist.
+                  {emptyDescription}
                 </p>
               </div>
             </div>
           )}
+
+          <div className="mt-6 px-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowTypeMenu(false);
+                setShowSyncModal(true);
+              }}
+              className={clsx(
+                'w-full rounded-2xl px-4 py-4 blueprint-border transition-all',
+                'bg-white/[0.03] text-brand-silver hover:bg-brand-cyan/10 hover:text-white hover:border-brand-cyan/30',
+                'flex items-center justify-center gap-3 text-xs font-black uppercase tracking-[0.24em]'
+              )}
+            >
+              <Settings size={16} />
+              Settings
+            </button>
+          </div>
         </>
       )}
 
@@ -413,197 +462,124 @@ export const HomeView = () => {
       {/* Fixed Bottom Bar */}
       {!isSearchFocused && (
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-brand-bg/40 backdrop-blur-xl border-t border-white/[0.04]">
-          {/* Floating status pill — pops up above the bar */}
           <div
             aria-live="polite"
             className={clsx(
-              "absolute left-1/2 -translate-x-1/2 bottom-full mb-3 px-4 py-1.5 rounded-full bg-brand-bg/80 backdrop-blur-md border border-brand-cyan/20 text-xs font-semibold tracking-widest uppercase text-brand-cyan whitespace-nowrap transition-all duration-300 pointer-events-none",
+              'absolute left-1/2 -translate-x-1/2 bottom-full mb-3 px-4 py-1.5 rounded-full bg-brand-bg/80 backdrop-blur-md border border-brand-cyan/20 text-xs font-semibold tracking-widest uppercase text-brand-cyan whitespace-nowrap transition-all duration-300 pointer-events-none',
               (persistentStatus || (statusLabel && !statusFading))
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 translate-y-3"
+                ? 'opacity-100 translate-y-0'
+                : 'opacity-0 translate-y-3'
             )}
           >
-            {persistentStatus || statusLabel}
+            {statusLabel && !statusFading ? statusLabel : persistentStatus}
           </div>
 
-          <div className="max-w-7xl mx-auto px-4 py-2 relative">
+          <div className="max-w-7xl mx-auto px-3 py-2 relative">
             <div className="grid grid-cols-4 gap-2">
               <div className="relative rounded-xl bg-brand-bg/50 blueprint-border p-1">
-                {showSortMenu && (
-                  <div className="absolute bottom-full left-0 mb-2 py-2 w-48 rounded-xl bg-brand-bg blueprint-border shadow-xl z-20">
-                    <button
-                      onClick={() => {
-                        startTransition(() => setSort('added'));
-                        showStatus('Recently Added');
-                        setShowSortMenu(false);
-                      }}
-                      className={clsx(
-                        'w-full px-4 py-2 text-left text-sm font-bold flex items-center gap-2 transition-colors',
-                        (sort || 'added') === 'added'
-                          ? 'text-brand-cyan'
-                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
-                      )}
-                    >
-                      Recently Added
-                    </button>
-                    <div className="h-px bg-white/5 my-1" />
-
-                    <button
-                      onClick={() => {
-                        setShowSyncModal(true);
-                        setShowSortMenu(false);
-                      }}
-                      className={clsx(
-                        'w-full px-4 py-2 text-left text-sm font-bold flex items-center justify-between transition-colors',
-                        hasGistSync
-                          ? 'text-emerald-400 bg-emerald-500/5'
-                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="relative flex items-center justify-center w-4 h-4">
-                          {hasGistSync && <span className="absolute w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]" />}
-                        </span>
-                        Settings
-                      </div>
-                    </button>
-                  </div>
-                )}
-                <button
-                  onClick={() => {
-                    setShowLibraryMenu(null);
-                    setShowSortMenu(false);
-                    setShowSyncModal(true);
-                  }}
-                  className={clsx(
-                    'w-full flex items-center justify-center py-2 px-2 rounded-lg text-xs font-bold transition-all',
-                    showSyncModal
-                      ? 'bg-brand-cyan/10 text-brand-cyan'
-                      : 'text-brand-silver hover:text-white'
-                  )}
-                  title="Settings"
-                >
-                  Settings
-                </button>
-              </div>
-
-              <div className="relative rounded-xl bg-brand-bg/50 blueprint-border p-1">
-                {showLibraryMenu === 'movie' && (
+                {showTypeMenu && (
                   <div className="absolute bottom-full left-0 mb-2 w-44 rounded-xl bg-brand-bg blueprint-border shadow-xl overflow-hidden">
+                    {[
+                      { id: 'all' as const, label: 'All', icon: Clapperboard },
+                      { id: 'movie' as const, label: 'Movies', icon: Film },
+                      { id: 'tv' as const, label: 'Shows', icon: Tv },
+                    ].map((item) => {
+                      const Icon = item.icon;
+                      const isActive = activeFilter === item.id;
+
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => selectTypeFilter(item.id)}
+                          className={clsx(
+                            'w-full px-3 py-3 text-left text-sm font-bold flex items-center gap-2 transition-colors',
+                            isActive
+                              ? 'text-brand-cyan bg-brand-cyan/5'
+                              : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
+                          )}
+                        >
+                          <Icon size={15} />
+                          {item.label}
+                        </button>
+                      );
+                    })}
+
+                    <div className="h-px bg-white/5" />
+
                     <button
-                      onClick={() => selectLibraryMenuOption('movie', 'watchlist')}
+                      type="button"
+                      onClick={selectFavoritesFilter}
                       className={clsx(
-                        'w-full px-3 py-3 text-left text-sm font-bold transition-colors',
-                        (filter || 'movie') === 'movie' && activeLibraryMode === 'watchlist'
+                        'w-full px-3 py-3 text-left text-sm font-bold flex items-center gap-2 transition-colors',
+                        showFavoritesOnly
                           ? 'text-brand-cyan bg-brand-cyan/5'
                           : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
                       )}
                     >
-                      Watchlist
-                    </button>
-                    <button
-                      onClick={() => selectLibraryMenuOption('movie', 'watched')}
-                      className={clsx(
-                        'w-full px-3 py-3 text-left text-sm font-bold transition-colors',
-                        (filter || 'movie') === 'movie' && activeLibraryMode === 'watched'
-                          ? 'text-brand-cyan bg-brand-cyan/5'
-                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
-                      )}
-                    >
-                      Watched
-                    </button>
-                    <button
-                      onClick={() => selectLibraryMenuOption('movie', 'favorites')}
-                      className={clsx(
-                        'w-full px-3 py-3 text-left text-sm font-bold transition-colors',
-                        (filter || 'movie') === 'movie' && activeLibraryMode === 'favorites'
-                          ? 'text-brand-cyan bg-brand-cyan/5'
-                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
-                      )}
-                    >
+                      <Heart size={15} className={showFavoritesOnly ? 'fill-current' : undefined} />
                       Favorites
                     </button>
                   </div>
                 )}
+
                 <button
-                  onClick={() => {
-                    setShowSortMenu(false);
-                    setShowLibraryMenu((current) => current === 'movie' ? null : 'movie');
-                  }}
+                  type="button"
+                  onClick={() => setShowTypeMenu((current) => !current)}
                   className={clsx(
-                    'w-full flex items-center justify-center py-2 px-2 rounded-lg text-xs font-bold transition-all',
-                    (filter || 'movie') === 'movie'
-                      ? 'bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]' 
+                    'w-full flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all',
+                    showTypeMenu || activeFilter !== 'all' || showFavoritesOnly
+                      ? 'bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]'
                       : 'text-brand-silver hover:text-white'
                   )}
+                  aria-label={showFavoritesOnly ? 'Filter: Favorites' : `Filter: ${activeFilterLabel}`}
+                  title={showFavoritesOnly ? 'Filter: Favorites' : `Filter: ${activeFilterLabel}`}
                 >
-                  Movies
+                  <SlidersHorizontal size={17} />
+                  Filter
                 </button>
               </div>
 
-              <div className="relative rounded-xl bg-brand-bg/50 blueprint-border p-1">
-                {showLibraryMenu === 'tv' && (
-                  <div className="absolute bottom-full right-0 mb-2 w-44 rounded-xl bg-brand-bg blueprint-border shadow-xl overflow-hidden">
+              {[
+                { id: 'library' as const, label: 'Library', icon: Library },
+                { id: 'watchlist' as const, label: 'Watchlist', icon: Bookmark },
+              ].map((item) => {
+                const Icon = item.icon;
+                const isActive = activeLibraryMode === item.id && !showFavoritesOnly;
+
+                return (
+                  <div key={item.id} className="rounded-xl bg-brand-bg/50 blueprint-border p-1">
                     <button
-                      onClick={() => selectLibraryMenuOption('tv', 'watchlist')}
+                      type="button"
+                      onClick={() => selectLibraryMode(item.id)}
                       className={clsx(
-                        'w-full px-3 py-3 text-left text-sm font-bold transition-colors',
-                        filter === 'tv' && activeLibraryMode === 'watchlist'
-                          ? 'text-brand-cyan bg-brand-cyan/5'
-                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
+                        'w-full flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all',
+                        isActive
+                          ? 'bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]'
+                          : 'text-brand-silver hover:text-white'
                       )}
+                      aria-label={item.label}
+                      title={item.label}
                     >
-                      Watchlist
-                    </button>
-                    <button
-                      onClick={() => selectLibraryMenuOption('tv', 'watched')}
-                      className={clsx(
-                        'w-full px-3 py-3 text-left text-sm font-bold transition-colors',
-                        filter === 'tv' && activeLibraryMode === 'watched'
-                          ? 'text-brand-cyan bg-brand-cyan/5'
-                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
-                      )}
-                    >
-                      Watched
-                    </button>
-                    <button
-                      onClick={() => selectLibraryMenuOption('tv', 'favorites')}
-                      className={clsx(
-                        'w-full px-3 py-3 text-left text-sm font-bold transition-colors',
-                        filter === 'tv' && activeLibraryMode === 'favorites'
-                          ? 'text-brand-cyan bg-brand-cyan/5'
-                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
-                      )}
-                    >
-                      Favorites
+                      <Icon size={17} />
+                      {item.label}
                     </button>
                   </div>
-                )}
-                <button
-                  onClick={() => {
-                    setShowSortMenu(false);
-                    setShowLibraryMenu((current) => current === 'tv' ? null : 'tv');
-                  }}
-                  className={clsx(
-                    'w-full flex items-center justify-center py-2 px-2 rounded-lg text-xs font-bold transition-all',
-                    filter === 'tv'
-                      ? 'bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]' 
-                      : 'text-brand-silver hover:text-white'
-                  )}
-                >
-                  Shows
-                </button>
-              </div>
+                );
+              })}
 
               <div className="rounded-xl bg-brand-bg/50 blueprint-border p-1">
                 <button
+                  type="button"
                   onClick={() => {
                     startTransition(() => setIsSearchFocused(true));
-                    setShowSortMenu(false);
-                    setShowLibraryMenu(null);
+                    setShowTypeMenu(false);
                   }}
-                  className="w-full flex items-center justify-center py-2 px-2 rounded-lg text-xs font-bold text-brand-silver hover:text-white transition-all"
+                  className="w-full flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg text-[10px] font-black uppercase tracking-tight text-brand-silver hover:text-white transition-all"
+                  aria-label="Search"
+                  title="Search"
                 >
+                  <Search size={17} />
                   Search
                 </button>
               </div>

@@ -6,14 +6,15 @@ import { Toaster } from "sonner";
 import { OfflineGuard } from "@/components/OfflineGuard";
 
 const inter = Inter({ subsets: ["latin"] });
+const basePath = process.env.GITHUB_PAGES ? "/void" : "";
 
 export const metadata: Metadata = {
   title: "Void - Track your movies & TV",
   description: "Mobile-first movie and TV show watchlist tracker",
-  manifest: "/void/manifest.json",
+  manifest: `${basePath}/manifest.json`,
   icons: {
-    icon: "/void/icon.svg",
-    apple: "/void/icon.svg",
+    icon: `${basePath}/icon.svg`,
+    apple: `${basePath}/icon.svg`,
   },
   appleWebApp: {
     capable: true,

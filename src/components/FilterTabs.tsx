@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { clsx } from 'clsx';
-import { Film, Tv } from 'lucide-react';
+import { Clapperboard, Film, Tv } from 'lucide-react';
 import { FilterType } from '@/lib/types';
 
 interface FilterTabsProps {
@@ -12,6 +12,7 @@ interface FilterTabsProps {
 
 export const FilterTabs: React.FC<FilterTabsProps> = ({ currentFilter, onFilterChange }) => {
   const tabs: { id: FilterType; label: string; icon: React.ElementType }[] = [
+    { id: 'all', label: 'All', icon: Clapperboard },
     { id: 'movie', label: 'Movies', icon: Film },
     { id: 'tv', label: 'Shows', icon: Tv },
   ];

@@ -166,7 +166,7 @@ export interface WatchProvidersResponse {
 
 export type ListType = 'watchlist' | 'watched';
 
-export type FilterType = 'movie' | 'tv';
+export type FilterType = 'all' | 'movie' | 'tv';
 
 export type SortOption = 'added';
 
