@@ -36,6 +36,7 @@ export interface Media {
   poster_path: string | null;
   backdrop_path: string | null;
   overview: string;
+  tagline?: string;
   release_date?: string;
   first_air_date?: string;
   vote_average: number;
@@ -144,6 +145,23 @@ export interface PersonCreditsResponse {
 export interface VideosResponse {
   id: number;
   results: Video[];
+}
+
+export interface TmdbImage {
+  file_path: string;
+  vote_count: number;
+  vote_average: number;
+  width: number;
+  height: number;
+  aspect_ratio: number;
+  iso_639_1: string | null;
+}
+
+export interface ImagesResponse {
+  id: number;
+  backdrops: TmdbImage[];
+  logos?: TmdbImage[];
+  posters?: TmdbImage[];
 }
 
 export interface WatchProvider {

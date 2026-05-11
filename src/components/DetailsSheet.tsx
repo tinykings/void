@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
-import { getImageUrl, getMediaCredits, getContentRating, getMediaDetails, getSeasonDetails, getWatchProviders } from '@/lib/tmdb';
+import { getImageUrl, getMediaCredits, getContentRating, getMediaDetails, getMediaImages, getMediaVideos, getSeasonDetails, getWatchProviders } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
-import { CastMember, Episode, Media, WatchProvider } from '@/lib/types';
-import { Bookmark, Eye, Heart, Play, ShieldCheck, X } from 'lucide-react';
+import { CastMember, Episode, Media, TmdbImage, Video, WatchProvider } from '@/lib/types';
+import { Bookmark, ChevronDown, Eye, Film, Image as ImageIcon, Info, Play, ShieldCheck, Users } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
-import { SheetDragHandle } from '@/components/SheetDragHandle';
+
+type InfoSection = 'overview' | 'cast' | 'images' | 'trailers';
 
 export const DetailsSheet = () => {
   const {
@@ -21,24 +22,25 @@ export const DetailsSheet = () => {
     setMediaEditedStatus,
     watchlistIds,
     watchedIds,
-    watchedMap,
-    openPoster,
     openActor,
     closeAllSheets,
     toggleWatchlist,
     toggleWatched,
-    toggleFavorite,
     updateMediaMetadata,
   } = useAppContext();
 
   const [details, setDetails] = useState<{ id: number; media: Media } | null>(null);
   const [cast, setCast] = useState<{ id: number; items: CastMember[] } | null>(null);
+  const [backdrops, setBackdrops] = useState<{ id: number; items: TmdbImage[] } | null>(null);
+  const [trailers, setTrailers] = useState<{ id: number; items: Video[] } | null>(null);
   const [watchProviders, setWatchProviders] = useState<{ id: number; items: WatchProvider[] } | null>(null);
   const [contentRating, setContentRating] = useState<{ id: number; value: string | null } | null>(null);
   const [headerEpisode, setHeaderEpisode] = useState<{ id: number; episode: Episode | null } | null>(null);
-  const [providersLoadedFor, setProvidersLoadedFor] = useState<number | null>(null);
   const [overviewLoadedFor, setOverviewLoadedFor] = useState<number | null>(null);
-  const [actionPulse, setActionPulse] = useState<'watchlist' | 'watched' | null>(null);
+  const [activeInfoSection, setActiveInfoSection] = useState<{ id: number; section: InfoSection } | null>(null);
+  const [loadingInfoSection, setLoadingInfoSection] = useState<{ id: number; section: InfoSection } | null>(null);
+  const [activeTrailer, setActiveTrailer] = useState<{ mediaId: number; videoId: string } | null>(null);
+  const [actionPulse, setActionPulse] = useState<{ id: number; action: 'watchlist' | 'watched' } | null>(null);
   const closeActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
@@ -57,8 +59,6 @@ export const DetailsSheet = () => {
   });
 
   const selected = activeDetailsMedia && details?.id === activeDetailsMedia.id ? details.media : activeDetailsMedia;
-  const posterPath = selected?.poster_path || selected?.backdrop_path;
-
   const mediaKey = useMemo(() => {
     if (!selected) return '';
     return `${selected.media_type}-${selected.id}`;
@@ -66,14 +66,18 @@ export const DetailsSheet = () => {
 
   const inWatchlist = mediaKey ? watchlistIds.has(mediaKey) : false;
   const inWatched = mediaKey ? watchedIds.has(mediaKey) : false;
-  const watchedItem = mediaKey ? watchedMap.get(mediaKey) : undefined;
-  const isFavorite = watchedItem?.isFavorite || false;
   const isVidAngelAvailable = mediaKey ? editedStatusMap[mediaKey] : undefined;
   const castItems = selected && cast?.id === selected.id ? cast.items : [];
+  const backdropItems = selected && backdrops?.id === selected.id ? backdrops.items : [];
+  const trailerItems = selected && trailers?.id === selected.id ? trailers.items : [];
   const watchProviderItems = selected && watchProviders?.id === selected.id ? watchProviders.items : [];
   const contentRatingValue = selected && contentRating?.id === selected.id ? contentRating.value : null;
+  const backdropPath = selected?.backdrop_path;
   const headerEpisodeValue = selected && headerEpisode?.id === selected.id ? headerEpisode.episode : null;
-  const overviewLoading = !!activeDetailsMedia && overviewLoadedFor !== activeDetailsMedia.id;
+  const currentActionPulse = selected && actionPulse?.id === selected.id ? actionPulse.action : null;
+  const currentInfoSection = selected && activeInfoSection?.id === selected.id ? activeInfoSection.section : null;
+  const currentLoadingInfoSection = selected && loadingInfoSection?.id === selected.id ? loadingInfoSection.section : null;
+  const currentActiveTrailerId = selected && activeTrailer?.mediaId === selected.id ? activeTrailer.videoId : null;
 
   useEffect(() => {
     if (!selected || !vidAngelEnabled || isVidAngelAvailable !== undefined) return;
@@ -94,42 +98,14 @@ export const DetailsSheet = () => {
   }, [isVidAngelAvailable, selected, setMediaEditedStatus, vidAngelEnabled]);
 
   useEffect(() => {
-    if (!activeDetailsMedia || !apiKey || providersLoadedFor === activeDetailsMedia.id) return;
-
-    let cancelled = false;
-
-    getWatchProviders(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey)
-      .then((data) => {
-        if (cancelled) return;
-
-        const usProviders = data.results?.US;
-        const providers = [...(usProviders?.free || []), ...(usProviders?.flatrate || [])]
-          .filter((provider) => !provider.provider_name.includes('Channel'))
-          .filter((provider, index, array) => array.findIndex((item) => item.provider_id === provider.provider_id) === index);
-
-        setWatchProviders({ id: activeDetailsMedia.id, items: providers });
-        setProvidersLoadedFor(activeDetailsMedia.id);
-      })
-      .catch(console.error);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeDetailsMedia, apiKey, providersLoadedFor]);
-
-  useEffect(() => {
     if (!activeDetailsMedia || !apiKey || overviewLoadedFor === activeDetailsMedia.id) return;
 
     let cancelled = false;
 
-    Promise.all([
-      getMediaDetails(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey),
-      getMediaCredits(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey),
-    ])
-      .then(([mediaData, creditsData]) => {
+    getMediaDetails(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey)
+      .then((mediaData) => {
         if (cancelled) return;
         setDetails({ id: mediaData.id, media: mediaData });
-        setCast({ id: mediaData.id, items: creditsData.cast.slice(0, 4) });
         setOverviewLoadedFor(activeDetailsMedia.id);
         updateMediaMetadata(mediaData.id, mediaData.media_type, {
           ...mediaData,
@@ -150,8 +126,74 @@ export const DetailsSheet = () => {
   }, []);
 
   useEffect(() => {
-    setActionPulse(null);
-  }, [activeDetailsMedia?.id]);
+    if (activeDetailsMedia) return;
+
+    queueMicrotask(() => {
+      setActiveInfoSection(null);
+      setLoadingInfoSection(null);
+      setActiveTrailer(null);
+    });
+  }, [activeDetailsMedia]);
+
+  useEffect(() => {
+    const section = activeInfoSection && activeDetailsMedia && activeInfoSection.id === activeDetailsMedia.id ? activeInfoSection.section : null;
+    if (!activeDetailsMedia || !apiKey || !section) return;
+    if (section === 'overview' && watchProviders?.id === activeDetailsMedia.id) return;
+    if (section === 'cast' && cast?.id === activeDetailsMedia.id) return;
+    if (section === 'images' && backdrops?.id === activeDetailsMedia.id) return;
+    if (section === 'trailers' && trailers?.id === activeDetailsMedia.id) return;
+
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setLoadingInfoSection({ id: activeDetailsMedia.id, section });
+    });
+
+    const request = section === 'overview'
+      ? getWatchProviders(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey).then((data) => {
+          const usProviders = data.results?.US;
+          const providers = [...(usProviders?.free || []), ...(usProviders?.flatrate || [])]
+            .filter((provider) => !provider.provider_name.includes('Channel'))
+            .filter((provider, index, array) => array.findIndex((item) => item.provider_id === provider.provider_id) === index);
+
+          if (!cancelled) setWatchProviders({ id: activeDetailsMedia.id, items: providers });
+        })
+      : section === 'cast'
+      ? getMediaCredits(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey).then((data) => {
+          if (!cancelled) setCast({ id: activeDetailsMedia.id, items: data.cast });
+        })
+      : section === 'images'
+        ? getMediaImages(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey).then((data) => {
+            const selectedBackdrops = [...(data.backdrops || [])]
+              .sort((a, b) => {
+                const voteCountDiff = b.vote_count - a.vote_count;
+                if (voteCountDiff !== 0) return voteCountDiff;
+                return b.vote_average - a.vote_average;
+              })
+              .slice(0, 25);
+
+            if (!cancelled) setBackdrops({ id: activeDetailsMedia.id, items: selectedBackdrops });
+          })
+        : getMediaVideos(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey).then((data) => {
+            const selectedTrailers = [...(data.results || [])]
+              .filter((video) => video.site === 'YouTube' && video.type === 'Trailer')
+              .sort((a, b) => {
+                if (a.official !== b.official) return a.official ? -1 : 1;
+                return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
+              });
+
+            if (!cancelled) setTrailers({ id: activeDetailsMedia.id, items: selectedTrailers });
+          });
+
+    request
+      .catch(console.error)
+      .finally(() => {
+        if (!cancelled) setLoadingInfoSection(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeDetailsMedia, activeInfoSection, apiKey, backdrops?.id, cast?.id, trailers?.id, watchProviders?.id]);
 
   useEffect(() => {
     if (!activeDetailsMedia || !apiKey) return;
@@ -245,19 +287,11 @@ export const DetailsSheet = () => {
       year: 'numeric',
     }).format(releaseDate)}`;
   })();
-  const justWatchSearchUrl = `https://www.justwatch.com/us/search?q=${encodeURIComponent(title)}`;
   const year = (selected.release_date || selected.first_air_date || '').split('-')[0];
-  const trailerSearchUrl = (() => {
-    const parts = [title];
-    if (year) parts.push(year);
-    parts.push('trailer');
-    return `https://www.youtube.com/results?search_query=${encodeURIComponent(parts.join(' '))}`;
-  })();
-  const compactActions = inWatched;
   const runActionAndClose = async (action: 'watchlist' | 'watched', commit: () => Promise<void> | void) => {
     if (closeActionTimerRef.current) clearTimeout(closeActionTimerRef.current);
 
-    setActionPulse(action);
+    setActionPulse({ id: selected.id, action });
     await Promise.resolve(commit());
 
     closeActionTimerRef.current = setTimeout(() => {
@@ -322,201 +356,296 @@ export const DetailsSheet = () => {
               onClick={(e) => e.stopPropagation()}
               className="relative w-full max-w-4xl h-[92vh] max-h-[96vh] bg-brand-bg/95 blueprint-border rounded-t-3xl shadow-2xl overflow-hidden flex flex-col"
             >
-              <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-brand-bg/80">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 pr-2">
-                    <h2 className="min-w-0 text-lg font-black text-white uppercase tracking-tight leading-tight">{title}</h2>
-                    {(episodeLabel || movieReleaseLabel) && (
-                      <span className="inline-flex max-w-full items-center rounded-full border border-brand-cyan/30 bg-brand-cyan/10 px-2.5 py-1 text-[10px] font-semibold text-brand-cyan">
-                        {episodeLabel || movieReleaseLabel}
-                      </span>
-                    )}
-                    {vidAngelEnabled && isVidAngelAvailable && (
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-300/70 bg-amber-500/85 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-brand-bg">
-                        <ShieldCheck size={10} />
-                        Edited
-                      </span>
-                    )}
-                  </div>
+              {backdropPath && (
+                <div className="absolute inset-0 pointer-events-none">
+                  <img
+                    src={getImageUrl(backdropPath, 'original')}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    decoding="async"
+                    aria-hidden="true"
+                  />
                 </div>
+              )}
 
-                <button
-                  onClick={closeDetails}
-                  className="p-2 rounded-lg bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/25 shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:bg-brand-cyan/20 hover:text-white hover:border-brand-cyan/40"
-                >
-                  <X size={18} />
-                </button>
-              </div>
+              <div className="absolute inset-x-0 top-[14vh] bottom-0 pointer-events-none bg-gradient-to-b from-transparent via-brand-bg/80 via-45% to-brand-bg" />
+              {currentInfoSection && <div className="absolute inset-0 pointer-events-none bg-brand-bg/55" />}
 
-              <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pb-24">
-                <div className="pt-4 grid grid-cols-[88px_1fr] gap-4 items-start">
-                  <button
-                    type="button"
-                    onClick={() => posterPath && openPoster(selected)}
-                    disabled={!posterPath}
-                    className={clsx(
-                      'aspect-[2/3] rounded-xl overflow-hidden blueprint-border bg-brand-bg/50 text-left',
-                      posterPath ? 'cursor-zoom-in' : 'cursor-default'
-                    )}
-                  >
-                    {posterPath ? (
-                      <img src={getImageUrl(posterPath, 'w342')} alt={title} className="w-full h-full object-cover" decoding="async" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-brand-silver text-xs text-center p-2">No poster</div>
-                    )}
-                  </button>
-
+              <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar px-4 pb-28">
+                <div className={clsx('flex flex-col justify-end pb-4', currentInfoSection ? 'min-h-0 pt-8' : 'min-h-[calc(92vh-7rem)]')}>
                   <div className="space-y-3">
-                    <p className="text-sm text-brand-silver leading-relaxed line-clamp-4">
-                      {selected.overview || 'No overview available.'}
-                    </p>
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <h2 className="text-2xl font-black leading-tight text-white sm:text-3xl" style={{ textShadow: '0 3px 16px rgba(0,0,0,0.7)' }}>
+                        {title}
+                      </h2>
+                      {(episodeLabel || movieReleaseLabel) && (
+                        <span className="text-[11px] font-black uppercase tracking-widest text-brand-cyan" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.7)' }}>
+                          {episodeLabel || movieReleaseLabel}
+                        </span>
+                      )}
+                    </div>
 
                     <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-widest font-bold text-brand-silver">
-                      <span className="px-2 py-1 rounded-full bg-white/5">{selected.media_type}</span>
-                      {year && <span className="px-2 py-1 rounded-full bg-white/5">{year}</span>}
-                      <span className="px-2 py-1 rounded-full bg-white/5">★ {selected.vote_average?.toFixed(1) || '0.0'}</span>
-                      <span className="px-2 py-1 rounded-full bg-white/5">{contentRatingValue || 'N/A'}</span>
-                    </div>
-
-                  </div>
-                </div>
-
-                <div className={`mt-4 grid gap-2 ${inWatched ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                  <motion.button
-                    onClick={handleWatchlistToggle}
-                    title={inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
-                    aria-label={inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
-                    disabled={!!actionPulse}
-                    animate={actionPulse === 'watchlist' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
-                    transition={{ duration: 0.2, ease: 'easeOut' }}
-                    className={clsx(
-                      'w-full flex items-center justify-center rounded-xl px-3 py-3 transition-colors blueprint-border',
-                      compactActions ? 'gap-2' : 'gap-2 min-[1000px]:gap-2',
-                      inWatchlist ? 'bg-brand-cyan/15 text-brand-cyan' : 'bg-white/5 text-white hover:bg-white/10'
-                    )}
-                  >
-                    <Bookmark size={14} className="hidden min-[1000px]:inline" />
-                    <span className={compactActions ? 'hidden min-[1000px]:inline text-xs font-black uppercase tracking-widest' : 'text-xs font-black uppercase tracking-widest'}>Watchlist</span>
-                    <span className={compactActions ? 'text-xs font-black uppercase tracking-widest min-[1000px]:hidden' : 'hidden'}>List</span>
-                  </motion.button>
-                  <motion.button
-                    onClick={handleWatchedToggle}
-                    title={inWatched ? 'Watched' : 'Mark Watched'}
-                    aria-label={inWatched ? 'Watched' : 'Mark Watched'}
-                    disabled={!!actionPulse}
-                    animate={actionPulse === 'watched' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
-                    transition={{ duration: 0.2, ease: 'easeOut' }}
-                    className={clsx(
-                      'w-full flex items-center justify-center rounded-xl px-3 py-3 transition-colors blueprint-border',
-                      compactActions ? 'gap-2' : 'gap-2 min-[1000px]:gap-2',
-                      inWatched ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/5 text-white hover:bg-white/10'
-                    )}
-                  >
-                    <Eye size={14} className="hidden min-[1000px]:inline" />
-                    <span className={compactActions ? 'hidden min-[1000px]:inline text-xs font-black uppercase tracking-widest' : 'text-xs font-black uppercase tracking-widest'}>Watched</span>
-                    <span className={compactActions ? 'text-xs font-black uppercase tracking-widest min-[1000px]:hidden' : 'hidden'}>Watched</span>
-                  </motion.button>
-                  {inWatched && (
-                    <button
-                      onClick={() => toggleFavorite(selected)}
-                      title={isFavorite ? 'Favorited' : 'Favorite'}
-                      aria-label={isFavorite ? 'Favorited' : 'Favorite'}
-                      className={clsx(
-                        'w-full flex items-center justify-center rounded-xl px-3 py-3 transition-colors blueprint-border',
-                        compactActions ? 'gap-2' : 'gap-2 min-[1000px]:gap-2',
-                        isFavorite ? 'bg-red-500/15 text-red-300' : 'bg-white/5 text-white hover:bg-white/10'
+                      <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{selected.media_type}</span>
+                      {year && <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{year}</span>}
+                      <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">★ {selected.vote_average?.toFixed(1) || '0.0'}</span>
+                      <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{contentRatingValue || 'N/A'}</span>
+                      {vidAngelEnabled && isVidAngelAvailable && (
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/85 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-brand-bg">
+                          <ShieldCheck size={10} />
+                          Edited
+                        </span>
                       )}
-                    >
-                      <Heart size={14} className={isFavorite ? 'fill-current hidden min-[1000px]:inline' : 'hidden min-[1000px]:inline'} />
-                      <span className="hidden min-[1000px]:inline text-xs font-black uppercase tracking-widest">Favorite</span>
-                      <span className="text-xs font-black uppercase tracking-widest min-[1000px]:hidden">Fav</span>
-                    </button>
-                  )}
-                </div>
-
-                <div className="mt-4 space-y-5">
-                  <a
-                    href={justWatchSearchUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block rounded-2xl bg-white/5 blueprint-border p-3 hover:bg-white/10 transition-colors"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="mt-1 text-sm text-white truncate">
-                          {watchProviderItems.length > 0
-                            ? watchProviderItems.map((provider) => provider.provider_name).join(' · ')
-                            : 'View streaming options on JustWatch'}
-                        </p>
-                        <p className="mt-1 text-[10px] uppercase tracking-widest text-brand-silver">
-                          data provided by JustWatch
-                        </p>
-                      </div>
-                      <Play className="text-brand-cyan shrink-0" size={16} />
                     </div>
-                  </a>
 
-                  <div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {overviewLoading && castItems.length === 0 ? (
-                        [...Array(4)].map((_, index) => (
-                          <div key={index} className="flex items-center gap-3 p-2 rounded-xl bg-white/5 blueprint-border">
-                            <div className="w-10 h-10 rounded-full bg-white/10 animate-pulse" />
-                            <div className="min-w-0 flex-1 space-y-2">
-                              <div className="h-3 w-24 rounded bg-white/10 animate-pulse" />
-                              <div className="h-2 w-16 rounded bg-white/10 animate-pulse" />
-                            </div>
-                          </div>
-                        ))
-                      ) : castItems.length > 0 ? (
-                        castItems.map((member) => (
-                        <button
-                          key={member.id}
-                          type="button"
-                          onClick={() => openActor(member)}
-                          className="flex items-center gap-3 p-2 rounded-xl bg-white/5 blueprint-border hover:bg-white/10 transition-colors text-left"
-                        >
-                          <div className="w-10 h-10 rounded-full overflow-hidden bg-brand-bg shrink-0">
-                            {member.profile_path ? (
-                              <img src={getImageUrl(member.profile_path, 'w185')} alt={member.name} className="w-full h-full object-cover" decoding="async" />
-                            ) : null}
-                          </div>
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold text-white truncate">{member.name}</p>
-                              <p className="text-[10px] text-brand-silver truncate">{member.character}</p>
-                            </div>
+                    {selected.tagline && (
+                      <p className="text-sm font-medium italic leading-relaxed text-white/85" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.7)' }}>
+                        {selected.tagline}
+                      </p>
+                    )}
+
+                    <div className="grid grid-cols-4 gap-1.5 pt-1 sm:gap-2">
+                      {([
+                        { id: 'overview' as const, label: 'Overview', icon: Info },
+                        { id: 'cast' as const, label: 'Cast', icon: Users },
+                        { id: 'images' as const, label: 'Images', icon: ImageIcon },
+                        { id: 'trailers' as const, label: 'Trailers', icon: Film },
+                      ]).map((item) => {
+                        const Icon = item.icon;
+                        const isActive = currentInfoSection === item.id;
+
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => setActiveInfoSection(isActive ? null : { id: selected.id, section: item.id })}
+                            className={clsx(
+                              'flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-lg border px-1 text-[9px] font-black uppercase tracking-widest transition-all sm:h-10 sm:flex-row sm:gap-2 sm:px-2 sm:text-[10px]',
+                              isActive
+                                ? 'border-brand-cyan/50 bg-brand-cyan/25 text-brand-cyan'
+                                : 'border-white/15 bg-brand-bg/75 text-white hover:bg-brand-bg/90'
+                            )}
+                          >
+                            <Icon size={13} className="shrink-0" />
+                            <span className="min-w-0 truncate">{item.label}</span>
                           </button>
-                        ))
-                      ) : (
-                        <p className="text-sm text-brand-silver">Cast will load when available.</p>
-                      )}
+                        );
+                      })}
                     </div>
                   </div>
+                </div>
 
-                  <div>
-                    <a
-                      href={trailerSearchUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/5 blueprint-border hover:bg-white/10 transition-colors"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold truncate">
-                          <span className="text-white">Trailers</span>{' '}
-                          <span className="text-brand-silver/70">(YouTube)</span>
-                        </p>
-                      </div>
-                      <Play className="text-brand-cyan shrink-0" size={16} />
-                    </a>
+                {currentInfoSection && (
+                  <div className="mt-3 min-h-[calc(92vh-15rem)] rounded-2xl bg-brand-bg/88 blueprint-border p-3 shadow-2xl shadow-black/35">
+                    {currentInfoSection === 'overview' && (
+                      currentLoadingInfoSection === 'overview' ? (
+                        <div className="space-y-3">
+                          <div className="h-24 rounded-xl bg-white/10 animate-pulse" />
+                          <div className="h-14 rounded-xl bg-white/10 animate-pulse" />
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
+                            <p className="text-sm leading-relaxed text-white/90">
+                              {selected.overview || 'No overview available.'}
+                            </p>
+                          </div>
 
-                    <p className="mt-2 text-center text-[10px] uppercase tracking-[0.2em] text-brand-silver/60">
+                          <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-sm text-white truncate">
+                                  {watchProviderItems.length > 0
+                                    ? watchProviderItems.map((provider) => provider.provider_name).join(' · ')
+                                    : 'No US streaming providers found'}
+                                </p>
+                                <p className="mt-1 text-[10px] uppercase tracking-widest text-brand-silver">
+                                  Streaming providers
+                                </p>
+                              </div>
+                              <Play className="shrink-0 text-brand-cyan" size={16} />
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    )}
+
+                    {currentInfoSection === 'cast' && (
+                      currentLoadingInfoSection === 'cast' ? (
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                          {[...Array(6)].map((_, index) => (
+                            <div key={index} className="aspect-[2/3] rounded-xl bg-white/10 animate-pulse" />
+                          ))}
+                        </div>
+                      ) : castItems.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                          {castItems.map((member) => (
+                            <button
+                              key={`${member.id}-${member.character}`}
+                              type="button"
+                              onClick={() => openActor(member)}
+                              className="group overflow-hidden rounded-xl bg-brand-bg/80 blueprint-border text-left transition-colors hover:bg-brand-bg"
+                            >
+                              <div className="aspect-[2/3] bg-white/5">
+                                {member.profile_path ? (
+                                  <img src={getImageUrl(member.profile_path, 'w342')} alt={member.name} className="h-full w-full object-cover" decoding="async" />
+                                ) : null}
+                              </div>
+                              <div className="p-2">
+                                <p className="truncate text-xs font-black text-white">{member.name}</p>
+                                <p className="truncate text-[10px] text-brand-silver">{member.character}</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="py-10 text-center text-sm text-brand-silver">Cast is not available.</p>
+                      )
+                    )}
+
+                    {currentInfoSection === 'images' && (
+                      currentLoadingInfoSection === 'images' ? (
+                        <div className="space-y-3">
+                          {[...Array(4)].map((_, index) => (
+                            <div key={index} className="aspect-video rounded-xl bg-white/10 animate-pulse" />
+                          ))}
+                        </div>
+                      ) : backdropItems.length > 0 ? (
+                        <div className="space-y-3">
+                          {backdropItems.map((image) => (
+                            <img
+                              key={image.file_path}
+                              src={getImageUrl(image.file_path, 'w780')}
+                              alt=""
+                              className="aspect-video w-full rounded-xl object-cover blueprint-border"
+                              decoding="async"
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="py-10 text-center text-sm text-brand-silver">No backdrops available.</p>
+                      )
+                    )}
+
+                    {currentInfoSection === 'trailers' && (
+                      currentLoadingInfoSection === 'trailers' ? (
+                        <div className="space-y-2">
+                          {[...Array(4)].map((_, index) => (
+                            <div key={index} className="aspect-video rounded-xl bg-white/10 animate-pulse" />
+                          ))}
+                        </div>
+                      ) : trailerItems.length > 0 ? (
+                        <div className="space-y-3">
+                          {trailerItems.map((video) => (
+                            <div
+                              key={video.id}
+                              className="group block overflow-hidden rounded-xl bg-brand-bg/80 blueprint-border transition-colors hover:bg-brand-bg"
+                            >
+                              <div className="relative aspect-video bg-white/5">
+                                {currentActiveTrailerId === video.id ? (
+                                  <iframe
+                                    src={`https://www.youtube.com/embed/${video.key}?autoplay=1`}
+                                    title={video.name}
+                                    className="h-full w-full"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowFullScreen
+                                  />
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setActiveTrailer({ mediaId: selected.id, videoId: video.id })}
+                                    className="absolute inset-0 block h-full w-full text-left"
+                                  >
+                                    <img
+                                      src={`https://img.youtube.com/vi/${video.key}/hqdefault.jpg`}
+                                      alt=""
+                                      className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                                      loading="lazy"
+                                      decoding="async"
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-bg/75 text-brand-cyan border border-brand-cyan/35 backdrop-blur-sm">
+                                        <Play size={20} className="ml-0.5" />
+                                      </div>
+                                    </div>
+                                  </button>
+                                )}
+                              </div>
+                              <div className="flex items-center justify-between gap-3 p-3 text-left">
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-black text-white">{video.name}</p>
+                                  <p className="mt-1 text-[10px] uppercase tracking-widest text-brand-silver">
+                                    {currentActiveTrailerId === video.id ? 'Playing inline' : video.official ? 'Official trailer' : 'Trailer'}
+                                  </p>
+                                </div>
+                                {currentActiveTrailerId !== video.id && <Play className="shrink-0 text-brand-cyan" size={16} />}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="py-10 text-center text-sm text-brand-silver">No trailers available.</p>
+                      )
+                    )}
+
+                    <p className="mt-3 text-center text-[10px] uppercase tracking-[0.2em] text-brand-silver/60">
                       Data provided by TMDB.
                     </p>
                   </div>
-                </div>
+                )}
               </div>
 
-              <SheetDragHandle onClose={closeDetails} />
+              <div className="absolute bottom-0 left-0 right-0 z-20 border-t border-white/[0.04] bg-brand-bg/75 backdrop-blur-xl px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+                <div className="grid grid-cols-[1fr_56px_1fr] items-center gap-2">
+                  <motion.button
+                    type="button"
+                    onClick={handleWatchedToggle}
+                    title={inWatched ? 'Watched' : 'Mark Watched'}
+                    aria-label={inWatched ? 'Watched' : 'Mark Watched'}
+                    disabled={!!currentActionPulse}
+                    animate={currentActionPulse === 'watched' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                    className={clsx(
+                      'flex h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 text-xs font-black uppercase tracking-widest transition-all',
+                      inWatched
+                        ? 'border-emerald-300/40 bg-emerald-500/30 text-emerald-300'
+                        : 'border-white/15 bg-brand-bg/80 text-white hover:bg-brand-bg'
+                    )}
+                  >
+                    <Eye size={14} />
+                    Watched
+                  </motion.button>
+
+                  <button
+                    type="button"
+                    onClick={closeDetails}
+                    className="flex h-11 w-full items-center justify-center rounded-lg bg-brand-cyan/15 text-brand-cyan border border-brand-cyan/30 shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:bg-brand-cyan/25 hover:text-white hover:border-brand-cyan/45"
+                    aria-label="Close sheet"
+                    title="Tap to close"
+                  >
+                    <ChevronDown size={18} />
+                  </button>
+
+                  <motion.button
+                    type="button"
+                    onClick={handleWatchlistToggle}
+                    title={inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
+                    aria-label={inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
+                    disabled={!!currentActionPulse}
+                    animate={currentActionPulse === 'watchlist' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                    className={clsx(
+                      'flex h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 text-xs font-black uppercase tracking-widest transition-all',
+                      inWatchlist
+                        ? 'border-brand-cyan/40 bg-brand-cyan/30 text-brand-cyan'
+                        : 'border-white/15 bg-brand-bg/80 text-white hover:bg-brand-bg'
+                    )}
+                  >
+                    <Bookmark size={14} />
+                    Watchlist
+                  </motion.button>
+                </div>
+              </div>
             </motion.div>
 
             <ConfirmationModal

@@ -15,7 +15,6 @@ type PendingLibraryView = {
 
 type SheetSnapshot = {
   details: Media | null;
-  poster: Media | null;
   actor: CastMember | null;
 };
 
@@ -41,12 +40,9 @@ interface AppContextType extends UserState {
   setIsSearchFocused: (focused: boolean) => void;
   syncFromGist: () => Promise<void>;
   activeDetailsMedia: Media | null;
-  activePosterMedia: Media | null;
   activeActorMedia: CastMember | null;
   openDetails: (media: Media) => void;
   closeDetails: () => void;
-  openPoster: (media: Media) => void;
-  closePoster: () => void;
   openActor: (actor: CastMember) => void;
   closeActor: () => void;
   closeAllSheets: () => void;
@@ -72,25 +68,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const sheetReturnRef = useRef<SheetSnapshot | null>(null);
   const [pendingLibraryView, setPendingLibraryView] = useState<PendingLibraryView>(null);
   const [activeDetailsMedia, setActiveDetailsMedia] = useState<Media | null>(null);
-  const [activePosterMedia, setActivePosterMedia] = useState<Media | null>(null);
   const [activeActorMedia, setActiveActorMedia] = useState<CastMember | null>(null);
   const rememberCurrentSheet = useCallback(() => {
-    if (!activeDetailsMedia && !activePosterMedia && !activeActorMedia) {
+    if (!activeDetailsMedia && !activeActorMedia) {
       sheetReturnRef.current = null;
       return;
     }
 
     sheetReturnRef.current = {
       details: activeDetailsMedia,
-      poster: activePosterMedia,
       actor: activeActorMedia,
     };
-  }, [activeActorMedia, activeDetailsMedia, activePosterMedia]);
+  }, [activeActorMedia, activeDetailsMedia]);
   const restoreSheetSnapshot = useCallback((snapshot?: SheetSnapshot | null) => {
     if (!snapshot) return false;
 
     setActiveDetailsMedia(snapshot.details);
-    setActivePosterMedia(snapshot.poster);
     setActiveActorMedia(snapshot.actor);
     return true;
   }, []);
@@ -101,7 +94,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setPendingLibraryView(null);
     sheetReturnRef.current = null;
     setActiveActorMedia(null);
-    setActivePosterMedia(null);
     setActiveDetailsMedia(null);
     store.setFilter(nextView.filter);
     store.setShowWatched(nextView.mode === 'watched');
@@ -111,18 +103,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const openDetails = useCallback((media: Media) => {
     rememberCurrentSheet();
     setActiveActorMedia(null);
-    setActivePosterMedia(null);
     setActiveDetailsMedia(media);
-  }, [rememberCurrentSheet]);
-  const openPoster = useCallback((media: Media) => {
-    rememberCurrentSheet();
-    setActiveDetailsMedia(null);
-    setActiveActorMedia(null);
-    setActivePosterMedia(media);
   }, [rememberCurrentSheet]);
   const openActor = useCallback((actor: CastMember) => {
     rememberCurrentSheet();
-    setActivePosterMedia(null);
     setActiveDetailsMedia(null);
     setActiveActorMedia(actor);
   }, [rememberCurrentSheet]);
@@ -138,13 +122,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (applyPendingLibraryView()) return;
 
     setActiveActorMedia(null);
-    setActivePosterMedia(null);
     setActiveDetailsMedia(null);
   }, [applyPendingLibraryView, restoreSheetSnapshot]);
   const closeDetails = useCallback(() => {
-    closeCurrentSheet();
-  }, [closeCurrentSheet]);
-  const closePoster = useCallback(() => {
     closeCurrentSheet();
   }, [closeCurrentSheet]);
   const closeActor = useCallback(() => {
@@ -155,7 +135,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     applyPendingLibraryView();
 
     setActiveActorMedia(null);
-    setActivePosterMedia(null);
     setActiveDetailsMedia(null);
     store.setIsSearchFocused(false);
   }, [applyPendingLibraryView, store]);
@@ -340,12 +319,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setMediaEditedStatus: store.setMediaEditedStatus,
     setIsSearchFocused: store.setIsSearchFocused,
     activeDetailsMedia,
-    activePosterMedia,
     activeActorMedia,
     openDetails,
     closeDetails,
-    openPoster,
-    closePoster,
     openActor,
     closeActor,
     closeAllSheets,
@@ -362,12 +338,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     watchedIds,
     watchedMap,
     activeDetailsMedia,
-    activePosterMedia,
     activeActorMedia,
     openDetails,
     closeDetails,
-    openPoster,
-    closePoster,
     openActor,
     closeActor,
     closeAllSheets,

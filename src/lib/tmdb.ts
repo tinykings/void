@@ -1,4 +1,4 @@
-import { Media, WatchProvidersResponse, SeasonDetails, TmdbResult, ReleaseDatesResponse, ContentRatingsResponse, ReleaseDatesResult, ContentRating, ReleaseDate, VideosResponse, CreditsResponse, PersonCreditsResponse, PersonDetails } from './types';
+import { Media, WatchProvidersResponse, SeasonDetails, TmdbResult, ReleaseDatesResponse, ContentRatingsResponse, ReleaseDatesResult, ContentRating, ReleaseDate, VideosResponse, CreditsResponse, PersonCreditsResponse, PersonDetails, ImagesResponse } from './types';
 
 const BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_MAX_RETRIES = 2;
@@ -92,6 +92,10 @@ export const getWatchProviders = async (id: number, type: 'movie' | 'tv', apiKey
 
 export const getMediaVideos = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<VideosResponse> => {
   return fetchFromTMDB(`/${type}/${id}/videos`, apiKey);
+};
+
+export const getMediaImages = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<ImagesResponse> => {
+  return fetchFromTMDB(`/${type}/${id}/images`, apiKey);
 };
 
 export const getMediaCredits = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<CreditsResponse> => {

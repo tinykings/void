@@ -7,7 +7,6 @@ import { ActorSheet } from '@/components/ActorSheet';
 import { MediaCard } from '@/components/MediaCard';
 import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
 import { DetailsSheet } from '@/components/DetailsSheet';
-import { PosterSheet } from '@/components/PosterSheet';
 import { SearchSheet } from '@/components/SearchSheet';
 import { sortMedia } from '@/lib/sort';
 import { fromGistItem, type GistLibraryData } from '@/lib/gist';
@@ -432,7 +431,6 @@ export const HomeView = () => {
 
       <DetailsSheet />
       <ActorSheet />
-      <PosterSheet />
       <SearchSheet />
 
       {/* Fixed Bottom Bar */}
