@@ -7,8 +7,7 @@ export const checkVidAngelLogin = async (): Promise<boolean> => {
     });
 
     return response.ok;
-  } catch (error) {
-    console.error('VidAngel login check failed', error);
+  } catch {
     return false;
   }
 };
@@ -52,8 +51,8 @@ export const checkVidAngelAvailability = async (title: string, tmdbId: number): 
     
     cache.set(tmdbId, null);
     return null;
-  } catch (error) {
-    console.error("VidAngel API check failed", error);
+  } catch {
+    cache.set(tmdbId, null);
     return null;
   }
 };

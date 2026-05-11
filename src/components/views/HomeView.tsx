@@ -11,7 +11,6 @@ import { PosterSheet } from '@/components/PosterSheet';
 import { SearchSheet } from '@/components/SearchSheet';
 import { sortMedia } from '@/lib/sort';
 import { fromGistItem, type GistLibraryData } from '@/lib/gist';
-import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { AlertCircle, Bookmark, Clapperboard, Download, Eye, EyeOff, Film, Heart, Library, Save, Search, Settings, SlidersHorizontal, Tv, Upload, X } from 'lucide-react';
 import type { FilterType } from '@/lib/types';
 import { clsx } from 'clsx';
@@ -40,7 +39,6 @@ export const HomeView = () => {
     setVidAngelEnabled,
     vidAngelEnabled,
     editedStatusMap,
-    setMediaEditedStatus,
     isSearchFocused,
     setIsSearchFocused,
     closeAllSheets,
@@ -252,28 +250,6 @@ export const HomeView = () => {
     
   const displayMedia = useMemo(() => libraryMedia.slice(0, visibleItemsCount), [libraryMedia, visibleItemsCount]);
 
-  useEffect(() => {
-    if (!vidAngelEnabled || displayMedia.length === 0) return;
-
-    const pendingItems = displayMedia.filter((item) => editedStatusMap[`${item.media_type}-${item.id}`] === undefined);
-    if (pendingItems.length === 0) return;
-
-    let cancelled = false;
-
-    void Promise.all(
-      pendingItems.map(async (item) => {
-        const slug = await checkVidAngelAvailability(item.title || item.name || '', item.id);
-        if (!cancelled) {
-          setMediaEditedStatus(item.id, item.media_type, !!slug);
-        }
-      })
-    );
-
-    return () => {
-      cancelled = true;
-    };
-  }, [displayMedia, editedStatusMap, setMediaEditedStatus, vidAngelEnabled]);
-
   const isLoading = isPending;
 
   // Stable callback for loading more items
@@ -461,7 +437,7 @@ export const HomeView = () => {
 
       {/* Fixed Bottom Bar */}
       {!isSearchFocused && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-brand-bg/40 backdrop-blur-xl border-t border-white/[0.04]">
+        <div className="fixed bottom-0 left-0 right-0 z-30 pb-3 px-3 pointer-events-none">
           <div
             aria-live="polite"
             className={clsx(
@@ -474,11 +450,11 @@ export const HomeView = () => {
             {statusLabel && !statusFading ? statusLabel : persistentStatus}
           </div>
 
-          <div className="max-w-7xl mx-auto px-3 py-2 relative">
-            <div className="grid grid-cols-4 gap-2">
-              <div className="relative rounded-xl bg-brand-bg/50 blueprint-border p-1">
+          <div className="max-w-sm mx-auto relative pointer-events-auto">
+            <div className="grid grid-cols-[56px_1fr_56px] items-center gap-2 rounded-[28px] bg-brand-bg/70 backdrop-blur-xl blueprint-border p-2 shadow-2xl shadow-black/35">
+              <div className="relative">
                 {showTypeMenu && (
-                  <div className="absolute bottom-full left-0 mb-2 w-44 rounded-xl bg-brand-bg blueprint-border shadow-xl overflow-hidden">
+                  <div className="absolute bottom-full left-0 mb-3 w-44 rounded-2xl bg-brand-bg blueprint-border shadow-xl overflow-hidden">
                     {[
                       { id: 'all' as const, label: 'All', icon: Clapperboard },
                       { id: 'movie' as const, label: 'Movies', icon: Film },
@@ -513,7 +489,7 @@ export const HomeView = () => {
                       className={clsx(
                         'w-full px-3 py-3 text-left text-sm font-bold flex items-center gap-2 transition-colors',
                         showFavoritesOnly
-                          ? 'text-brand-cyan bg-brand-cyan/5'
+                          ? 'text-red-200 bg-red-500/15'
                           : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
                       )}
                     >
@@ -527,60 +503,65 @@ export const HomeView = () => {
                   type="button"
                   onClick={() => setShowTypeMenu((current) => !current)}
                   className={clsx(
-                    'w-full flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all',
+                    'flex h-12 w-12 items-center justify-center rounded-full transition-all',
                     showTypeMenu || activeFilter !== 'all' || showFavoritesOnly
-                      ? 'bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]'
+                      ? 'bg-brand-cyan/12 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.16)]'
                       : 'text-brand-silver hover:text-white'
                   )}
                   aria-label={showFavoritesOnly ? 'Filter: Favorites' : `Filter: ${activeFilterLabel}`}
                   title={showFavoritesOnly ? 'Filter: Favorites' : `Filter: ${activeFilterLabel}`}
                 >
-                  <SlidersHorizontal size={17} />
-                  Filter
+                  <SlidersHorizontal size={19} />
                 </button>
               </div>
 
-              {[
-                { id: 'library' as const, label: 'Library', icon: Library },
-                { id: 'watchlist' as const, label: 'Watchlist', icon: Bookmark },
-              ].map((item) => {
-                const Icon = item.icon;
-                const isActive = activeLibraryMode === item.id && !showFavoritesOnly;
+              <div className="relative grid grid-cols-2 rounded-full bg-black/20 p-1 ring-1 ring-white/[0.06]">
+                <div
+                  className={clsx(
+                    'absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-brand-cyan/15 shadow-[0_0_22px_rgba(34,211,238,0.14)] transition-transform duration-300 ease-out',
+                    activeLibraryMode === 'watchlist' && !showFavoritesOnly ? 'translate-x-full' : 'translate-x-0'
+                  )}
+                />
 
-                return (
-                  <div key={item.id} className="rounded-xl bg-brand-bg/50 blueprint-border p-1">
-                    <button
-                      type="button"
-                      onClick={() => selectLibraryMode(item.id)}
-                      className={clsx(
-                        'w-full flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all',
-                        isActive
-                          ? 'bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]'
-                          : 'text-brand-silver hover:text-white'
-                      )}
-                      aria-label={item.label}
-                      title={item.label}
-                    >
-                      <Icon size={17} />
-                      {item.label}
-                    </button>
-                  </div>
-                );
-              })}
+                <button
+                  type="button"
+                  onClick={() => selectLibraryMode('library')}
+                  className={clsx(
+                    'relative z-10 flex h-10 items-center justify-center rounded-full transition-colors',
+                    activeLibraryMode === 'library' && !showFavoritesOnly ? 'text-brand-cyan' : 'text-brand-silver hover:text-white'
+                  )}
+                  aria-label="Library"
+                  title="Library"
+                >
+                  <Library size={18} />
+                </button>
 
-              <div className="rounded-xl bg-brand-bg/50 blueprint-border p-1">
+                <button
+                  type="button"
+                  onClick={() => selectLibraryMode('watchlist')}
+                  className={clsx(
+                    'relative z-10 flex h-10 items-center justify-center rounded-full transition-colors',
+                    activeLibraryMode === 'watchlist' && !showFavoritesOnly ? 'text-brand-cyan' : 'text-brand-silver hover:text-white'
+                  )}
+                  aria-label="Watchlist"
+                  title="Watchlist"
+                >
+                  <Bookmark size={18} />
+                </button>
+              </div>
+
+              <div className="flex justify-end">
                 <button
                   type="button"
                   onClick={() => {
                     startTransition(() => setIsSearchFocused(true));
                     setShowTypeMenu(false);
                   }}
-                  className="w-full flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg text-[10px] font-black uppercase tracking-tight text-brand-silver hover:text-white transition-all"
+                  className="flex h-12 w-12 items-center justify-center rounded-full text-brand-silver hover:bg-brand-cyan/10 hover:text-white transition-all"
                   aria-label="Search"
                   title="Search"
                 >
-                  <Search size={17} />
-                  Search
+                  <Search size={19} />
                 </button>
               </div>
             </div>
