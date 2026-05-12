@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useTransition, useCallback, useRef, type ChangeEvent } from 'react';
+import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { ActorSheet } from '@/components/ActorSheet';
@@ -10,7 +11,7 @@ import { DetailsSheet } from '@/components/DetailsSheet';
 import { SearchSheet } from '@/components/SearchSheet';
 import { sortMedia } from '@/lib/sort';
 import { fromGistItem, type GistLibraryData } from '@/lib/gist';
-import { getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
+import { getContentRating, getImageUrl, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
 import { mapWithConcurrency } from '@/lib/concurrency';
 import { AlertCircle, Bookmark, Clapperboard, Download, Eye, EyeOff, Film, Heart, Library, Radio, Save, Search, Settings, SlidersHorizontal, Tv, Upload, X } from 'lucide-react';
 import type { FilterType, Media, WatchProvider } from '@/lib/types';
@@ -19,14 +20,22 @@ import { toast } from 'sonner';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 
 type LibraryMode = 'library' | 'watchlist';
+type StreamProviderItem = {
+  media: Media;
+  contentRating: string | null;
+};
 type StreamProviderGroup = {
   provider: WatchProvider;
-  items: Media[];
+  items: StreamProviderItem[];
 };
 
 const STREAM_PROVIDER_CONCURRENCY = 2;
 
 const getMediaTitle = (media: Media) => media.title || media.name || 'Unknown title';
+const getStreamPosterUrl = (media: Media) => {
+  const path = media.poster_path || media.backdrop_path;
+  return path ? getImageUrl(path, 'w185') : '';
+};
 
 export const HomeView = () => {
   const {
@@ -155,37 +164,42 @@ export const HomeView = () => {
     setStreamFailureCount(0);
 
     void mapWithConcurrency(watchlist, STREAM_PROVIDER_CONCURRENCY, async (item) => {
+      let providers: WatchProvider[] = [];
+      let failed = false;
+
       try {
         const data = await getWatchProviders(item.id, item.media_type, apiKey);
-        return {
-          item,
-          providers: getUSStreamingProviders(data),
-          failed: false,
-        };
+        providers = getUSStreamingProviders(data);
       } catch {
-        return {
-          item,
-          providers: [] as WatchProvider[],
-          failed: true,
-        };
+        failed = true;
       }
+
+      const contentRating = await getContentRating(item.id, item.media_type, apiKey).catch(() => null);
+
+      return {
+        item,
+        providers,
+        contentRating,
+        failed,
+      };
     })
       .then((results) => {
         if (cancelled) return;
 
         const groupsByProvider = new Map<number, StreamProviderGroup>();
 
-        results.forEach(({ item, providers }) => {
+        results.forEach(({ item, providers, contentRating }) => {
           providers.forEach((provider) => {
+            const streamItem = { media: item, contentRating };
             const existing = groupsByProvider.get(provider.provider_id);
             if (existing) {
-              existing.items.push(item);
+              existing.items.push(streamItem);
               return;
             }
 
             groupsByProvider.set(provider.provider_id, {
               provider,
-              items: [item],
+              items: [streamItem],
             });
           });
         });
@@ -193,7 +207,7 @@ export const HomeView = () => {
         const groups = Array.from(groupsByProvider.values())
           .map((group) => ({
             ...group,
-            items: [...group.items].sort((a, b) => getMediaTitle(a).localeCompare(getMediaTitle(b))),
+            items: [...group.items].sort((a, b) => getMediaTitle(a.media).localeCompare(getMediaTitle(b.media))),
           }))
           .sort((a, b) => {
             const countDiff = b.items.length - a.items.length;
@@ -498,7 +512,7 @@ export const HomeView = () => {
                 <div>
                   <h1 className="text-xl font-black uppercase tracking-[0.18em] text-white">Stream</h1>
                   <p className="mt-1 text-xs font-medium text-brand-silver">
-                    US free and subscription providers for your watchlist.
+                    US free and subscription providers for your watchlist. Data provided by JustWatch.
                   </p>
                 </div>
                 <div className="shrink-0 rounded-full border border-brand-cyan/20 bg-brand-cyan/10 px-3 py-1 text-xs font-black uppercase tracking-widest text-brand-cyan">
@@ -532,19 +546,39 @@ export const HomeView = () => {
                       </div>
 
                       <div className="divide-y divide-white/5">
-                        {group.items.map((item) => (
-                          <button
-                            key={`${group.provider.provider_id}-${item.media_type}-${item.id}`}
-                            type="button"
-                            onClick={() => openDetails(item)}
-                            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-brand-silver transition-colors hover:bg-brand-cyan/10 hover:text-white"
-                          >
-                            <span className="min-w-0 truncate">{getMediaTitle(item)}</span>
-                            <span className="shrink-0 text-[10px] font-black uppercase tracking-widest text-brand-silver/50">
-                              {item.media_type === 'movie' ? 'Movie' : 'Show'}
-                            </span>
-                          </button>
-                        ))}
+                        {group.items.map(({ media, contentRating }) => {
+                          const posterUrl = getStreamPosterUrl(media);
+
+                          return (
+                            <button
+                              key={`${group.provider.provider_id}-${media.media_type}-${media.id}`}
+                              type="button"
+                              onClick={() => openDetails(media)}
+                              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold text-brand-silver transition-colors hover:bg-brand-cyan/10 hover:text-white"
+                            >
+                              <div className="h-12 w-8 shrink-0 overflow-hidden rounded-md bg-brand-bg/80 ring-1 ring-white/10">
+                                {posterUrl ? (
+                                  <Image
+                                    src={posterUrl}
+                                    alt=""
+                                    width={32}
+                                    height={48}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center text-brand-silver/40">
+                                    <Film size={14} />
+                                  </div>
+                                )}
+                              </div>
+
+                              <span className="min-w-0 flex-1 truncate">{getMediaTitle(media)}</span>
+                              <span className="shrink-0 rounded-full bg-white/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-brand-silver/70">
+                                {contentRating || 'N/A'}
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </section>
                   ))}
