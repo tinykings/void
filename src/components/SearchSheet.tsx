@@ -150,6 +150,10 @@ export const SearchSheet = () => {
       </div>
     </div>
   );
+  const topBarClassName = isLibraryEmpty
+    ? 'flex items-center justify-center gap-2 border-b border-white/5 bg-brand-bg/80 px-3 py-3 sm:px-4'
+    : 'flex items-center gap-2 border-b border-white/5 bg-brand-bg/80 px-3 py-3 sm:px-4';
+  const searchWrapperClassName = isLibraryEmpty ? 'flex w-full max-w-2xl items-center' : 'flex w-full items-center';
 
   if (!isSearchFocused) return null;
 
@@ -174,8 +178,10 @@ export const SearchSheet = () => {
             : "relative w-full max-w-4xl h-[86vh] sm:h-[80vh] lg:h-[74vh] max-h-[92vh] bg-brand-bg/95 blueprint-border rounded-t-3xl shadow-2xl overflow-hidden flex flex-col"
           }
         >
-          <div className="flex items-center gap-2 border-b border-white/5 bg-brand-bg/80 px-3 py-3 sm:px-4">
-            {searchControls}
+          <div className={topBarClassName}>
+            <div className={searchWrapperClassName}>
+              {searchControls}
+            </div>
             {!isLibraryEmpty && (
               <button
                 onClick={closeSheet}
