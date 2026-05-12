@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
-import { getImageUrl, getMediaCredits, getContentRating, getMediaDetails, getMediaImages, getMediaVideos, getSeasonDetails, getWatchProviders } from '@/lib/tmdb';
+import { getImageUrl, getMediaCredits, getContentRating, getMediaDetails, getMediaImages, getMediaVideos, getSeasonDetails, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { CastMember, Episode, Media, TmdbImage, Video, WatchProvider } from '@/lib/types';
 import { Bookmark, ChevronDown, Eye, Film, Image as ImageIcon, Info, Play, ShieldCheck, Users } from 'lucide-react';
@@ -154,11 +154,7 @@ export const DetailsSheet = () => {
       ? (async () => {
           const data = await getWatchProviders(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey);
           if (cancelled) return;
-          const usProviders = data.results?.US;
-          const providers = [...(usProviders?.free || []), ...(usProviders?.flatrate || [])]
-            .filter((provider) => !provider.provider_name.includes('Channel'))
-            .filter((provider, index, array) => array.findIndex((item) => item.provider_id === provider.provider_id) === index);
-          setWatchProviders({ id: activeDetailsMedia.id, items: providers });
+          setWatchProviders({ id: activeDetailsMedia.id, items: getUSStreamingProviders(data) });
 
           if (mediaForSection.media_type === 'tv' && !cancelled && seasonEpisodes?.id !== activeDetailsMedia.id) {
             const seasons = mediaForSection.seasons?.filter((s) => s.season_number > 0) || [];

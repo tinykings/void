@@ -10,17 +10,28 @@ import { DetailsSheet } from '@/components/DetailsSheet';
 import { SearchSheet } from '@/components/SearchSheet';
 import { sortMedia } from '@/lib/sort';
 import { fromGistItem, type GistLibraryData } from '@/lib/gist';
-import { AlertCircle, Bookmark, Clapperboard, Download, Eye, EyeOff, Film, Heart, Library, Save, Search, Settings, SlidersHorizontal, Tv, Upload, X } from 'lucide-react';
-import type { FilterType } from '@/lib/types';
+import { getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
+import { mapWithConcurrency } from '@/lib/concurrency';
+import { AlertCircle, Bookmark, Clapperboard, Download, Eye, EyeOff, Film, Heart, Library, Radio, Save, Search, Settings, SlidersHorizontal, Tv, Upload, X } from 'lucide-react';
+import type { FilterType, Media, WatchProvider } from '@/lib/types';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 
 type LibraryMode = 'library' | 'watchlist';
+type StreamProviderGroup = {
+  provider: WatchProvider;
+  items: Media[];
+};
+
+const STREAM_PROVIDER_CONCURRENCY = 2;
+
+const getMediaTitle = (media: Media) => media.title || media.name || 'Unknown title';
 
 export const HomeView = () => {
   const {
     isLoaded, 
+    apiKey,
     watchlist, 
     watched,
     filter,
@@ -42,6 +53,7 @@ export const HomeView = () => {
     setIsSearchFocused,
     closeAllSheets,
     setLists,
+    openDetails,
   } = useAppContext();
   
   const [isPending, startTransition] = useTransition();
@@ -53,12 +65,17 @@ export const HomeView = () => {
 
   const activeFilter = filter || 'all';
   const activeLibraryMode: LibraryMode = showWatched ? 'library' : 'watchlist';
-  const activeModeLabel = showFavoritesOnly ? 'Favorites' : activeLibraryMode === 'library' ? 'Library' : 'Watchlist';
+  const [showStreamView, setShowStreamView] = useState(false);
+  const [streamGroups, setStreamGroups] = useState<StreamProviderGroup[]>([]);
+  const [isStreamLoading, setIsStreamLoading] = useState(false);
+  const [streamFailureCount, setStreamFailureCount] = useState(0);
+  const activeModeLabel = showStreamView ? 'Stream' : showFavoritesOnly ? 'Favorites' : activeLibraryMode === 'library' ? 'Library' : 'Watchlist';
   const activeFilterLabel = activeFilter === 'all' ? 'All' : activeFilter === 'movie' ? 'Movies' : 'Shows';
 
   const persistentStatus = useMemo(() => {
+    if (showStreamView) return 'Stream · Watchlist';
     return `${activeModeLabel} · ${activeFilterLabel}`;
-  }, [activeFilterLabel, activeModeLabel]);
+  }, [activeFilterLabel, activeModeLabel, showStreamView]);
 
   const showStatus = useCallback((label: string) => {
     // If it matches a persistent state, we don't need a timer
@@ -119,13 +136,96 @@ export const HomeView = () => {
     return sortMedia(filtered);
   }, [baseLibraryMedia, showFavoritesOnly]);
 
+  const watchlistStreamKey = useMemo(() => {
+    return watchlist.map((item) => `${item.media_type}-${item.id}`).join('|');
+  }, [watchlist]);
+
+  useEffect(() => {
+    if (!showStreamView) return;
+
+    if (!apiKey || watchlist.length === 0) {
+      setStreamGroups([]);
+      setStreamFailureCount(0);
+      setIsStreamLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsStreamLoading(true);
+    setStreamFailureCount(0);
+
+    void mapWithConcurrency(watchlist, STREAM_PROVIDER_CONCURRENCY, async (item) => {
+      try {
+        const data = await getWatchProviders(item.id, item.media_type, apiKey);
+        return {
+          item,
+          providers: getUSStreamingProviders(data),
+          failed: false,
+        };
+      } catch {
+        return {
+          item,
+          providers: [] as WatchProvider[],
+          failed: true,
+        };
+      }
+    })
+      .then((results) => {
+        if (cancelled) return;
+
+        const groupsByProvider = new Map<number, StreamProviderGroup>();
+
+        results.forEach(({ item, providers }) => {
+          providers.forEach((provider) => {
+            const existing = groupsByProvider.get(provider.provider_id);
+            if (existing) {
+              existing.items.push(item);
+              return;
+            }
+
+            groupsByProvider.set(provider.provider_id, {
+              provider,
+              items: [item],
+            });
+          });
+        });
+
+        const groups = Array.from(groupsByProvider.values())
+          .map((group) => ({
+            ...group,
+            items: [...group.items].sort((a, b) => getMediaTitle(a).localeCompare(getMediaTitle(b))),
+          }))
+          .sort((a, b) => {
+            const countDiff = b.items.length - a.items.length;
+            if (countDiff !== 0) return countDiff;
+            return a.provider.provider_name.localeCompare(b.provider.provider_name);
+          });
+
+        setStreamGroups(groups);
+        setStreamFailureCount(results.filter((result) => result.failed).length);
+      })
+      .finally(() => {
+        if (!cancelled) setIsStreamLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apiKey, showStreamView, watchlist, watchlistStreamKey]);
+
   const hasGistSync = !!(gistId && gistToken);
   const emptyTitle = (() => {
+    if (showStreamView) return watchlist.length === 0 ? 'Your watchlist is empty' : 'No streaming providers found';
     if (showFavoritesOnly) return 'No favorites yet';
     if (activeLibraryMode === 'library') return 'Your library is empty';
     return 'Your watchlist is empty';
   })();
   const emptyDescription = (() => {
+    if (showStreamView) {
+      if (watchlist.length === 0) return 'Search for movies and shows to add them to your watchlist.';
+      return 'No US free or subscription providers were found for your watchlist.';
+    }
+
     if (activeFilter !== 'all') {
       return `No ${activeFilterLabel.toLowerCase()} found in ${activeModeLabel.toLowerCase()}.`;
     }
@@ -215,6 +315,7 @@ export const HomeView = () => {
 
   const selectTypeFilter = (nextFilter: FilterType) => {
     startTransition(() => {
+      setShowStreamView(false);
       setFilter(nextFilter);
     });
 
@@ -225,6 +326,7 @@ export const HomeView = () => {
 
   const selectFavoritesFilter = () => {
     startTransition(() => {
+      setShowStreamView(false);
       setShowWatched(true);
       setShowFavoritesOnly(!showFavoritesOnly);
       setIsSearchFocused(false);
@@ -235,8 +337,22 @@ export const HomeView = () => {
     window.scrollTo(0, 0);
   };
 
+  const selectStreamView = () => {
+    startTransition(() => {
+      setShowStreamView(true);
+      setShowWatched(false);
+      setShowFavoritesOnly(false);
+      setIsSearchFocused(false);
+    });
+
+    showStatus('Stream');
+    setShowTypeMenu(false);
+    window.scrollTo(0, 0);
+  };
+
   const selectLibraryMode = (mode: LibraryMode) => {
     startTransition(() => {
+      setShowStreamView(false);
       setShowWatched(mode !== 'watchlist');
       setShowFavoritesOnly(false);
       setIsSearchFocused(false);
@@ -368,7 +484,7 @@ export const HomeView = () => {
         </div>
       )}
 
-      {isLoading ? (
+      {isLoading && !showStreamView ? (
         <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
           {[...Array(12)].map((_, i) => (
             <MediaCardSkeleton key={i} />
@@ -376,7 +492,82 @@ export const HomeView = () => {
         </div>
       ) : (
         <>
-          {displayMedia.length > 0 ? (
+          {showStreamView ? (
+            <div className="mx-auto max-w-3xl space-y-3">
+              <div className="flex items-end justify-between gap-4 px-1">
+                <div>
+                  <h1 className="text-xl font-black uppercase tracking-[0.18em] text-white">Stream</h1>
+                  <p className="mt-1 text-xs font-medium text-brand-silver">
+                    US free and subscription providers for your watchlist.
+                  </p>
+                </div>
+                <div className="shrink-0 rounded-full border border-brand-cyan/20 bg-brand-cyan/10 px-3 py-1 text-xs font-black uppercase tracking-widest text-brand-cyan">
+                  {watchlist.length}
+                </div>
+              </div>
+
+              {isStreamLoading ? (
+                <div className="space-y-2 pt-3">
+                  {[...Array(5)].map((_, index) => (
+                    <div key={index} className="h-14 animate-pulse rounded-xl blueprint-border bg-white/[0.03]" />
+                  ))}
+                </div>
+              ) : streamGroups.length > 0 ? (
+                <div className="space-y-4 pt-2">
+                  {streamFailureCount > 0 && (
+                    <p className="rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-xs font-medium text-amber-100">
+                      {streamFailureCount} {streamFailureCount === 1 ? 'title could' : 'titles could'} not be checked.
+                    </p>
+                  )}
+
+                  {streamGroups.map((group) => (
+                    <section key={group.provider.provider_id} className="overflow-hidden rounded-xl blueprint-border bg-white/[0.03]">
+                      <div className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-3">
+                        <h2 className="min-w-0 truncate text-sm font-black uppercase tracking-[0.16em] text-white">
+                          {group.provider.provider_name}
+                        </h2>
+                        <span className="shrink-0 rounded-full bg-brand-cyan/10 px-2.5 py-1 text-[11px] font-black text-brand-cyan">
+                          {group.items.length}
+                        </span>
+                      </div>
+
+                      <div className="divide-y divide-white/5">
+                        {group.items.map((item) => (
+                          <button
+                            key={`${group.provider.provider_id}-${item.media_type}-${item.id}`}
+                            type="button"
+                            onClick={() => openDetails(item)}
+                            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-brand-silver transition-colors hover:bg-brand-cyan/10 hover:text-white"
+                          >
+                            <span className="min-w-0 truncate">{getMediaTitle(item)}</span>
+                            <span className="shrink-0 text-[10px] font-black uppercase tracking-widest text-brand-silver/50">
+                              {item.media_type === 'movie' ? 'Movie' : 'Show'}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-20 text-brand-silver">
+                  <div className="flex flex-col items-center gap-4">
+                    <p className="text-lg font-medium text-white">
+                      {emptyTitle}
+                    </p>
+                    <p className="text-sm text-brand-silver max-w-xs mx-auto">
+                      {emptyDescription}
+                    </p>
+                    {streamFailureCount > 0 && (
+                      <p className="text-xs text-brand-silver/60">
+                        {streamFailureCount} {streamFailureCount === 1 ? 'title could' : 'titles could'} not be checked.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : displayMedia.length > 0 ? (
             <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
               {displayMedia.map((item, index) => (
                 <div
@@ -409,23 +600,6 @@ export const HomeView = () => {
             </div>
           )}
 
-          <div className="mt-6 px-2">
-            <button
-              type="button"
-              onClick={() => {
-                setShowTypeMenu(false);
-                setShowSyncModal(true);
-              }}
-              className={clsx(
-                'w-full rounded-2xl px-4 py-4 blueprint-border transition-all',
-                'bg-white/[0.03] text-brand-silver hover:bg-brand-cyan/10 hover:text-white hover:border-brand-cyan/30',
-                'flex items-center justify-center gap-3 text-xs font-black uppercase tracking-[0.24em]'
-              )}
-            >
-              <Settings size={16} />
-              Settings
-            </button>
-          </div>
         </>
       )}
 
@@ -459,7 +633,7 @@ export const HomeView = () => {
                       { id: 'tv' as const, label: 'Shows', icon: Tv },
                     ].map((item) => {
                       const Icon = item.icon;
-                      const isActive = activeFilter === item.id;
+                      const isActive = !showStreamView && activeFilter === item.id;
 
                       return (
                         <button
@@ -494,6 +668,36 @@ export const HomeView = () => {
                       <Heart size={15} className={showFavoritesOnly ? 'fill-current' : undefined} />
                       Favorites
                     </button>
+
+                    <div className="h-px bg-white/5" />
+
+                    <button
+                      type="button"
+                      onClick={selectStreamView}
+                      className={clsx(
+                        'w-full px-3 py-3 text-left text-sm font-bold flex items-center gap-2 transition-colors',
+                        showStreamView
+                          ? 'text-brand-cyan bg-brand-cyan/5'
+                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
+                      )}
+                    >
+                      <Radio size={15} />
+                      Stream
+                    </button>
+
+                    <div className="h-px bg-white/5" />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowTypeMenu(false);
+                        setShowSyncModal(true);
+                      }}
+                      className="w-full px-3 py-3 text-left text-sm font-bold flex items-center gap-2 text-brand-silver hover:text-white hover:bg-brand-bg/50 transition-colors"
+                    >
+                      <Settings size={15} />
+                      Settings
+                    </button>
                   </div>
                 )}
 
@@ -502,12 +706,12 @@ export const HomeView = () => {
                   onClick={() => setShowTypeMenu((current) => !current)}
                   className={clsx(
                     'flex h-12 w-12 items-center justify-center rounded-full transition-all',
-                    showTypeMenu || activeFilter !== 'all' || showFavoritesOnly
+                    showTypeMenu || activeFilter !== 'all' || showFavoritesOnly || showStreamView
                       ? 'bg-brand-cyan/12 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.16)]'
                       : 'text-brand-silver hover:text-white'
                   )}
-                  aria-label={showFavoritesOnly ? 'Filter: Favorites' : `Filter: ${activeFilterLabel}`}
-                  title={showFavoritesOnly ? 'Filter: Favorites' : `Filter: ${activeFilterLabel}`}
+                  aria-label={showStreamView ? 'Filter: Stream' : showFavoritesOnly ? 'Filter: Favorites' : `Filter: ${activeFilterLabel}`}
+                  title={showStreamView ? 'Filter: Stream' : showFavoritesOnly ? 'Filter: Favorites' : `Filter: ${activeFilterLabel}`}
                 >
                   <SlidersHorizontal size={19} />
                 </button>
@@ -517,7 +721,7 @@ export const HomeView = () => {
                 <div
                   className={clsx(
                     'absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-brand-cyan/15 shadow-[0_0_22px_rgba(34,211,238,0.14)] transition-transform duration-300 ease-out',
-                    activeLibraryMode === 'watchlist' && !showFavoritesOnly ? 'translate-x-full' : 'translate-x-0'
+                    activeLibraryMode === 'watchlist' && !showFavoritesOnly && !showStreamView ? 'translate-x-full' : 'translate-x-0'
                   )}
                 />
 
@@ -526,7 +730,7 @@ export const HomeView = () => {
                   onClick={() => selectLibraryMode('library')}
                   className={clsx(
                     'relative z-10 flex h-10 items-center justify-center rounded-full transition-colors',
-                    activeLibraryMode === 'library' && !showFavoritesOnly ? 'text-brand-cyan' : 'text-brand-silver hover:text-white'
+                    activeLibraryMode === 'library' && !showFavoritesOnly && !showStreamView ? 'text-brand-cyan' : 'text-brand-silver hover:text-white'
                   )}
                   aria-label="Library"
                   title="Library"
@@ -539,7 +743,7 @@ export const HomeView = () => {
                   onClick={() => selectLibraryMode('watchlist')}
                   className={clsx(
                     'relative z-10 flex h-10 items-center justify-center rounded-full transition-colors',
-                    activeLibraryMode === 'watchlist' && !showFavoritesOnly ? 'text-brand-cyan' : 'text-brand-silver hover:text-white'
+                    activeLibraryMode === 'watchlist' && !showFavoritesOnly && !showStreamView ? 'text-brand-cyan' : 'text-brand-silver hover:text-white'
                   )}
                   aria-label="Watchlist"
                   title="Watchlist"
@@ -552,7 +756,10 @@ export const HomeView = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    startTransition(() => setIsSearchFocused(true));
+                    startTransition(() => {
+                      setShowStreamView(false);
+                      setIsSearchFocused(true);
+                    });
                     setShowTypeMenu(false);
                   }}
                   className="flex h-12 w-12 items-center justify-center rounded-full text-brand-silver hover:bg-brand-cyan/10 hover:text-white transition-all"

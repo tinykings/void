@@ -1,4 +1,4 @@
-import { Media, WatchProvidersResponse, SeasonDetails, TmdbResult, ReleaseDatesResponse, ContentRatingsResponse, ReleaseDatesResult, ContentRating, ReleaseDate, VideosResponse, CreditsResponse, PersonCreditsResponse, PersonDetails, ImagesResponse } from './types';
+import { Media, WatchProvider, WatchProvidersResponse, SeasonDetails, TmdbResult, ReleaseDatesResponse, ContentRatingsResponse, ReleaseDatesResult, ContentRating, ReleaseDate, VideosResponse, CreditsResponse, PersonCreditsResponse, PersonDetails, ImagesResponse } from './types';
 
 const BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_MAX_RETRIES = 2;
@@ -88,6 +88,24 @@ export const getUSReleaseDate = async (id: number, type: 'movie' | 'tv', apiKey:
 
 export const getWatchProviders = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<WatchProvidersResponse> => {
   return fetchFromTMDB(`/${type}/${id}/watch/providers`, apiKey);
+};
+
+const normalizeProviderName = (name: string) => name.toLowerCase().replace(/\s+/g, ' ').trim();
+
+export const getUSStreamingProviders = (data: WatchProvidersResponse): WatchProvider[] => {
+  const usProviders = data.results?.US;
+  const providers = [...(usProviders?.free || []), ...(usProviders?.flatrate || [])]
+    .filter((provider) => !provider.provider_name.toLowerCase().includes('channel'))
+    .filter((provider, index, array) => array.findIndex((item) => item.provider_id === provider.provider_id) === index);
+
+  return providers.filter((provider) => {
+    const providerName = normalizeProviderName(provider.provider_name);
+    return !providers.some((candidate) => {
+      if (candidate.provider_id === provider.provider_id) return false;
+      const candidateName = normalizeProviderName(candidate.provider_name);
+      return providerName.startsWith(`${candidateName} `);
+    });
+  });
 };
 
 export const getMediaVideos = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<VideosResponse> => {
