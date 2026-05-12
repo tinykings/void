@@ -94,7 +94,34 @@ export const getWatchProviders = async (id: number, type: 'movie' | 'tv', apiKey
   return fetchFromTMDB(`/${type}/${id}/watch/providers`, apiKey);
 };
 
-const normalizeProviderName = (name: string) => name.toLowerCase().replace(/\s+/g, ' ').trim();
+const cleanProviderName = (name: string) => name.replace(/\s+/g, ' ').trim();
+const normalizeProviderName = (name: string) => cleanProviderName(name).toLowerCase();
+
+const getCanonicalProviderName = (name: string) => {
+  const cleaned = cleanProviderName(name);
+
+  if (/ standard with ads$/i.test(cleaned)) {
+    return cleanProviderName(cleaned.replace(/ standard with ads$/i, ''));
+  }
+
+  if (/ with ads$/i.test(cleaned)) {
+    return cleanProviderName(cleaned.replace(/ with ads$/i, ''));
+  }
+
+  if (/ essential$/i.test(cleaned)) {
+    return cleanProviderName(cleaned.replace(/ essential$/i, ''));
+  }
+
+  if (/ premium plus$/i.test(cleaned)) {
+    return cleanProviderName(cleaned.replace(/ plus$/i, ''));
+  }
+
+  if (/ plus premium$/i.test(cleaned)) {
+    return cleanProviderName(cleaned.replace(/ premium$/i, ''));
+  }
+
+  return cleaned;
+};
 
 export const getUSStreamingProviders = (data: WatchProvidersResponse): WatchProvider[] => {
   const usProviders = data.results?.US;
@@ -102,9 +129,19 @@ export const getUSStreamingProviders = (data: WatchProvidersResponse): WatchProv
     .filter((provider) => !provider.provider_name.toLowerCase().includes('channel'))
     .filter((provider, index, array) => array.findIndex((item) => item.provider_id === provider.provider_id) === index);
 
-  return providers.filter((provider) => {
+  const canonicalProviders = providers.map((provider) => ({
+    ...provider,
+    provider_name: getCanonicalProviderName(provider.provider_name),
+  }));
+
+  const uniqueProviders = canonicalProviders.filter((provider, index, array) => {
     const providerName = normalizeProviderName(provider.provider_name);
-    return !providers.some((candidate) => {
+    return array.findIndex((item) => normalizeProviderName(item.provider_name) === providerName) === index;
+  });
+
+  return uniqueProviders.filter((provider) => {
+    const providerName = normalizeProviderName(provider.provider_name);
+    return !uniqueProviders.some((candidate) => {
       if (candidate.provider_id === provider.provider_id) return false;
       const candidateName = normalizeProviderName(candidate.provider_name);
       return providerName.startsWith(`${candidateName} `);
