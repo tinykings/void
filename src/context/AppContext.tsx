@@ -38,7 +38,7 @@ interface AppContextType extends UserState {
   setMediaEditedStatus: (id: number, type: 'movie' | 'tv', isEdited: boolean) => void;
   isSearchFocused: boolean;
   setIsSearchFocused: (focused: boolean) => void;
-  syncFromGist: () => Promise<void>;
+  syncFromGist: (showIndicator?: boolean) => Promise<void>;
   isSyncingLibrary: boolean;
   activeDetailsMedia: Media | null;
   activeActorMedia: CastMember | null;
@@ -228,7 +228,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     initialGistSyncDone.current = signature;
-    void store.syncFromGist().finally(() => {
+    void store.syncFromGist(false).finally(() => {
       applyInitialView();
     });
   }, [

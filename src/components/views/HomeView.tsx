@@ -310,7 +310,7 @@ export const HomeView = () => {
     setGistToken(nextGistToken);
 
     if (nextGistId && nextGistToken) {
-      void syncFromGist();
+      void syncFromGist(true);
     }
 
     setShowSyncModal(false);
@@ -969,7 +969,7 @@ export const HomeView = () => {
                    onClick={() => {
                      setShowSyncModal(false);
                      setShowTypeMenu(false);
-                     void syncFromGist();
+                     void syncFromGist(true);
                    }}
                    disabled={!hasGistSync || isSyncingLibrary}
                    className={clsx(

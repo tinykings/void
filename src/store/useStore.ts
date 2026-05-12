@@ -61,7 +61,7 @@ interface StoreState extends UserState {
   setShowFavoritesOnly: (show: boolean) => void;
   
   setLists: (watchlist: Media[], watched: Media[]) => void;
-  syncFromGist: (force?: boolean) => Promise<void>;
+  syncFromGist: (showIndicator?: boolean) => Promise<void>;
   syncToGist: () => Promise<void>;
 
 }
@@ -139,12 +139,12 @@ export const useStore = create<StoreState>()(
 
         setLists: (watchlist, watched) => set({ watchlist, watched }),
 
-        syncFromGist: async () => {
+        syncFromGist: async (showIndicator = false) => {
           const { apiKey, gistId, gistToken, watchlist, watched } = get();
           if (!gistId || !gistToken) return;
 
           await enqueueGistOperation(async () => {
-            set({ isSyncingLibrary: true });
+            if (showIndicator) set({ isSyncingLibrary: true });
             try {
               const gist = await getGistContent(gistId);
 
@@ -182,7 +182,7 @@ export const useStore = create<StoreState>()(
 
               set({ watchlist: hydratedWatchlist, watched: hydratedWatched });
             } finally {
-              set({ isSyncingLibrary: false });
+              if (showIndicator) set({ isSyncingLibrary: false });
             }
           });
         },

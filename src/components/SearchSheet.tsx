@@ -117,7 +117,7 @@ export const SearchSheet = () => {
     setGistId(nextGistId);
     setGistToken(nextGistToken);
     setShowGistPrompt(false);
-    void syncFromGist();
+    void syncFromGist(true);
   };
   const displayedMedia = useMemo(() => (showSearchResults ? searchResults : trending), [showSearchResults, searchResults, trending]);
   const searchControls = (

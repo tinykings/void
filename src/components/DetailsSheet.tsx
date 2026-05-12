@@ -415,10 +415,10 @@ export const DetailsSheet = () => {
                             type="button"
                             onClick={() => setActiveInfoSection(isActive ? null : { id: selected.id, section: item.id })}
                             className={clsx(
-                              'flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-lg border px-1 text-[9px] font-black uppercase tracking-widest transition-all sm:h-10 sm:flex-row sm:gap-2 sm:px-2 sm:text-[10px]',
+                              'flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-lg border px-1 text-[9px] font-black uppercase tracking-widest transition-all duration-200 sm:h-10 sm:flex-row sm:gap-2 sm:px-2 sm:text-[10px]',
                               isActive
-                                ? 'border-brand-cyan/50 bg-brand-cyan/25 text-brand-cyan'
-                                : 'border-white/15 bg-brand-bg/75 text-white hover:bg-brand-bg/90'
+                                ? 'border-brand-cyan/50 bg-brand-cyan/25 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.12)] hover:border-brand-cyan/70 hover:bg-brand-cyan/30 hover:shadow-[0_0_22px_rgba(34,211,238,0.16)]'
+                                : 'border-white/15 bg-brand-bg/75 text-white hover:border-brand-cyan/30 hover:bg-brand-bg/90 hover:text-brand-cyan hover:shadow-[0_0_18px_rgba(34,211,238,0.08)]'
                             )}
                           >
                             <Icon size={13} className="shrink-0" />
@@ -582,11 +582,11 @@ export const DetailsSheet = () => {
                               key={`${member.id}-${member.character}`}
                               type="button"
                               onClick={() => openActor(member)}
-                              className="group overflow-hidden rounded-xl bg-brand-bg/80 blueprint-border text-left transition-colors hover:bg-brand-bg"
+                              className="group overflow-hidden rounded-xl bg-brand-bg/80 blueprint-border text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-bg hover:border-brand-cyan/30 hover:shadow-[0_0_18px_rgba(34,211,238,0.08)] cursor-pointer"
                             >
                               <div className="aspect-[2/3] bg-white/5">
                                 {member.profile_path ? (
-                                  <img src={getImageUrl(member.profile_path, 'w342')} alt={member.name} className="h-full w-full object-cover" decoding="async" />
+                                  <img src={getImageUrl(member.profile_path, 'w342')} alt={member.name} className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]" decoding="async" />
                                 ) : null}
                               </div>
                               <div className="p-2">
@@ -696,10 +696,10 @@ export const DetailsSheet = () => {
                     animate={currentActionPulse === 'watched' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
                     transition={{ duration: 0.2, ease: 'easeOut' }}
                     className={clsx(
-                      'flex h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 text-xs font-black uppercase tracking-widest transition-all',
+                      'flex h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 text-xs font-black uppercase tracking-widest transition-all duration-200 hover:-translate-y-0.5',
                       inWatched
-                        ? 'border-emerald-300/40 bg-emerald-500/30 text-emerald-300'
-                        : 'border-white/15 bg-brand-bg/80 text-white hover:bg-brand-bg'
+                        ? 'border-emerald-300/40 bg-emerald-500/30 text-emerald-300 hover:border-emerald-200/60 hover:bg-emerald-500/40 hover:text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.14)]'
+                        : 'border-white/15 bg-brand-bg/80 text-white hover:border-brand-cyan/30 hover:bg-brand-bg hover:text-brand-cyan hover:shadow-[0_0_18px_rgba(34,211,238,0.08)]'
                     )}
                   >
                     <Eye size={14} />
@@ -725,10 +725,10 @@ export const DetailsSheet = () => {
                     animate={currentActionPulse === 'watchlist' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
                     transition={{ duration: 0.2, ease: 'easeOut' }}
                     className={clsx(
-                      'flex h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 text-xs font-black uppercase tracking-widest transition-all',
+                      'flex h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 text-xs font-black uppercase tracking-widest transition-all duration-200 hover:-translate-y-0.5',
                       inWatchlist
-                        ? 'border-brand-cyan/40 bg-brand-cyan/30 text-brand-cyan'
-                        : 'border-white/15 bg-brand-bg/80 text-white hover:bg-brand-bg'
+                        ? 'border-brand-cyan/40 bg-brand-cyan/30 text-brand-cyan hover:border-brand-cyan/70 hover:bg-brand-cyan/40 hover:text-white hover:shadow-[0_0_18px_rgba(34,211,238,0.14)]'
+                        : 'border-white/15 bg-brand-bg/80 text-white hover:border-brand-cyan/30 hover:bg-brand-bg hover:text-brand-cyan hover:shadow-[0_0_18px_rgba(34,211,238,0.08)]'
                     )}
                   >
                     <Bookmark size={14} />
