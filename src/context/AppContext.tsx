@@ -39,6 +39,7 @@ interface AppContextType extends UserState {
   isSearchFocused: boolean;
   setIsSearchFocused: (focused: boolean) => void;
   syncFromGist: () => Promise<void>;
+  isSyncingLibrary: boolean;
   activeDetailsMedia: Media | null;
   activeActorMedia: CastMember | null;
   openDetails: (media: Media) => void;
@@ -298,6 +299,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showWatched: store.showWatched || false,
     showFavoritesOnly: store.showFavoritesOnly || false,
     isSearchFocused: store.isSearchFocused || false,
+    isSyncingLibrary: store.isSyncingLibrary || false,
     editedStatusMap: store.editedStatusMap,
     playedEpisodes: store.playedEpisodes,
     isLoaded: store.isLoaded,

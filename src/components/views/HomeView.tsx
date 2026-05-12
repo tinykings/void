@@ -14,7 +14,7 @@ import { fromGistItem, type GistLibraryData } from '@/lib/gist';
 import { getContentRating, getImageUrl, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
 import { mapWithConcurrency } from '@/lib/concurrency';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
-import { AlertCircle, Bookmark, Clapperboard, Download, Eye, EyeOff, Film, Heart, Library, Radio, Save, Search, Settings, SlidersHorizontal, Tv, Upload, X } from 'lucide-react';
+import { AlertCircle, Bookmark, Clapperboard, Download, Eye, EyeOff, Film, Heart, Library, LoaderCircle, Radio, Save, Search, Settings, SlidersHorizontal, Tv, Upload, X } from 'lucide-react';
 import type { FilterType, Media, WatchProvider } from '@/lib/types';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
@@ -56,6 +56,7 @@ export const HomeView = () => {
     setGistId,
     setGistToken,
     syncFromGist,
+    isSyncingLibrary,
     setVidAngelEnabled,
     setMediaEditedStatus,
     vidAngelEnabled,
@@ -698,6 +699,28 @@ export const HomeView = () => {
       <ActorSheet />
       <SearchSheet />
 
+      <AnimatePresence>
+        {isSyncingLibrary && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            className="fixed inset-0 z-[360] flex items-center justify-center pointer-events-none px-4"
+            aria-live="polite"
+          >
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-brand-cyan/20 bg-brand-bg/90 px-5 py-4 text-center shadow-2xl shadow-black/40 backdrop-blur-md">
+              <LoaderCircle size={22} className="animate-spin text-brand-cyan" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-white">Syncing library</p>
+                <p className="text-[11px] uppercase tracking-[0.18em] text-brand-silver/60">
+                  Updating from your Gist
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Fixed Bottom Bar */}
       {!isSearchFocused && (
         <div className="fixed bottom-0 left-0 right-0 z-30 pb-3 px-3 pointer-events-none">
@@ -905,7 +928,7 @@ export const HomeView = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto custom-scrollbar p-5 pb-24 space-y-4">
-               <div className="rounded-xl bg-white/[0.03] blueprint-border p-4 space-y-3">
+              <div className="rounded-xl bg-white/[0.03] blueprint-border p-4 space-y-3">
                  <div>
                    <h3 className="text-sm font-semibold text-white">Gist Sync</h3>
                  </div>
@@ -940,6 +963,25 @@ export const HomeView = () => {
                      </button>
                    </div>
                  </div>
+
+                 <button
+                   type="button"
+                   onClick={() => {
+                     setShowSyncModal(false);
+                     setShowTypeMenu(false);
+                     void syncFromGist();
+                   }}
+                   disabled={!hasGistSync || isSyncingLibrary}
+                   className={clsx(
+                     'w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors blueprint-border',
+                     !hasGistSync || isSyncingLibrary
+                       ? 'bg-white/5 text-brand-silver/40 cursor-not-allowed'
+                       : 'bg-brand-bg text-white hover:bg-brand-cyan/10'
+                   )}
+                 >
+                   <LoaderCircle size={16} className={isSyncingLibrary ? 'animate-spin' : undefined} />
+                   {isSyncingLibrary ? 'Syncing' : 'Sync library now'}
+                 </button>
                </div>
 
               <div className="rounded-xl bg-white/[0.03] blueprint-border p-4 space-y-3">

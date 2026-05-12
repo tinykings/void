@@ -36,7 +36,9 @@ const storage: StateStorage = {
 
 interface StoreState extends UserState {
   isLoaded: boolean;
+  isSyncingLibrary: boolean;
   setIsLoaded: (loaded: boolean) => void;
+  setIsSyncingLibrary: (syncing: boolean) => void;
   
   setApiKey: (apiKey: string) => void;
   setGistId: (gistId: string) => void;
@@ -83,9 +85,11 @@ export const useStore = create<StoreState>()(
         editedStatusMap: {},
         playedEpisodes: {},
         isLoaded: false,
+        isSyncingLibrary: false,
 
         // Actions
         setIsLoaded: (loaded) => set({ isLoaded: loaded }),
+        setIsSyncingLibrary: (isSyncingLibrary) => set({ isSyncingLibrary }),
         
         setApiKey: (apiKey) => set({ apiKey }),
 
@@ -140,41 +144,46 @@ export const useStore = create<StoreState>()(
           if (!gistId || !gistToken) return;
 
           await enqueueGistOperation(async () => {
-            const gist = await getGistContent(gistId);
+            set({ isSyncingLibrary: true });
+            try {
+              const gist = await getGistContent(gistId);
 
-            if (isEmptyGistPayload(gist)) {
-              await updateGist(gistId, gistToken, buildGistPayload(watchlist, watched));
-              return;
+              if (isEmptyGistPayload(gist)) {
+                await updateGist(gistId, gistToken, buildGistPayload(watchlist, watched));
+                return;
+              }
+
+              if (!gist) return;
+
+              const favoriteKeys = new Set(gist.favorites.map((item) => `${item.media_type}-${item.id}`));
+              const localWatchlist = gist.watchlist.map((item) => fromGistItem(item));
+              const localWatched = gist.watched.map((item) => fromGistItem(item, favoriteKeys.has(`${item.media_type}-${item.id}`)));
+
+              const hydrateList = async (items: Media[]) => {
+                const hydrated = await mapWithConcurrency(items, METADATA_HYDRATION_CONCURRENCY, async (item) => {
+                  try {
+                    const details = await getMediaDetails(item.id, item.media_type, apiKey);
+                    return {
+                      ...details,
+                      date_added: item.date_added,
+                      isFavorite: item.isFavorite,
+                    } as Media;
+                  } catch {
+                    return item;
+                  }
+                });
+                return hydrated;
+              };
+
+              const [hydratedWatchlist, hydratedWatched] = await Promise.all([
+                hydrateList(localWatchlist),
+                hydrateList(localWatched),
+              ]);
+
+              set({ watchlist: hydratedWatchlist, watched: hydratedWatched });
+            } finally {
+              set({ isSyncingLibrary: false });
             }
-
-            if (!gist) return;
-
-            const favoriteKeys = new Set(gist.favorites.map((item) => `${item.media_type}-${item.id}`));
-            const localWatchlist = gist.watchlist.map((item) => fromGistItem(item));
-            const localWatched = gist.watched.map((item) => fromGistItem(item, favoriteKeys.has(`${item.media_type}-${item.id}`)));
-
-            const hydrateList = async (items: Media[]) => {
-              const hydrated = await mapWithConcurrency(items, METADATA_HYDRATION_CONCURRENCY, async (item) => {
-                try {
-                  const details = await getMediaDetails(item.id, item.media_type, apiKey);
-                  return {
-                    ...details,
-                    date_added: item.date_added,
-                    isFavorite: item.isFavorite,
-                  } as Media;
-                } catch {
-                  return item;
-                }
-              });
-              return hydrated;
-            };
-
-            const [hydratedWatchlist, hydratedWatched] = await Promise.all([
-              hydrateList(localWatchlist),
-              hydrateList(localWatched),
-            ]);
-
-            set({ watchlist: hydratedWatchlist, watched: hydratedWatched });
           });
         },
 
