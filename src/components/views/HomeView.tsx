@@ -13,6 +13,7 @@ import { sortMedia } from '@/lib/sort';
 import { fromGistItem, type GistLibraryData } from '@/lib/gist';
 import { getContentRating, getImageUrl, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
 import { mapWithConcurrency } from '@/lib/concurrency';
+import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { AlertCircle, Bookmark, Clapperboard, Download, Eye, EyeOff, Film, Heart, Library, Radio, Save, Search, Settings, SlidersHorizontal, Tv, Upload, X } from 'lucide-react';
 import type { FilterType, Media, WatchProvider } from '@/lib/types';
 import { clsx } from 'clsx';
@@ -56,6 +57,7 @@ export const HomeView = () => {
     setGistToken,
     syncFromGist,
     setVidAngelEnabled,
+    setMediaEditedStatus,
     vidAngelEnabled,
     editedStatusMap,
     isSearchFocused,
@@ -78,6 +80,7 @@ export const HomeView = () => {
   const [streamGroups, setStreamGroups] = useState<StreamProviderGroup[]>([]);
   const [isStreamLoading, setIsStreamLoading] = useState(false);
   const [streamFailureCount, setStreamFailureCount] = useState(0);
+  const editedStatusMapRef = useRef(editedStatusMap);
   const activeModeLabel = showStreamView ? 'Stream' : showFavoritesOnly ? 'Favorites' : activeLibraryMode === 'library' ? 'Library' : 'Watchlist';
   const activeFilterLabel = activeFilter === 'all' ? 'All' : activeFilter === 'movie' ? 'Movies' : 'Shows';
 
@@ -145,6 +148,10 @@ export const HomeView = () => {
     return sortMedia(filtered);
   }, [baseLibraryMedia, showFavoritesOnly]);
 
+  useEffect(() => {
+    editedStatusMapRef.current = editedStatusMap;
+  }, [editedStatusMap]);
+
   const watchlistStreamKey = useMemo(() => {
     return watchlist.map((item) => `${item.media_type}-${item.id}`).join('|');
   }, [watchlist]);
@@ -166,20 +173,41 @@ export const HomeView = () => {
     void mapWithConcurrency(watchlist, STREAM_PROVIDER_CONCURRENCY, async (item) => {
       let providers: WatchProvider[] = [];
       let failed = false;
+      let isVidAngelAvailable = false;
+      const mediaKey = `${item.media_type}-${item.id}`;
 
-      try {
-        const data = await getWatchProviders(item.id, item.media_type, apiKey);
-        providers = getUSStreamingProviders(data);
-      } catch {
-        failed = true;
-      }
+      const providerPromise = getWatchProviders(item.id, item.media_type, apiKey)
+        .then((data) => {
+          providers = getUSStreamingProviders(data);
+        })
+        .catch(() => {
+          failed = true;
+        });
+      const contentRatingPromise = getContentRating(item.id, item.media_type, apiKey).catch(() => null);
+      const vidAngelPromise = vidAngelEnabled
+        ? editedStatusMapRef.current[mediaKey] !== undefined
+          ? Promise.resolve(editedStatusMapRef.current[mediaKey])
+          : checkVidAngelAvailability(getMediaTitle(item), item.id)
+              .then((slug) => {
+                const available = !!slug;
+                setMediaEditedStatus(item.id, item.media_type, available);
+                return available;
+              })
+              .catch(() => false)
+        : Promise.resolve(false);
 
-      const contentRating = await getContentRating(item.id, item.media_type, apiKey).catch(() => null);
+      const [, contentRating, vidAngelAvailable] = await Promise.all([
+        providerPromise,
+        contentRatingPromise,
+        vidAngelPromise,
+      ]);
+      isVidAngelAvailable = vidAngelAvailable;
 
       return {
         item,
         providers,
         contentRating,
+        isVidAngelAvailable,
         failed,
       };
     })
@@ -188,7 +216,13 @@ export const HomeView = () => {
 
         const groupsByProvider = new Map<number, StreamProviderGroup>();
 
-        results.forEach(({ item, providers, contentRating }) => {
+        const vidAngelItems: StreamProviderItem[] = [];
+
+        results.forEach(({ item, providers, contentRating, isVidAngelAvailable }) => {
+          if (isVidAngelAvailable) {
+            vidAngelItems.push({ media: item, contentRating });
+          }
+
           providers.forEach((provider) => {
             const streamItem = { media: item, contentRating };
             const existing = groupsByProvider.get(provider.provider_id);
@@ -215,6 +249,17 @@ export const HomeView = () => {
             return a.provider.provider_name.localeCompare(b.provider.provider_name);
           });
 
+        if (vidAngelEnabled && vidAngelItems.length > 0) {
+          groups.unshift({
+            provider: {
+              provider_id: -1,
+              provider_name: 'VidAngel',
+              logo_path: '',
+            },
+            items: vidAngelItems.sort((a, b) => getMediaTitle(a.media).localeCompare(getMediaTitle(b.media))),
+          });
+        }
+
         setStreamGroups(groups);
         setStreamFailureCount(results.filter((result) => result.failed).length);
       })
@@ -225,7 +270,7 @@ export const HomeView = () => {
     return () => {
       cancelled = true;
     };
-  }, [apiKey, showStreamView, watchlist, watchlistStreamKey]);
+  }, [apiKey, setMediaEditedStatus, showStreamView, vidAngelEnabled, watchlist, watchlistStreamKey]);
 
   const hasGistSync = !!(gistId && gistToken);
   const emptyTitle = (() => {
