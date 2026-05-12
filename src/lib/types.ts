@@ -105,6 +105,11 @@ export interface ContentRatingsResponse {
   results: ContentRating[];
 }
 
+export interface ExternalIdsResponse {
+  id: number;
+  imdb_id: string | null;
+}
+
 export interface Video {
   id: string;
   key: string;

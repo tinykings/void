@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
-import { getImageUrl, getMediaCredits, getContentRating, getMediaDetails, getMediaImages, getMediaVideos, getSeasonDetails, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
+import { getImageUrl, getMediaCredits, getContentRating, getExternalIds, getMediaDetails, getMediaImages, getMediaVideos, getSeasonDetails, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
 import { checkVidAngelAvailability } from '@/lib/vidangel';
-import { CastMember, Episode, Media, TmdbImage, Video, WatchProvider } from '@/lib/types';
+import { CastMember, Episode, ExternalIdsResponse, Media, TmdbImage, Video, WatchProvider } from '@/lib/types';
 import { Bookmark, ChevronDown, Eye, Film, Image as ImageIcon, Info, Play, ShieldCheck, Users } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
@@ -36,6 +36,7 @@ export const DetailsSheet = () => {
   const [watchProviders, setWatchProviders] = useState<{ id: number; items: WatchProvider[] } | null>(null);
   const [seasonEpisodes, setSeasonEpisodes] = useState<{ id: number; items: Episode[] } | null>(null);
   const [contentRating, setContentRating] = useState<{ id: number; value: string | null } | null>(null);
+  const [externalIds, setExternalIds] = useState<{ id: number; value: ExternalIdsResponse | null } | null>(null);
   const [overviewLoadedFor, setOverviewLoadedFor] = useState<number | null>(null);
   const [activeInfoSection, setActiveInfoSection] = useState<{ id: number; section: InfoSection } | null>(null);
   const [loadingInfoSection, setLoadingInfoSection] = useState<{ id: number; section: InfoSection } | null>(null);
@@ -73,6 +74,9 @@ export const DetailsSheet = () => {
   const watchProviderItems = selected && watchProviders?.id === selected.id ? watchProviders.items : [];
   const seasonEpisodeItems = selected && seasonEpisodes?.id === selected.id ? seasonEpisodes.items : [];
   const contentRatingValue = selected && contentRating?.id === selected.id ? contentRating.value : null;
+  const externalIdsValue = selected && externalIds?.id === selected.id ? externalIds.value : null;
+  const imdbUrl = externalIdsValue?.imdb_id ? `https://www.imdb.com/title/${externalIdsValue.imdb_id}` : '';
+  const commonSenseUrl = selected ? `https://www.commonsensemedia.org/search/${encodeURIComponent(selected.title || selected.name || '')}` : '';
   const backdropPath = selected?.backdrop_path;
   const currentActionPulse = selected && actionPulse?.id === selected.id ? actionPulse.action : null;
   const currentInfoSection = selected && activeInfoSection?.id === selected.id ? activeInfoSection.section : null;
@@ -219,6 +223,24 @@ export const DetailsSheet = () => {
         if (!cancelled) setContentRating({ id: activeDetailsMedia.id, value: rating });
       })
       .catch(console.error);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeDetailsMedia, apiKey]);
+
+  useEffect(() => {
+    if (!activeDetailsMedia || !apiKey) return;
+
+    let cancelled = false;
+
+    getExternalIds(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey)
+      .then((ids) => {
+        if (!cancelled) setExternalIds({ id: activeDetailsMedia.id, value: ids });
+      })
+      .catch(() => {
+        if (!cancelled) setExternalIds({ id: activeDetailsMedia.id, value: null });
+      });
 
     return () => {
       cancelled = true;
@@ -404,6 +426,46 @@ export const DetailsSheet = () => {
                           </button>
                         );
                       })}
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                      {imdbUrl ? (
+                        <>
+                          <a
+                            href={imdbUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex min-h-10 min-w-0 items-center justify-center gap-1 rounded-lg border border-white/15 bg-brand-bg/75 px-1.5 py-2 text-center text-[9px] font-black uppercase tracking-wide text-white transition-all hover:border-brand-cyan/40 hover:bg-brand-cyan/15 hover:text-brand-cyan sm:h-9 sm:gap-1.5 sm:px-2 sm:py-0 sm:text-[10px] sm:tracking-widest"
+                          >
+                            <span className="min-w-0 break-words leading-tight">IMDb</span>
+                          </a>
+                          <a
+                            href={`${imdbUrl}/parentalguide`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex min-h-10 min-w-0 items-center justify-center gap-1 rounded-lg border border-white/15 bg-brand-bg/75 px-1.5 py-2 text-center text-[9px] font-black uppercase tracking-wide text-white transition-all hover:border-brand-cyan/40 hover:bg-brand-cyan/15 hover:text-brand-cyan sm:h-9 sm:gap-1.5 sm:px-2 sm:py-0 sm:text-[10px] sm:tracking-widest"
+                          >
+                            <span className="min-w-0 break-words leading-tight">Parents Guide</span>
+                          </a>
+                        </>
+                      ) : (
+                        <>
+                          <span className="flex min-h-10 min-w-0 items-center justify-center rounded-lg border border-white/10 bg-brand-bg/50 px-1.5 py-2 text-center text-[9px] font-black uppercase leading-tight tracking-wide text-brand-silver/40 sm:h-9 sm:px-2 sm:py-0 sm:text-[10px] sm:tracking-widest">
+                            IMDb
+                          </span>
+                          <span className="flex min-h-10 min-w-0 items-center justify-center rounded-lg border border-white/10 bg-brand-bg/50 px-1.5 py-2 text-center text-[9px] font-black uppercase leading-tight tracking-wide text-brand-silver/40 sm:h-9 sm:px-2 sm:py-0 sm:text-[10px] sm:tracking-widest">
+                            Parents Guide
+                          </span>
+                        </>
+                      )}
+                      <a
+                        href={commonSenseUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex min-h-10 min-w-0 items-center justify-center gap-1 rounded-lg border border-white/15 bg-brand-bg/75 px-1.5 py-2 text-center text-[9px] font-black uppercase tracking-wide text-white transition-all hover:border-brand-cyan/40 hover:bg-brand-cyan/15 hover:text-brand-cyan sm:h-9 sm:gap-1.5 sm:px-2 sm:py-0 sm:text-[10px] sm:tracking-widest"
+                      >
+                        <span className="min-w-0 break-words leading-tight">Common Sense</span>
+                      </a>
                     </div>
                   </div>
                 </div>
