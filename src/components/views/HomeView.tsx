@@ -376,6 +376,18 @@ export const HomeView = () => {
     setShowTypeMenu(false);
     window.scrollTo(0, 0);
   };
+
+  const clearActiveFilterView = () => {
+    startTransition(() => {
+      setShowStreamView(false);
+      setShowFavoritesOnly(false);
+      setIsSearchFocused(false);
+    });
+
+    showStatus(activeLibraryMode === 'library' ? 'Library' : 'Watchlist');
+    setShowTypeMenu(false);
+    window.scrollTo(0, 0);
+  };
     
   const displayMedia = useMemo(() => libraryMedia.slice(0, visibleItemsCount), [libraryMedia, visibleItemsCount]);
 
@@ -737,17 +749,26 @@ export const HomeView = () => {
 
                 <button
                   type="button"
-                  onClick={() => setShowTypeMenu((current) => !current)}
+                  onClick={() => {
+                    if (showStreamView || showFavoritesOnly) {
+                      clearActiveFilterView();
+                      return;
+                    }
+
+                    setShowTypeMenu((current) => !current);
+                  }}
                   className={clsx(
                     'flex h-12 w-12 items-center justify-center rounded-full transition-all',
-                    showTypeMenu || activeFilter !== 'all' || showFavoritesOnly || showStreamView
+                    showStreamView || showFavoritesOnly
+                      ? 'bg-red-500/15 text-red-200 shadow-[0_0_18px_rgba(239,68,68,0.16)] hover:bg-red-500/25 hover:text-white'
+                      : showTypeMenu || activeFilter !== 'all'
                       ? 'bg-brand-cyan/12 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.16)]'
                       : 'text-brand-silver hover:text-white'
                   )}
-                  aria-label={showStreamView ? 'Filter: Stream' : showFavoritesOnly ? 'Filter: Favorites' : `Filter: ${activeFilterLabel}`}
-                  title={showStreamView ? 'Filter: Stream' : showFavoritesOnly ? 'Filter: Favorites' : `Filter: ${activeFilterLabel}`}
+                  aria-label={showStreamView ? 'Clear Stream view' : showFavoritesOnly ? 'Clear Favorites view' : `Filter: ${activeFilterLabel}`}
+                  title={showStreamView ? 'Clear Stream view' : showFavoritesOnly ? 'Clear Favorites view' : `Filter: ${activeFilterLabel}`}
                 >
-                  <SlidersHorizontal size={19} />
+                  {showStreamView || showFavoritesOnly ? <X size={20} /> : <SlidersHorizontal size={19} />}
                 </button>
               </div>
 
