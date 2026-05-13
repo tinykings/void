@@ -35,7 +35,6 @@ interface AppContextType extends UserState {
   setShowFavoritesOnly: (show: boolean) => void;
   toggleFavorite: (media: Media) => void;
   updateMediaMetadata: (id: number, type: 'movie' | 'tv', metadata: Partial<Media>) => void;
-  setMediaEditedStatus: (id: number, type: 'movie' | 'tv', isEdited: boolean) => void;
   isSearchFocused: boolean;
   setIsSearchFocused: (focused: boolean) => void;
   syncFromGist: (showIndicator?: boolean) => Promise<void>;
@@ -300,7 +299,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showFavoritesOnly: store.showFavoritesOnly || false,
     isSearchFocused: store.isSearchFocused || false,
     isSyncingLibrary: store.isSyncingLibrary || false,
-    editedStatusMap: store.editedStatusMap,
     playedEpisodes: store.playedEpisodes,
     isLoaded: store.isLoaded,
     
@@ -318,7 +316,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setShowFavoritesOnly: store.setShowFavoritesOnly,
     toggleFavorite: store.toggleFavorite,
     updateMediaMetadata: store.updateMediaMetadata,
-    setMediaEditedStatus: store.setMediaEditedStatus,
     setIsSearchFocused: store.setIsSearchFocused,
     activeDetailsMedia,
     activeActorMedia,

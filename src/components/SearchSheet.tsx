@@ -19,7 +19,6 @@ export const SearchSheet = () => {
     isLoaded,
     watchlist,
     watched,
-    vidAngelEnabled,
     gistId,
     gistToken,
     setGistId,
@@ -97,9 +96,11 @@ export const SearchSheet = () => {
 
   useEffect(() => {
     if (!showGistPrompt) return;
-    setTempGistId(gistId || '');
-    setTempGistToken(gistToken || '');
-    setShowToken(false);
+    queueMicrotask(() => {
+      setTempGistId(gistId || '');
+      setTempGistToken(gistToken || '');
+      setShowToken(false);
+    });
   }, [showGistPrompt, gistId, gistToken]);
 
   const closeSheet = () => {
@@ -234,7 +235,6 @@ export const SearchSheet = () => {
                   <MediaCard
                     key={`${item.media_type}-${item.id}`}
                     media={item}
-                    showBadge={vidAngelEnabled}
                     showReleaseBadge={false}
                   />
                 ))}

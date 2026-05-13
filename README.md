@@ -39,7 +39,7 @@ Data lives entirely in your browser (IndexedDB).
 
 ### Streaming Integration
 - **Watch Providers** — Click provider icons to open JustWatch search results for that title.
-- **VidAngel** — Optional content filtering integration. Shows an "Edited" badge and filter toggle when enabled.
+- **VidAngel** — Optional Stream page check that adds a VidAngel provider group for matching watchlist items.
 
 ### App Experience
 - **PWA** — Installable as a standalone app on mobile and desktop.
@@ -111,7 +111,6 @@ GitHub Actions builds and deploys to GitHub Pages on every push to `main`. The s
 |---|---|
 | Local Library | Watchlist, watched, and favorites stored in IndexedDB |
 | Watch Providers | Open JustWatch search from provider icons |
-| VidAngel | Enable content filtering badges and filter |
 
 ## License
 

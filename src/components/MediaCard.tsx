@@ -1,21 +1,18 @@
 'use client';
 
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Media } from '@/lib/types';
 import { getImageUrl } from '@/lib/tmdb';
-import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { useAppContext } from '@/context/AppContext';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
-import { vidAngelObserver } from '@/lib/observerManager';
-import { Bookmark, Check, ShieldCheck } from 'lucide-react';
+import { Bookmark, Check } from 'lucide-react';
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 const MOVIE_PRIORITY_WINDOW_DAYS = 30;
 
 interface MediaCardProps {
   media: Media;
-  showBadge?: boolean;
   showReleaseBadge?: boolean;
   onClick?: () => void;
 }
@@ -67,11 +64,8 @@ const PosterImage = ({ candidates, title }: PosterImageProps) => {
   );
 };
 
-export const MediaCard = React.memo(({ media, showBadge = false, showReleaseBadge = true, onClick }: MediaCardProps) => {
+export const MediaCard = React.memo(({ media, showReleaseBadge = true, onClick }: MediaCardProps) => {
   const {
-    vidAngelEnabled,
-    editedStatusMap,
-    setMediaEditedStatus,
     sort,
     isSearchFocused,
     watchlistIds,
@@ -80,7 +74,6 @@ export const MediaCard = React.memo(({ media, showBadge = false, showReleaseBadg
   } = useAppContext();
   
   const cardRef = useRef<HTMLDivElement>(null);
-  const isEdited = editedStatusMap[`${media.media_type}-${media.id}`];
 
   const imageCandidates = useMemo(() => {
     const paths = [media.poster_path, media.backdrop_path].filter((path): path is string => !!path);
@@ -154,22 +147,6 @@ export const MediaCard = React.memo(({ media, showBadge = false, showReleaseBadg
     confirmText: 'Confirm'
   });
 
-  useEffect(() => {
-    // Resolve VidAngel availability lazily as library cards enter view.
-    if (!vidAngelEnabled || !showBadge || isEdited !== undefined || !cardRef.current) return;
-
-    const element = cardRef.current;
-    
-    vidAngelObserver.observe(element, () => {
-      checkVidAngelAvailability(media.title || media.name || '', media.id)
-        .then((slug) => {
-          setMediaEditedStatus(media.id, media.media_type, !!slug);
-        });
-    });
-
-    return () => vidAngelObserver.unobserve(element);
-  }, [media.id, media.media_type, media.title, media.name, vidAngelEnabled, isEdited, setMediaEditedStatus, showBadge]);
-
   const title = media.title || media.name || 'Untitled';
 
   return (
@@ -199,7 +176,7 @@ export const MediaCard = React.memo(({ media, showBadge = false, showReleaseBadg
             </div>
           )}
 
-          {(showBadge && isEdited) || (isSearchFocused && (inWatched || inWatchlist)) ? (
+          {isSearchFocused && (inWatched || inWatchlist) ? (
             <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1.5">
               {isSearchFocused && inWatchlist && !inWatched && (
                 <div className="flex items-center justify-center w-6 h-6 bg-brand-cyan/65 backdrop-blur-md text-brand-bg rounded-full shadow-lg border border-brand-cyan/55">
@@ -210,12 +187,6 @@ export const MediaCard = React.memo(({ media, showBadge = false, showReleaseBadg
               {isSearchFocused && inWatched && (
                 <div className="flex items-center justify-center w-6 h-6 bg-green-500/65 backdrop-blur-md text-brand-bg rounded-full shadow-lg border border-green-300/55">
                   <Check size={12} strokeWidth={3} />
-                </div>
-              )}
-
-              {showBadge && isEdited && (
-                <div className="flex items-center justify-center w-6 h-6 bg-amber-500/65 backdrop-blur-md text-brand-bg rounded-full shadow-lg border border-amber-300/55">
-                  <ShieldCheck size={12} />
                 </div>
               )}
             </div>

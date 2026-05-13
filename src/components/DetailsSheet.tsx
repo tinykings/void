@@ -4,9 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getImageUrl, getMediaCredits, getContentRating, getExternalIds, getMediaDetails, getMediaImages, getMediaVideos, getSeasonDetails, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
-import { checkVidAngelAvailability } from '@/lib/vidangel';
 import { CastMember, Episode, ExternalIdsResponse, Media, TmdbImage, Video, WatchProvider } from '@/lib/types';
-import { Bookmark, ChevronDown, Eye, Film, Image as ImageIcon, Info, Play, ShieldCheck, Users } from 'lucide-react';
+import { Bookmark, ChevronDown, Eye, Film, Image as ImageIcon, Info, Play, Users } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 
@@ -17,9 +16,6 @@ export const DetailsSheet = () => {
     activeDetailsMedia,
     closeDetails,
     apiKey,
-    vidAngelEnabled,
-    editedStatusMap,
-    setMediaEditedStatus,
     watchlistIds,
     watchedIds,
     openActor,
@@ -67,7 +63,6 @@ export const DetailsSheet = () => {
 
   const inWatchlist = mediaKey ? watchlistIds.has(mediaKey) : false;
   const inWatched = mediaKey ? watchedIds.has(mediaKey) : false;
-  const isVidAngelAvailable = mediaKey ? editedStatusMap[mediaKey] : undefined;
   const castItems = selected && cast?.id === selected.id ? cast.items : [];
   const backdropItems = selected && backdrops?.id === selected.id ? backdrops.items : [];
   const trailerItems = selected && trailers?.id === selected.id ? trailers.items : [];
@@ -82,24 +77,6 @@ export const DetailsSheet = () => {
   const currentInfoSection = selected && activeInfoSection?.id === selected.id ? activeInfoSection.section : null;
   const currentLoadingInfoSection = selected && loadingInfoSection?.id === selected.id ? loadingInfoSection.section : null;
   const currentActiveTrailerId = selected && activeTrailer?.mediaId === selected.id ? activeTrailer.videoId : null;
-
-  useEffect(() => {
-    if (!selected || !vidAngelEnabled || isVidAngelAvailable !== undefined) return;
-
-    let cancelled = false;
-
-    checkVidAngelAvailability(selected.title || selected.name || '', selected.id)
-      .then((slug) => {
-        if (!cancelled) {
-          setMediaEditedStatus(selected.id, selected.media_type, !!slug);
-        }
-      })
-      .catch(console.error);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isVidAngelAvailable, selected, setMediaEditedStatus, vidAngelEnabled]);
 
   useEffect(() => {
     if (!activeDetailsMedia || !apiKey || overviewLoadedFor === activeDetailsMedia.id) return;
@@ -385,12 +362,6 @@ export const DetailsSheet = () => {
                       {year && <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{year}</span>}
                       <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">★ {selected.vote_average?.toFixed(1) || '0.0'}</span>
                       <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{contentRatingValue || 'N/A'}</span>
-                      {vidAngelEnabled && isVidAngelAvailable && (
-                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-500/85 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-brand-bg">
-                          <ShieldCheck size={10} />
-                          Edited
-                        </span>
-                      )}
                     </div>
 
                     {selected.tagline && (

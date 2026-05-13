@@ -1,14 +1,18 @@
 const cache = new Map<number, string | null>();
 
-export const checkVidAngelLogin = async (): Promise<boolean> => {
+export type VidAngelAccessStatus = 'available' | 'blocked' | 'unavailable';
+
+export const checkVidAngelAccess = async (): Promise<VidAngelAccessStatus> => {
   try {
-    const response = await fetch('https://api.vidangel.com/api/subscriptions/my-subscription/', {
+    const response = await fetch('https://api.vidangel.com/api/content/v2/works/', {
       credentials: 'include',
     });
 
-    return response.ok;
+    if (response.status === 403) return 'blocked';
+    if (response.ok) return 'available';
+    return 'unavailable';
   } catch {
-    return false;
+    return 'unavailable';
   }
 };
 

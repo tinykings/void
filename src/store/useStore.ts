@@ -49,7 +49,6 @@ interface StoreState extends UserState {
   setShowWatched: (show: boolean) => void;
   setIsSearchFocused: (focused: boolean) => void;
 
-  setMediaEditedStatus: (id: number, type: 'movie' | 'tv', isEdited: boolean) => void;
   updateMediaMetadata: (id: number, type: 'movie' | 'tv', metadata: Partial<Media>) => void;
   
   markEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
@@ -82,7 +81,6 @@ export const useStore = create<StoreState>()(
         showWatched: false,
         showFavoritesOnly: false,
         isSearchFocused: false,
-        editedStatusMap: {},
         playedEpisodes: {},
         isLoaded: false,
         isSyncingLibrary: false,
@@ -108,13 +106,6 @@ export const useStore = create<StoreState>()(
         setShowFavoritesOnly: (showFavoritesOnly) => set({ showFavoritesOnly }),
         
         setIsSearchFocused: (isSearchFocused) => set({ isSearchFocused }),
-
-        setMediaEditedStatus: (id, type, isEdited) => set((state) => {
-          const key = `${type}-${id}`;
-          return {
-            editedStatusMap: { ...state.editedStatusMap, [key]: isEdited }
-          };
-        }),
 
         updateMediaMetadata: (id, type, metadata) => set((state) => {
           const updateList = (list: Media[]) => 
