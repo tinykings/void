@@ -39,7 +39,6 @@ Data lives entirely in your browser (IndexedDB).
 
 ### Streaming Integration
 - **Watch Providers** — Click provider icons to open JustWatch search results for that title.
-- **VidAngel** — Optional Stream page check that adds a VidAngel provider group for matching watchlist items.
 
 ### App Experience
 - **PWA** — Installable as a standalone app on mobile and desktop.
@@ -85,8 +84,7 @@ src/
 ├── lib/
 │   ├── tmdb.ts           # All TMDB API calls
 │   ├── types.ts          # Core TypeScript interfaces
-│   └── vidangel.ts       # VidAngel integration
-└── context/
+├── context/
     └── AppContext.tsx     # React context wrapper around Zustand store
 ```
 

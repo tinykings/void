@@ -43,7 +43,6 @@ interface StoreState extends UserState {
   setApiKey: (apiKey: string) => void;
   setGistId: (gistId: string) => void;
   setGistToken: (gistToken: string) => void;
-  setVidAngelEnabled: (enabled: boolean) => void;
   setFilter: (filter: FilterType) => void;
   setSort: (sort: SortOption) => void;
   setShowWatched: (show: boolean) => void;
@@ -75,7 +74,6 @@ export const useStore = create<StoreState>()(
         watched: [],
         gistId: '',
         gistToken: '',
-        vidAngelEnabled: false,
         filter: 'all',
         sort: 'added',
         showWatched: false,
@@ -94,8 +92,6 @@ export const useStore = create<StoreState>()(
         setGistId: (gistId) => set({ gistId }),
 
         setGistToken: (gistToken) => set({ gistToken }),
-        
-        setVidAngelEnabled: (vidAngelEnabled) => set({ vidAngelEnabled }),
         
         setFilter: (filter) => set({ filter }),
         

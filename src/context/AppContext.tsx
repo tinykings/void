@@ -22,7 +22,6 @@ interface AppContextType extends UserState {
   setApiKey: (key: string) => void;
   setGistId: (id: string) => void;
   setGistToken: (token: string) => void;
-  setVidAngelEnabled: (enabled: boolean) => void;
   toggleWatchlist: (media: Media) => void;
   toggleWatched: (media: Media, rating?: number) => void;
   setLists: (watchlist: Media[], watched: Media[]) => void;
@@ -292,7 +291,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     gistToken: store.gistToken,
     watchlist: store.watchlist,
     watched: store.watched,
-    vidAngelEnabled: store.vidAngelEnabled || false,
     filter: store.filter,
     sort: store.sort,
     showWatched: store.showWatched || false,
@@ -305,7 +303,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setApiKey: store.setApiKey,
     setGistId: store.setGistId,
     setGistToken: store.setGistToken,
-    setVidAngelEnabled: store.setVidAngelEnabled,
     toggleWatchlist,
     toggleWatched,
     setLists: store.setLists,

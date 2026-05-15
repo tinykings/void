@@ -198,7 +198,6 @@ export interface UserState {
   watched: Media[];
   gistId?: string;
   gistToken?: string;
-  vidAngelEnabled?: boolean;
   filter?: FilterType;
   sort?: SortOption;
   showWatched?: boolean;

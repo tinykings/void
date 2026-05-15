@@ -13,8 +13,7 @@ import { sortMedia } from '@/lib/sort';
 import { fromGistItem, type GistLibraryData } from '@/lib/gist';
 import { getContentRating, getImageUrl, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
 import { mapWithConcurrency } from '@/lib/concurrency';
-import { checkVidAngelAccess, checkVidAngelAvailability, type VidAngelAccessStatus } from '@/lib/vidangel';
-import { AlertCircle, Bookmark, Clapperboard, Download, Eye, EyeOff, ExternalLink, Film, Heart, Library, LoaderCircle, Radio, Save, Search, Settings, SlidersHorizontal, Tv, Upload, X } from 'lucide-react';
+import { AlertCircle, Bookmark, Clapperboard, Download, Eye, EyeOff, Film, Heart, Library, LoaderCircle, Radio, Save, Search, Settings, SlidersHorizontal, Tv, Upload, X } from 'lucide-react';
 import type { FilterType, Media, WatchProvider } from '@/lib/types';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
@@ -57,8 +56,6 @@ export const HomeView = () => {
     setGistToken,
     syncFromGist,
     isSyncingLibrary,
-    setVidAngelEnabled,
-    vidAngelEnabled,
     isSearchFocused,
     setIsSearchFocused,
     closeAllSheets,
@@ -79,7 +76,6 @@ export const HomeView = () => {
   const [streamGroups, setStreamGroups] = useState<StreamProviderGroup[]>([]);
   const [isStreamLoading, setIsStreamLoading] = useState(false);
   const [streamFailureCount, setStreamFailureCount] = useState(0);
-  const [vidAngelAccessStatus, setVidAngelAccessStatus] = useState<VidAngelAccessStatus | 'idle' | 'checking'>('idle');
   const activeModeLabel = showStreamView ? 'Stream' : showFavoritesOnly ? 'Favorites' : activeLibraryMode === 'library' ? 'Library' : 'Watchlist';
   const activeFilterLabel = activeFilter === 'all' ? 'All' : activeFilter === 'movie' ? 'Movies' : 'Shows';
 
@@ -147,33 +143,10 @@ export const HomeView = () => {
     return sortMedia(filtered);
   }, [baseLibraryMedia, showFavoritesOnly]);
 
-  const watchlistStreamKey = useMemo(() => {
-    return watchlist.map((item) => `${item.media_type}-${item.id}`).join('|');
-  }, [watchlist]);
-
-  useEffect(() => {
-    if (!showStreamView || !vidAngelEnabled) {
-      setVidAngelAccessStatus('idle');
-      return;
-    }
-
-    let cancelled = false;
-    setVidAngelAccessStatus('checking');
-
-    checkVidAngelAccess()
-      .then((status) => {
-        if (!cancelled) setVidAngelAccessStatus(status);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [showStreamView, vidAngelEnabled]);
-
   useEffect(() => {
     if (!showStreamView) return;
 
-    if (watchlist.length === 0 || (!apiKey && !vidAngelEnabled)) {
+    if (watchlist.length === 0 || !apiKey) {
       setStreamGroups([]);
       setStreamFailureCount(0);
       setIsStreamLoading(false);
@@ -187,7 +160,6 @@ export const HomeView = () => {
     void mapWithConcurrency(watchlist, STREAM_PROVIDER_CONCURRENCY, async (item) => {
       let providers: WatchProvider[] = [];
       let failed = false;
-      let isVidAngelAvailable = false;
       const providerPromise = apiKey
         ? getWatchProviders(item.id, item.media_type, apiKey)
             .then((data) => {
@@ -200,24 +172,16 @@ export const HomeView = () => {
       const contentRatingPromise = apiKey
         ? getContentRating(item.id, item.media_type, apiKey).catch(() => null)
         : Promise.resolve(null);
-      const vidAngelPromise = vidAngelEnabled && vidAngelAccessStatus === 'available'
-        ? checkVidAngelAvailability(getMediaTitle(item), item.id)
-            .then((slug) => !!slug)
-            .catch(() => false)
-        : Promise.resolve(false);
 
-      const [, contentRating, vidAngelAvailable] = await Promise.all([
+      const [, contentRating] = await Promise.all([
         providerPromise,
         contentRatingPromise,
-        vidAngelPromise,
       ]);
-      isVidAngelAvailable = vidAngelAvailable;
 
       return {
         item,
         providers,
         contentRating,
-        isVidAngelAvailable,
         failed,
       };
     })
@@ -225,14 +189,7 @@ export const HomeView = () => {
         if (cancelled) return;
 
         const groupsByProvider = new Map<number, StreamProviderGroup>();
-
-        const vidAngelItems: StreamProviderItem[] = [];
-
-        results.forEach(({ item, providers, contentRating, isVidAngelAvailable }) => {
-          if (isVidAngelAvailable) {
-            vidAngelItems.push({ media: item, contentRating });
-          }
-
+        results.forEach(({ item, providers, contentRating }) => {
           providers.forEach((provider) => {
             const streamItem = { media: item, contentRating };
             const existing = groupsByProvider.get(provider.provider_id);
@@ -259,17 +216,6 @@ export const HomeView = () => {
             return a.provider.provider_name.localeCompare(b.provider.provider_name);
           });
 
-        if (vidAngelEnabled && vidAngelItems.length > 0) {
-          groups.unshift({
-            provider: {
-              provider_id: -1,
-              provider_name: 'VidAngel',
-              logo_path: '',
-            },
-            items: vidAngelItems.sort((a, b) => getMediaTitle(a.media).localeCompare(getMediaTitle(b.media))),
-          });
-        }
-
         setStreamGroups(groups);
         setStreamFailureCount(results.filter((result) => result.failed).length);
       })
@@ -280,7 +226,7 @@ export const HomeView = () => {
     return () => {
       cancelled = true;
     };
-  }, [apiKey, showStreamView, vidAngelAccessStatus, vidAngelEnabled, watchlist, watchlistStreamKey]);
+  }, [apiKey, showStreamView, watchlist]);
 
   const hasGistSync = !!(gistId && gistToken);
   const emptyTitle = (() => {
@@ -584,59 +530,10 @@ export const HomeView = () => {
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setVidAngelEnabled(!vidAngelEnabled)}
-                      className={clsx(
-                        'rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-widest transition-colors',
-                        vidAngelEnabled
-                          ? 'border-emerald-400/30 bg-emerald-500/15 text-emerald-200'
-                          : 'border-white/10 bg-white/5 text-brand-silver hover:border-brand-cyan/25 hover:text-white'
-                      )}
-                      aria-pressed={vidAngelEnabled}
-                    >
-                      VidAngel {vidAngelEnabled ? 'On' : 'Off'}
-                    </button>
                     <div className="rounded-full border border-brand-cyan/20 bg-brand-cyan/10 px-3 py-1 text-xs font-black uppercase tracking-widest text-brand-cyan">
                       {watchlist.length}
                     </div>
                   </div>
-
-                  {vidAngelEnabled && (
-                    <div className="flex items-center gap-2 text-[11px] font-semibold text-brand-silver">
-                      {vidAngelAccessStatus === 'checking' && (
-                        <>
-                          <LoaderCircle size={12} className="animate-spin text-brand-cyan" />
-                          Checking
-                        </>
-                      )}
-                      {vidAngelAccessStatus === 'available' && (
-                        <span className="text-emerald-200">Connected</span>
-                      )}
-                      {vidAngelAccessStatus === 'blocked' && (
-                        <a
-                          href="https://www.vidangel.com/login"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-amber-200 transition-colors hover:text-white"
-                        >
-                          Login required
-                          <ExternalLink size={11} />
-                        </a>
-                      )}
-                      {vidAngelAccessStatus === 'unavailable' && (
-                        <a
-                          href="https://www.vidangel.com/login"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-brand-silver transition-colors hover:text-white"
-                        >
-                          Check login
-                          <ExternalLink size={11} />
-                        </a>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
 
