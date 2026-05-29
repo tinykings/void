@@ -166,10 +166,11 @@ export const ActorSheet = () => {
                   <div className="bg-brand-bg/60">
                     {actor.profile_path ? (
                       <img
-                        src={getImageUrl(actor.profile_path, 'original')}
+                        src={getImageUrl(actor.profile_path, 'w342')}
                         alt={actorName}
                         className="w-full h-full min-h-72 object-cover"
                         decoding="async"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="w-full h-72 flex items-center justify-center text-brand-silver bg-brand-bg">

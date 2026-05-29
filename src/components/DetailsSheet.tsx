@@ -382,10 +382,12 @@ export const DetailsSheet = () => {
               {backdropPath && (
                 <div className="absolute inset-0 pointer-events-none">
                   <img
-                    src={getImageUrl(backdropPath, 'original')}
+                    src={getImageUrl(backdropPath, 'w780')}
                     alt=""
                     className="h-full w-full object-cover"
                     decoding="async"
+                    loading="lazy"
+                    sizes="100vw"
                     aria-hidden="true"
                   />
                 </div>
@@ -602,7 +604,7 @@ export const DetailsSheet = () => {
                                     <div className="h-20 w-32 shrink-0">
                                       <div className="h-full w-full overflow-hidden rounded-lg bg-white/5">
                                         {episode.still_path ? (
-                                          <img src={getImageUrl(episode.still_path, 'w342')} alt="" className="h-full w-full object-cover" decoding="async" />
+                                          <img src={getImageUrl(episode.still_path, 'w342')} alt="" className="h-full w-full object-cover" decoding="async" loading="lazy" />
                                         ) : null}
                                       </div>
                                     </div>
@@ -659,7 +661,7 @@ export const DetailsSheet = () => {
                             >
                               <div className="aspect-[2/3] bg-white/5">
                                 {member.profile_path ? (
-                                  <img src={getImageUrl(member.profile_path, 'w342')} alt={member.name} className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]" decoding="async" />
+                                  <img src={getImageUrl(member.profile_path, 'w342')} alt={member.name} className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]" decoding="async" loading="lazy" />
                                 ) : null}
                               </div>
                               <div className="p-2">
@@ -701,6 +703,8 @@ export const DetailsSheet = () => {
                               alt=""
                               className="aspect-video w-full rounded-xl object-cover blueprint-border"
                               decoding="async"
+                              loading="lazy"
+                              sizes="(max-width: 768px) 100vw, 780px"
                             />
                           ))}
                         </div>

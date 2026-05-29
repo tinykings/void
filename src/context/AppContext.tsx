@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Media, UserState, SortOption, FilterType, CastMember } from '@/lib/types';
 import { useStore } from '@/store/useStore';
+import { useShallow } from 'zustand/react/shallow';
 import { getMediaDetails } from '@/lib/tmdb';
 import { mapWithConcurrency } from '@/lib/concurrency';
 
@@ -59,7 +60,37 @@ interface AppContextType extends UserState {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const store = useStore();
+  const store = useStore(useShallow((s) => ({
+    apiKey: s.apiKey,
+    gistId: s.gistId,
+    gistToken: s.gistToken,
+    watchlist: s.watchlist,
+    watched: s.watched,
+    filter: s.filter,
+    sort: s.sort,
+    showWatched: s.showWatched,
+    showFavoritesOnly: s.showFavoritesOnly,
+    isSearchFocused: s.isSearchFocused,
+    isSyncingLibrary: s.isSyncingLibrary,
+    playedEpisodes: s.playedEpisodes,
+    isLoaded: s.isLoaded,
+    setApiKey: s.setApiKey,
+    setGistId: s.setGistId,
+    setGistToken: s.setGistToken,
+    setLists: s.setLists,
+    syncFromGist: s.syncFromGist,
+    setFilter: s.setFilter,
+    setSort: s.setSort,
+    setShowWatched: s.setShowWatched,
+    setShowFavoritesOnly: s.setShowFavoritesOnly,
+    toggleFavorite: s.toggleFavorite,
+    updateMediaMetadata: s.updateMediaMetadata,
+    setIsSearchFocused: s.setIsSearchFocused,
+    markEpisodePlayed: s.markEpisodePlayed,
+    unmarkEpisodePlayed: s.unmarkEpisodePlayed,
+    toggleWatchlist: s.toggleWatchlist,
+    toggleWatched: s.toggleWatched,
+  })));
   const initialGistSyncDone = useRef('');
   const initialViewApplied = useRef(false);
   const hydratedMediaKeys = useRef<Set<string>>(new Set());
@@ -159,7 +190,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setPendingLibraryView(inWatchlist ? null : { mode: 'watchlist', filter: 'all' });
     await store.toggleWatchlist(media);
-  }, [store]);
+  }, [store.watchlist, store.toggleWatchlist]);
 
   const toggleWatched = useCallback(async (media: Media, rating?: number) => {
     const mediaKey = `${media.media_type}-${media.id}`;
@@ -167,7 +198,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setPendingLibraryView(inWatched ? null : { mode: 'watched', filter: 'all' });
     await store.toggleWatched(media, rating);
-  }, [store]);
+  }, [store.watched, store.toggleWatched]);
 
   // Service worker registration
   useEffect(() => {
