@@ -1,0 +1,20 @@
+{
+  "id": "ecc67509",
+  "phase": "variants_ready",
+  "pageUrl": "/",
+  "sourceFile": "src/components/ActorSheet.tsx",
+  "expectedVariants": 3,
+  "arrivedVariants": 0,
+  "visibleVariant": 0,
+  "paramValues": {},
+  "pendingEventSeq": null,
+  "pendingEvent": null,
+  "deliveryLease": null,
+  "checkpointRevision": 1,
+  "activeOwner": "7b18a56f",
+  "sourceMarkers": {},
+  "fallbackMode": null,
+  "annotationArtifacts": [],
+  "diagnostics": [],
+  "updatedAt": "2026-05-29T02:03:06.579Z"
+}
