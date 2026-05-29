@@ -7,7 +7,9 @@ import { getImageUrl, getMediaCredits, getContentRating, getExternalIds, getMedi
 import { CastMember, Episode, ExternalIdsResponse, Media, TmdbImage, Video, WatchProvider } from '@/lib/types';
 import { Bookmark, ChevronDown, Eye, Film, Image as ImageIcon, Info, Play, Users } from 'lucide-react';
 import { clsx } from 'clsx';
+import { toast } from 'sonner';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
+import { FocusTrap } from '@/components/FocusTrap';
 
 type InfoSection = 'overview' | 'cast' | 'images' | 'trailers';
 
@@ -55,6 +57,24 @@ export const DetailsSheet = () => {
     confirmText: 'Confirm',
   });
 
+  const [initError, setInitError] = useState(false);
+  const [sectionErrors, setSectionErrors] = useState<Set<string>>(new Set());
+  const [retryCount, setRetryCount] = useState(0);
+
+  const handleRetryInit = () => {
+    setInitError(false);
+    setRetryCount(c => c + 1);
+  };
+
+  const handleRetrySection = (section: string) => {
+    setSectionErrors(prev => {
+      const next = new Set(prev);
+      next.delete(section);
+      return next;
+    });
+    setRetryCount(c => c + 1);
+  };
+
   const selected = activeDetailsMedia && details?.id === activeDetailsMedia.id ? details.media : activeDetailsMedia;
   const mediaKey = useMemo(() => {
     if (!selected) return '';
@@ -93,12 +113,14 @@ export const DetailsSheet = () => {
           lastChecked: Date.now(),
         });
       })
-      .catch(console.error);
+      .catch(() => {
+        if (!cancelled) setInitError(true);
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [activeDetailsMedia, apiKey, overviewLoadedFor, updateMediaMetadata]);
+  }, [activeDetailsMedia, apiKey, overviewLoadedFor, updateMediaMetadata, retryCount]);
 
   useEffect(() => {
     return () => {
@@ -180,7 +202,9 @@ export const DetailsSheet = () => {
           });
 
     request
-      .catch(console.error)
+      .catch(() => {
+        if (!cancelled && section) setSectionErrors(prev => new Set(prev).add(section));
+      })
       .finally(() => {
         if (!cancelled) setLoadingInfoSection(null);
       });
@@ -188,7 +212,7 @@ export const DetailsSheet = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeDetailsMedia, activeInfoSection, apiKey, backdrops?.id, cast?.id, trailers?.id, watchProviders?.id, seasonEpisodes?.id]);
+  }, [activeDetailsMedia, activeInfoSection, apiKey, backdrops?.id, cast?.id, trailers?.id, watchProviders?.id, seasonEpisodes?.id, retryCount]);
 
   useEffect(() => {
     if (!activeDetailsMedia || !apiKey) return;
@@ -269,7 +293,7 @@ export const DetailsSheet = () => {
     closeActionTimerRef.current = setTimeout(() => {
       closeDetails();
       setActionPulse(null);
-    }, 180);
+    }, 250);
   };
 
   const handleWatchlistToggle = () => {
@@ -288,6 +312,14 @@ export const DetailsSheet = () => {
     }
 
     void runActionAndClose('watchlist', () => toggleWatchlist(selected));
+
+    toast(`${title} added to watchlist`, {
+      action: {
+        label: 'Undo',
+        onClick: () => toggleWatchlist(selected),
+      },
+      duration: 4000,
+    });
   };
 
   const handleWatchedToggle = () => {
@@ -306,6 +338,14 @@ export const DetailsSheet = () => {
     }
 
     void runActionAndClose('watched', () => toggleWatched(selected));
+
+    toast(`${title} marked as watched`, {
+      action: {
+        label: 'Undo',
+        onClick: () => toggleWatched(selected),
+      },
+      duration: 4000,
+    });
   };
 
   return (
@@ -326,8 +366,9 @@ export const DetailsSheet = () => {
               exit={{ y: '100%' }}
               transition={{ duration: 0.12, ease: 'easeOut' }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-4xl h-[92vh] max-h-[96vh] bg-brand-bg/95 embossed-edge rounded-t-3xl overflow-hidden flex flex-col"
+              className="relative w-full max-w-4xl h-[92vh] max-h-[96vh] bg-brand-bg/95 embossed-edge rounded-t-3xl overflow-hidden flex flex-col will-change-transform"
             >
+              <FocusTrap active={isOpen}>
               {backdropPath && (
                 <div className="absolute inset-0 pointer-events-none">
                   <img
@@ -343,15 +384,15 @@ export const DetailsSheet = () => {
               <div className="absolute inset-x-0 top-[14vh] bottom-0 pointer-events-none bg-gradient-to-b from-transparent via-brand-bg/80 via-45% to-brand-bg" />
               {currentInfoSection && <div className="absolute inset-0 pointer-events-none bg-brand-bg/55" />}
 
-              <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar px-4 pb-28">
+              <div className="relative z-10 flex-1 overflow-y-auto px-4 pb-28">
                 <div className={clsx('flex flex-col justify-end pb-4', currentInfoSection ? 'min-h-0 pt-8' : 'min-h-[calc(92vh-7rem)]')}>
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                      <h2 className="text-2xl font-black leading-tight text-white sm:text-3xl" style={{ textShadow: '0 3px 16px rgba(0,0,0,0.7)' }}>
+                      <h2 className="text-2xl font-black leading-tight text-white text-shadow-strong sm:text-3xl">
                         {title}
                       </h2>
                       {(episodeLabel || movieReleaseLabel) && (
-                        <span className="text-[11px] font-black uppercase tracking-widest text-brand-cyan" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.7)' }}>
+                        <span className="text-[11px] font-black uppercase tracking-widest text-brand-cyan text-shadow-mild">
                           {episodeLabel || movieReleaseLabel}
                         </span>
                       )}
@@ -365,7 +406,7 @@ export const DetailsSheet = () => {
                     </div>
 
                     {selected.tagline && (
-                      <p className="text-sm font-medium italic leading-relaxed text-white/85" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.7)' }}>
+                      <p className="text-sm font-medium italic leading-relaxed text-white/85 text-shadow-mild">
                         {selected.tagline}
                       </p>
                     )}
@@ -399,52 +440,36 @@ export const DetailsSheet = () => {
                       })}
                     </div>
 
-                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-                      {imdbUrl ? (
-                        <>
-                          <a
-                            href={imdbUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex min-h-10 min-w-0 items-center justify-center gap-1 rounded-lg border border-white/15 bg-brand-bg/75 px-1.5 py-2 text-center text-[9px] font-black uppercase tracking-wide text-white transition-all hover:border-brand-cyan/40 hover:bg-brand-cyan/15 hover:text-brand-cyan sm:h-9 sm:gap-1.5 sm:px-2 sm:py-0 sm:text-[10px] sm:tracking-widest"
-                          >
-                            <span className="min-w-0 break-words leading-tight">IMDb</span>
-                          </a>
-                          <a
-                            href={`${imdbUrl}/parentalguide`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex min-h-10 min-w-0 items-center justify-center gap-1 rounded-lg border border-white/15 bg-brand-bg/75 px-1.5 py-2 text-center text-[9px] font-black uppercase tracking-wide text-white transition-all hover:border-brand-cyan/40 hover:bg-brand-cyan/15 hover:text-brand-cyan sm:h-9 sm:gap-1.5 sm:px-2 sm:py-0 sm:text-[10px] sm:tracking-widest"
-                          >
-                            <span className="min-w-0 break-words leading-tight">Parents Guide</span>
-                          </a>
-                        </>
-                      ) : (
-                        <>
-                          <span className="flex min-h-10 min-w-0 items-center justify-center rounded-lg border border-white/10 bg-brand-bg/50 px-1.5 py-2 text-center text-[9px] font-black uppercase leading-tight tracking-wide text-brand-silver/40 sm:h-9 sm:px-2 sm:py-0 sm:text-[10px] sm:tracking-widest">
-                            IMDb
-                          </span>
-                          <span className="flex min-h-10 min-w-0 items-center justify-center rounded-lg border border-white/10 bg-brand-bg/50 px-1.5 py-2 text-center text-[9px] font-black uppercase leading-tight tracking-wide text-brand-silver/40 sm:h-9 sm:px-2 sm:py-0 sm:text-[10px] sm:tracking-widest">
-                            Parents Guide
-                          </span>
-                        </>
-                      )}
-                      <a
-                        href={commonSenseUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex min-h-10 min-w-0 items-center justify-center gap-1 rounded-lg border border-white/15 bg-brand-bg/75 px-1.5 py-2 text-center text-[9px] font-black uppercase tracking-wide text-white transition-all hover:border-brand-cyan/40 hover:bg-brand-cyan/15 hover:text-brand-cyan sm:h-9 sm:gap-1.5 sm:px-2 sm:py-0 sm:text-[10px] sm:tracking-widest"
+                  {initError && (
+                    <div className="flex items-center justify-between rounded-xl bg-red-900/20 border border-red-500/30 p-3">
+                      <p className="text-xs font-medium text-red-200">Could not load details. Check your connection and try again.</p>
+                      <button
+                        type="button"
+                        onClick={handleRetryInit}
+                        className="rounded-lg border border-red-500/40 bg-red-950/40 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
                       >
-                        <span className="min-w-0 break-words leading-tight">Common Sense</span>
-                      </a>
+                        Retry
+                      </button>
                     </div>
-                  </div>
+                  )}
                 </div>
+              </div>
 
-                {currentInfoSection && (
-                  <div className="mt-3 min-h-[calc(92vh-15rem)] rounded-2xl bg-brand-bg/88 embossed-edge p-3 shadow-2xl shadow-black/35">
+              {currentInfoSection && (
+                  <div className="mt-3 min-h-[calc(92vh-15rem)] rounded-2xl bg-brand-bg/88 blueprint-border p-3 shadow-2xl shadow-black/35">
                     {currentInfoSection === 'overview' && (
-                      currentLoadingInfoSection === 'overview' ? (
+                      sectionErrors.has('overview') ? (
+                        <div className="flex flex-col items-center gap-3 py-10">
+                          <p className="text-sm text-red-200">Failed to load overview.</p>
+                          <button
+                            type="button"
+                            onClick={() => handleRetrySection('overview')}
+                            className="rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      ) : currentLoadingInfoSection === 'overview' ? (
                         <div className="space-y-3">
                           <div className="h-24 rounded-xl bg-white/10 animate-pulse" />
                           <div className="h-14 rounded-xl bg-white/10 animate-pulse" />
@@ -478,7 +503,10 @@ export const DetailsSheet = () => {
                             className="flex items-center justify-between gap-3 rounded-xl bg-brand-bg/80 blueprint-border p-3 transition-colors hover:bg-brand-bg"
                           >
                             <div className="min-w-0">
-                              <p className="text-sm text-white truncate">
+                              <p
+                                className="text-sm text-white truncate"
+                                title={watchProviderItems.length > 0 ? watchProviderItems.map((p) => p.provider_name).join(' · ') : ''}
+                              >
                                 {watchProviderItems.length > 0
                                   ? watchProviderItems.map((provider) => provider.provider_name).join(' · ')
                                   : 'No US streaming providers found'}
@@ -489,6 +517,39 @@ export const DetailsSheet = () => {
                             </div>
                             <Play className="shrink-0 text-brand-cyan" size={16} />
                           </a>
+
+                          {(imdbUrl || commonSenseUrl) && (
+                            <div className="flex flex-wrap gap-2">
+                              {imdbUrl && (
+                                <a
+                                  href={imdbUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="flex items-center gap-1 rounded-lg border border-white/15 bg-brand-bg/80 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:border-brand-cyan/40 hover:bg-brand-cyan/15 hover:text-brand-cyan"
+                                >
+                                  IMDb
+                                </a>
+                              )}
+                              {imdbUrl && (
+                                <a
+                                  href={`${imdbUrl}/parentalguide`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="flex items-center gap-1 rounded-lg border border-white/15 bg-brand-bg/80 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:border-brand-cyan/40 hover:bg-brand-cyan/15 hover:text-brand-cyan"
+                                >
+                                  Parents Guide
+                                </a>
+                              )}
+                              <a
+                                href={commonSenseUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-1 rounded-lg border border-white/15 bg-brand-bg/80 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:border-brand-cyan/40 hover:bg-brand-cyan/15 hover:text-brand-cyan"
+                              >
+                                Common Sense
+                              </a>
+                            </div>
+                          )}
 
                           {selected.media_type === 'tv' && (
                             <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
@@ -540,7 +601,18 @@ export const DetailsSheet = () => {
                     )}
 
                     {currentInfoSection === 'cast' && (
-                      currentLoadingInfoSection === 'cast' ? (
+                      sectionErrors.has('cast') ? (
+                        <div className="flex flex-col items-center gap-3 py-10">
+                          <p className="text-sm text-red-200">Failed to load cast.</p>
+                          <button
+                            type="button"
+                            onClick={() => handleRetrySection('cast')}
+                            className="rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      ) : currentLoadingInfoSection === 'cast' ? (
                         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                           {[...Array(6)].map((_, index) => (
                             <div key={index} className="aspect-[2/3] rounded-xl bg-white/10 animate-pulse" />
@@ -573,7 +645,18 @@ export const DetailsSheet = () => {
                     )}
 
                     {currentInfoSection === 'images' && (
-                      currentLoadingInfoSection === 'images' ? (
+                      sectionErrors.has('images') ? (
+                        <div className="flex flex-col items-center gap-3 py-10">
+                          <p className="text-sm text-red-200">Failed to load images.</p>
+                          <button
+                            type="button"
+                            onClick={() => handleRetrySection('images')}
+                            className="rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      ) : currentLoadingInfoSection === 'images' ? (
                         <div className="space-y-3">
                           {[...Array(4)].map((_, index) => (
                             <div key={index} className="aspect-video rounded-xl bg-white/10 animate-pulse" />
@@ -597,7 +680,18 @@ export const DetailsSheet = () => {
                     )}
 
                     {currentInfoSection === 'trailers' && (
-                      currentLoadingInfoSection === 'trailers' ? (
+                      sectionErrors.has('trailers') ? (
+                        <div className="flex flex-col items-center gap-3 py-10">
+                          <p className="text-sm text-red-200">Failed to load trailers.</p>
+                          <button
+                            type="button"
+                            onClick={() => handleRetrySection('trailers')}
+                            className="rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      ) : currentLoadingInfoSection === 'trailers' ? (
                         <div className="space-y-2">
                           {[...Array(4)].map((_, index) => (
                             <div key={index} className="aspect-video rounded-xl bg-white/10 animate-pulse" />
@@ -669,7 +763,7 @@ export const DetailsSheet = () => {
                     className={clsx(
                       'flex h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 text-xs font-black uppercase tracking-widest transition-all duration-200 hover:-translate-y-0.5',
                       inWatched
-                        ? 'border-emerald-300/40 bg-emerald-500/30 text-emerald-300 hover:border-emerald-200/60 hover:bg-emerald-500/40 hover:text-white hover:shadow-[0_0_18px_rgba(16,185,129,0.14)]'
+                        ? 'border-brand-cyan/40 bg-brand-cyan/30 text-brand-cyan hover:border-brand-cyan/70 hover:bg-brand-cyan/40 hover:text-white hover:shadow-[0_0_18px_rgba(34,211,238,0.14)]'
                         : 'border-white/15 bg-brand-bg/80 text-white hover:border-brand-cyan/30 hover:bg-brand-bg hover:text-brand-cyan hover:shadow-[0_0_18px_rgba(34,211,238,0.08)]'
                     )}
                   >
@@ -680,7 +774,7 @@ export const DetailsSheet = () => {
                   <button
                     type="button"
                     onClick={closeDetails}
-                    className="flex h-11 w-full items-center justify-center rounded-lg bg-white/10 text-gray-300 border border-white/20 transition-all hover:bg-white/20 hover:text-white hover:border-white/30"
+                    className="flex h-11 w-full items-center justify-center rounded-lg bg-white/10 text-brand-silver border border-white/15 transition-all hover:bg-white/20 hover:text-white hover:border-white/30"
                     aria-label="Close sheet"
                     title="Tap to close"
                   >
@@ -707,6 +801,7 @@ export const DetailsSheet = () => {
                   </motion.button>
                 </div>
               </div>
+            </FocusTrap>
             </motion.div>
 
             <ConfirmationModal

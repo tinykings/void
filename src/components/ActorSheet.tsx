@@ -7,6 +7,7 @@ import { getImageUrl, getPersonCredits, getPersonDetails } from '@/lib/tmdb';
 import { Media, PersonDetails } from '@/lib/types';
 import { X, User } from 'lucide-react';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
+import { FocusTrap } from '@/components/FocusTrap';
 
 export const ActorSheet = () => {
   const { activeActorMedia, closeActor, closeAllSheets, apiKey, openDetails } = useAppContext();
@@ -140,8 +141,9 @@ export const ActorSheet = () => {
           exit={{ y: '100%' }}
           transition={{ duration: 0.12, ease: 'easeOut' }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-4xl h-[86vh] sm:h-[80vh] lg:h-[74vh] max-h-[92vh] bg-brand-bg/95 embossed-edge rounded-t-3xl overflow-hidden flex flex-col"
+          className="relative w-full max-w-4xl h-[86vh] sm:h-[80vh] lg:h-[74vh] max-h-[92vh] bg-brand-bg/95 embossed-edge rounded-t-3xl overflow-hidden flex flex-col will-change-transform"
         >
+          <FocusTrap active={!!actor}>
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-brand-bg/80">
             <div className="min-w-0">
               <h2 className="min-w-0 text-lg font-black text-white uppercase tracking-tight leading-tight truncate">
@@ -151,13 +153,13 @@ export const ActorSheet = () => {
 
             <button
               onClick={closeActor}
-              className="p-2 rounded-lg bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/25 shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:bg-brand-cyan/20 hover:text-white hover:border-brand-cyan/40"
+              className="p-3 rounded-lg bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/25 shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:bg-brand-cyan/20 hover:text-white hover:border-brand-cyan/40"
             >
-              <X size={18} />
+              <X size={20} />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pb-24">
+          <div className="flex-1 overflow-y-auto px-4 pb-24">
             <div className="pt-4 space-y-4">
               <div className="rounded-2xl blueprint-border bg-white/5 overflow-hidden">
                 <div className="grid gap-0 md:grid-cols-[240px_1fr]">
@@ -230,6 +232,7 @@ export const ActorSheet = () => {
           </div>
 
           <SheetDragHandle onClose={closeActor} />
+          </FocusTrap>
         </motion.div>
       </div>
     </AnimatePresence>

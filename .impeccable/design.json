@@ -1,0 +1,264 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-28T00:00:00.000Z",
+  "title": "Design System: Void",
+  "extensions": {
+    "colorMeta": {
+      "brand-bg": {
+        "role": "neutral",
+        "displayName": "Void Ground",
+        "canonical": "oklch(14.5% 0.004 260)",
+        "tonalRamp": [
+          "oklch(10% 0.003 260)",
+          "oklch(15% 0.004 260)",
+          "oklch(22% 0.005 260)",
+          "oklch(32% 0.008 260)",
+          "oklch(45% 0.012 260)",
+          "oklch(58% 0.018 260)",
+          "oklch(72% 0.025 260)",
+          "oklch(88% 0.015 260)"
+        ]
+      },
+      "surface-raised": {
+        "role": "neutral",
+        "displayName": "Surface Raised",
+        "canonical": "oklch(18% 0.005 260)",
+        "tonalRamp": [
+          "oklch(12% 0.003 260)",
+          "oklch(18% 0.005 260)",
+          "oklch(25% 0.006 260)",
+          "oklch(35% 0.008 260)",
+          "oklch(45% 0.012 260)",
+          "oklch(58% 0.018 260)",
+          "oklch(72% 0.025 260)",
+          "oklch(88% 0.015 260)"
+        ]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Foreground",
+        "canonical": "oklch(96.5% 0.003 255)",
+        "tonalRamp": [
+          "oklch(88% 0.003 255)",
+          "oklch(90% 0.003 255)",
+          "oklch(92% 0.003 255)",
+          "oklch(93.5% 0.003 255)",
+          "oklch(95% 0.003 255)",
+          "oklch(96.5% 0.003 255)",
+          "oklch(98% 0.002 255)",
+          "oklch(99.5% 0.001 255)"
+        ]
+      },
+      "brand-cyan": {
+        "role": "primary",
+        "displayName": "Cyan Signal",
+        "canonical": "oklch(75% 0.155 215)",
+        "tonalRamp": [
+          "oklch(15% 0.04 215)",
+          "oklch(25% 0.07 215)",
+          "oklch(35% 0.10 215)",
+          "oklch(45% 0.13 215)",
+          "oklch(55% 0.15 215)",
+          "oklch(65% 0.155 215)",
+          "oklch(75% 0.155 215)",
+          "oklch(88% 0.08 215)"
+        ]
+      },
+      "brand-silver": {
+        "role": "neutral",
+        "displayName": "Silver Information",
+        "canonical": "oklch(67% 0.03 255)",
+        "tonalRamp": [
+          "oklch(15% 0.008 255)",
+          "oklch(25% 0.012 255)",
+          "oklch(35% 0.018 255)",
+          "oklch(47% 0.025 255)",
+          "oklch(55% 0.03 255)",
+          "oklch(67% 0.03 255)",
+          "oklch(80% 0.025 255)",
+          "oklch(92% 0.015 255)"
+        ]
+      },
+      "blueprint-border": {
+        "role": "neutral",
+        "displayName": "Blueprint Border",
+        "canonical": "rgba(255,255,255,0.1)"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Media titles in detail sheets and section headers."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Sheet section headers and settings group titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Overview text, descriptions, sync status messages."
+      },
+      "label": {
+        "displayName": "Label Caps",
+        "purpose": "Filters, tabs, badges, metadata chips, button labels."
+      }
+    },
+    "shadows": [
+      {
+        "name": "embossed-panel",
+        "value": "inset 0 1px 0 rgba(255,255,255,0.08), 0 1px 3px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.25)",
+        "purpose": "Raised surfaces: sheets, modals, settings panels."
+      },
+      {
+        "name": "cyan-active-glow",
+        "value": "0 0 15px rgba(34,211,238,0.1)",
+        "purpose": "Active filter tabs, selected chips, focused inputs."
+      },
+      {
+        "name": "cyan-active-glow-strong",
+        "value": "0 0 22px rgba(34,211,238,0.16)",
+        "purpose": "Stronger active glow for primary selected states."
+      },
+      {
+        "name": "bottom-bar-float",
+        "value": "0 0 35px rgba(0,0,0,0.35)",
+        "purpose": "Fixed bottom navigation bar."
+      }
+    ],
+    "motion": [
+      {
+        "name": "sheet-enter",
+        "value": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+        "purpose": "Slide up entrance for bottom sheets (120-200ms)."
+      },
+      {
+        "name": "tab-slide",
+        "value": "cubic-bezier(0.215, 0.61, 0.355, 1)",
+        "purpose": "Pill indicator between Library/Watchlist toggle (300ms)."
+      },
+      {
+        "name": "hover-scale",
+        "value": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+        "purpose": "Card image hover scale transition (300ms)."
+      }
+    ],
+    "breakpoints": [
+      { "name": "xs", "value": "380px" },
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary CTA Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Full-width primary action. Used for Save, Sync, and confirm flows.",
+      "html": "<button class=\"ds-btn-primary\">SAVE</button>",
+      "css": ".ds-btn-primary { display: flex; width: 100%; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; background: #22D3EE; color: #0F1115; font-family: Inter, Arial, Helvetica, sans-serif; font-size: 0.875rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 12px; border: none; cursor: pointer; transition: background 0.2s, transform 0.15s; } .ds-btn-primary:hover { background: #5ee0f2; } .ds-btn-primary:active { transform: scale(0.95); }"
+    },
+    {
+      "name": "Ghost Icon Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Circular icon button for filter, close, and toolbar actions.",
+      "html": "<button class=\"ds-btn-ghost\" aria-label=\"Filter\"><svg viewBox=\"0 0 24 24\" width=\"19\" height=\"19\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"4\" y1=\"21\" x2=\"4\" y2=\"14\"/><line x1=\"4\" y1=\"10\" x2=\"4\" y2=\"3\"/><line x1=\"12\" y1=\"21\" x2=\"12\" y2=\"12\"/><line x1=\"12\" y1=\"8\" x2=\"12\" y2=\"3\"/><line x1=\"20\" y1=\"21\" x2=\"20\" y2=\"16\"/><line x1=\"20\" y1=\"12\" x2=\"20\" y2=\"3\"/><line x1=\"1\" y1=\"14\" x2=\"7\" y2=\"14\"/><line x1=\"9\" y1=\"8\" x2=\"15\" y2=\"8\"/><line x1=\"17\" y1=\"16\" x2=\"23\" y2=\"16\"/></svg></button>",
+      "css": ".ds-btn-ghost { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 9999px; background: transparent; color: #94A3B8; border: none; cursor: pointer; transition: background 0.2s, color 0.2s; } .ds-btn-ghost:hover { background: rgba(34,211,238,0.1); color: #F8FAFC; } .ds-btn-ghost:focus-visible { outline: 2px solid #22D3EE; outline-offset: 2px; }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Search field with cyan glow on focus. Used in the search sheet header.",
+      "html": "<div class=\"ds-input-wrap\"><svg class=\"ds-input-icon\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"#22D3EE\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"/></svg><input class=\"ds-input\" type=\"text\" placeholder=\"Search movies, shows...\" /></div>",
+      "css": ".ds-input-wrap { position: relative; width: 100%; max-width: 512px; } .ds-input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; } .ds-input { width: 100%; padding: 12px 12px 12px 40px; background: #0F1115; color: #F8FAFC; font-family: Inter, Arial, Helvetica, sans-serif; font-size: 0.875rem; font-weight: 500; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; outline: none; transition: box-shadow 0.2s, border-color 0.2s; } .ds-input::placeholder { color: rgba(148,163,184,0.5); } .ds-input:focus { border-color: transparent; box-shadow: 0 0 20px rgba(34,211,238,0.08), 0 0 0 1px #22D3EE; }"
+    },
+    {
+      "name": "Media Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Poster card in grid. Image fills the card; hover scales the image.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-inner\"><img class=\"ds-card-img\" src=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='300'%3E%3Crect width='200' height='300' fill='%230F1115'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle' fill='%2394A3B8' font-family='Inter,sans-serif' font-size='14' font-weight='500'%3EPoster%3C/text%3E%3C/svg%3E\" alt=\"Poster\" /></div></div>",
+      "css": ".ds-card { position: relative; background: #0F1115; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); transition: border-color 0.2s; aspect-ratio: 2/3; } .ds-card:hover { border-color: rgba(34,211,238,0.2); } .ds-card-inner { overflow: hidden; width: 100%; height: 100%; } .ds-card-img { width: 100%; height: 100%; object-fit: cover; transition: transform 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94); } .ds-card:hover .ds-card-img { transform: scale(1.05); }"
+    },
+    {
+      "name": "Bottom Sheet",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Bottom-drawer sheet with embossed edge. Signature Void component.",
+      "html": "<div class=\"ds-sheet-overlay\"><div class=\"ds-sheet\"><div class=\"ds-sheet-header\"><h2 class=\"ds-sheet-title\">Title</h2><button class=\"ds-sheet-close\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"18\" y1=\"6\" x2=\"6\" y2=\"18\"/><line x1=\"6\" y1=\"6\" x2=\"18\" y2=\"18\"/></svg></button></div><div class=\"ds-sheet-body\"><p class=\"ds-sheet-body-text\">Sheet content goes here.</p></div><div class=\"ds-sheet-footer\"><button class=\"ds-sheet-drag\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"6 9 12 15 18 9\"/></svg></button></div></div></div>",
+      "css": ".ds-sheet-overlay { position: fixed; inset: 0; display: flex; align-items: flex-end; justify-content: center; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); } .ds-sheet { position: relative; width: 100%; max-width: 896px; height: 86vh; max-height: 92vh; background: rgba(15,17,21,0.95); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px 24px 0 0; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 1px 3px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.25); overflow: hidden; display: flex; flex-direction: column; } .ds-sheet-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(15,17,21,0.8); } .ds-sheet-title { font-family: Inter, Arial, Helvetica, sans-serif; font-size: 1.125rem; font-weight: 600; color: #F8FAFC; margin: 0; } .ds-sheet-close { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; background: rgba(34,211,238,0.1); color: #22D3EE; border: 1px solid rgba(34,211,238,0.25); cursor: pointer; transition: background 0.2s, color 0.2s; } .ds-sheet-close:hover { background: rgba(34,211,238,0.2); color: #F8FAFC; border-color: rgba(34,211,238,0.4); } .ds-sheet-body { flex: 1; overflow-y: auto; padding: 16px; scrollbar-width: none; } .ds-sheet-body::-webkit-scrollbar { display: none; } .ds-sheet-body-text { font-family: Inter, Arial, Helvetica, sans-serif; font-size: 0.875rem; font-weight: 500; line-height: 1.5; color: #94A3B8; margin: 0; } .ds-sheet-footer { padding: 12px 16px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid rgba(255,255,255,0.04); background: rgba(15,17,21,0.4); backdrop-filter: blur(24px); } .ds-sheet-drag { display: flex; width: 100%; height: 44px; align-items: center; justify-content: center; border-radius: 8px; background: rgba(34,211,238,0.1); color: #22D3EE; border: 1px solid rgba(34,211,238,0.25); cursor: pointer; transition: background 0.2s, color 0.2s; } .ds-sheet-drag:hover { background: rgba(34,211,238,0.2); color: #F8FAFC; border-color: rgba(34,211,238,0.4); }"
+    },
+    {
+      "name": "Metadata Chip",
+      "kind": "chip",
+      "description": "Compact rounded badge for metadata labels (media type, year, rating).",
+      "html": "<div class=\"ds-chip-group\"><span class=\"ds-chip\">MOVIE</span><span class=\"ds-chip\">2024</span><span class=\"ds-chip\">★ 7.4</span><span class=\"ds-chip\">R</span></div>",
+      "css": ".ds-chip-group { display: flex; flex-wrap: wrap; gap: 8px; } .ds-chip { display: inline-flex; align-items: center; padding: 4px 8px; background: rgba(255,255,255,0.1); backdrop-filter: blur(4px); border-radius: 9999px; font-family: Inter, Arial, Helvetica, sans-serif; font-size: 0.6875rem; font-weight: 900; line-height: 1.2; letter-spacing: 0.18em; text-transform: uppercase; color: #94A3B8; white-space: nowrap; }"
+    },
+    {
+      "name": "Bottom Navigation Bar",
+      "kind": "nav",
+      "description": "Fixed bottom bar with toggle and action buttons.",
+      "html": "<div class=\"ds-bottom-bar\"><div class=\"ds-bottom-inner\"><button class=\"ds-btn-ghost\" aria-label=\"Filter\"><svg viewBox=\"0 0 24 24\" width=\"19\" height=\"19\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"4\" y1=\"21\" x2=\"4\" y2=\"14\"/><line x1=\"4\" y1=\"10\" x2=\"4\" y2=\"3\"/><line x1=\"12\" y1=\"21\" x2=\"12\" y2=\"12\"/><line x1=\"12\" y1=\"8\" x2=\"12\" y2=\"3\"/><line x1=\"20\" y1=\"21\" x2=\"20\" y2=\"16\"/><line x1=\"20\" y1=\"12\" x2=\"20\" y2=\"3\"/><line x1=\"1\" y1=\"14\" x2=\"7\" y2=\"14\"/><line x1=\"9\" y1=\"8\" x2=\"15\" y2=\"8\"/><line x1=\"17\" y1=\"16\" x2=\"23\" y2=\"16\"/></svg></button><div class=\"ds-toggle\"><div class=\"ds-toggle-pill\"></div><button class=\"ds-toggle-btn ds-toggle-active\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 19.5A2.5 2.5 0 0 1 6.5 17H20\"/><path d=\"M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z\"/></svg></button><button class=\"ds-toggle-btn\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z\"/></svg></button></div><button class=\"ds-btn-ghost\" aria-label=\"Search\"><svg viewBox=\"0 0 24 24\" width=\"19\" height=\"19\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><line x1=\"21\" y1=\"21\" x2=\"16.65\" y2=\"16.65\"/></svg></button></div></div>",
+      "css": ".ds-bottom-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); pointer-events: none; } .ds-bottom-inner { max-width: 384px; margin: 0 auto; display: grid; grid-template-columns: 56px 1fr 56px; align-items: center; gap: 8px; padding: 8px; background: rgba(15,17,21,0.7); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; box-shadow: 0 0 35px rgba(0,0,0,0.35); pointer-events: auto; } .ds-toggle { position: relative; display: grid; grid-template-columns: 1fr 1fr; border-radius: 9999px; background: rgba(0,0,0,0.2); padding: 4px; } .ds-toggle-pill { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: 9999px; background: rgba(34,211,238,0.15); box-shadow: 0 0 22px rgba(34,211,238,0.14); transition: transform 300ms cubic-bezier(0.215, 0.61, 0.355, 1); } .ds-toggle-btn { position: relative; z-index: 10; display: flex; align-items: center; justify-content: center; height: 40px; border-radius: 9999px; background: none; border: none; color: #94A3B8; cursor: pointer; transition: color 0.2s; } .ds-toggle-btn:hover { color: #F8FAFC; } .ds-toggle-active { color: #22D3EE; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Surveillance Room",
+    "overview": "This is not a cozy streaming service. Void is a dim, instrument-like interface — a wall of monitors in a dark room, each screen displaying signal data. The cyan glow has purpose: it marks what's active, what's playing, what's coming next. Everything else recedes into darkness.\n\nThe content — movie posters, show stills, backdrop images — provides the color. The interface is the frame, not the picture. Chrome is thin: 1px blueprint borders, translucent glass surfaces, compact uppercase labels. No decorative gradients, no hero metrics, no social feed chrome.",
+    "keyCharacteristics": [
+      "Dark ground as material, not theme. The void is the starting point, not a mode.",
+      "Cyan as the single voice for interaction — active, selected, available.",
+      "Glass surfaces float above the void. Depth through translucency, not shadows.",
+      "Every uppercase label earns its weight. Nothing is 12px bold by accident.",
+      "Content (posters, backdrops, stills) is the only color source outside the cyan signal."
+    ],
+    "rules": [
+      {
+        "name": "The Single Voice Rule",
+        "body": "Cyan is the only interaction color. Green for \"watched\" confirmations and red for \"remove\" danger are semantic exceptions, not aesthetic choices.",
+        "section": "colors"
+      },
+      {
+        "name": "The Blueprint Edge Rule",
+        "body": "Every surface boundary is 1px solid rgba(255,255,255,0.1). Not 2px, not colored. A thicker border is a mistake; a colored side-stripe is forbidden.",
+        "section": "colors"
+      },
+      {
+        "name": "The Caps-Only UI Rule",
+        "body": "All navigation, filter, badge, and button text is uppercase with wide tracking. The only lowercase text in the interface is content — titles, descriptions, metadata values.",
+        "section": "typography"
+      },
+      {
+        "name": "The Glass-Not-Shadow Rule",
+        "body": "Surfaces are layered by opacity, not stacked by shadow. Drop shadows only appear for embossed panels and active-state glow.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Use cyan as the single interaction color. If it's tappable and active, it gets cyan.",
+      "Use the Caps-Only UI convention for all navigation, labels, and buttons. Lowercase is reserved for content.",
+      "Let poster art and backdrops provide the color. The interface is the frame.",
+      "Use blueprint borders (1px rgba(255,255,255,0.1)) for every surface boundary.",
+      "Use glass layering (translucency + backdrop-blur) to create depth.",
+      "Use the embossed edge border treatment for raised surfaces like sheets and modals.",
+      "Keep card grids compact (8px gap). Information density is part of the identity.",
+      "Account for every async state: loading (pulse skeleton), empty (centered message), error (red-tinted banner)."
+    ],
+    "donts": [
+      "Use black (#000) or white (#fff). Tint all neutrals toward the cool-blue brand hue.",
+      "Use colored side-stripe borders.",
+      "Use gradient text (background-clip: text).",
+      "Use glassmorphism as a default. Glass is for sheets and bars.",
+      "Build hero-metric templates.",
+      "Use identical card grids with icon + heading + text.",
+      "Use bounce or elastic easing.",
+      "Use modals as the first interaction pattern.",
+      "Over-design empty states.",
+      "Add layout animations."
+    ]
+  }
+}

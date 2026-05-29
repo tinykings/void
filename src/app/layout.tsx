@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import { Toaster } from "sonner";
 import { OfflineGuard } from "@/components/OfflineGuard";
+import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 
 const inter = Inter({ subsets: ["latin"] });
 const basePath = process.env.GITHUB_PAGES ? "/void" : "";
@@ -26,8 +27,6 @@ export const metadata: Metadata = {
 export const viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: "#030712",
   viewportFit: "cover",
 };
@@ -41,6 +40,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.className} bg-brand-bg text-foreground min-h-screen flex flex-col transition-colors duration-300`}>
         <AppProvider>
+          <KeyboardShortcuts />
           <OfflineGuard>
             <main className="w-full min-h-screen flex-1 transition-colors duration-300">
               {children}

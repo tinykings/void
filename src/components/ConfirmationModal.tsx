@@ -80,9 +80,9 @@ export const ConfirmationModal = ({
 
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 text-brand-silver hover:text-white transition-colors"
+              className="absolute top-3 right-3 p-3 text-brand-silver hover:text-white transition-colors"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </motion.div>
         </div>

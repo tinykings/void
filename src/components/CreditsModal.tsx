@@ -67,9 +67,9 @@ export const CreditsModal = ({
               
               <button
                 onClick={onClose}
-                className="p-2 text-brand-silver hover:text-white transition-colors bg-white/5 rounded-full"
+                className="p-3 text-brand-silver hover:text-white transition-colors bg-white/5 rounded-full"
               >
-                <X size={24} />
+                <X size={20} />
               </button>
             </div>
 

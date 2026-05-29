@@ -9,6 +9,7 @@ import { MediaCard } from '@/components/MediaCard';
 import { Eye, EyeOff, LoaderCircle, Save, Search as SearchIcon, X } from 'lucide-react';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
+import { FocusTrap } from '@/components/FocusTrap';
 import logoPng from '../../public/logo.png';
 
 export const SearchSheet = () => {
@@ -137,12 +138,12 @@ export const SearchSheet = () => {
           autoFocus
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search movies, shows..."
-          className="w-full rounded-xl border border-brand-cyan/20 bg-brand-bg/90 py-2.5 pl-10 pr-11 text-sm font-medium text-white outline-none shadow-[0_0_20px_rgba(34,211,238,0.08)] ring-1 ring-brand-cyan/10 placeholder:text-brand-silver/50"
+          className="w-full rounded-xl border border-brand-cyan/20 bg-brand-bg/90 py-2.5 pl-10 pr-11 text-sm font-medium text-white outline-none shadow-[0_0_20px_rgba(34,211,238,0.08)] ring-2 ring-brand-cyan/10 placeholder:text-brand-silver/50"
         />
         <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
           <button
             onClick={() => setQuery('')}
-            className="p-1.5 text-brand-silver transition-colors hover:text-white"
+            className="p-2 text-brand-silver transition-colors hover:text-white"
             title="Clear search"
           >
             <X size={16} />
@@ -175,10 +176,11 @@ export const SearchSheet = () => {
           transition={{ duration: 0.12, ease: 'easeOut' }}
           onClick={(e) => e.stopPropagation()}
           className={isLibraryEmpty
-            ? "relative w-full h-full bg-brand-bg/95 shadow-2xl overflow-hidden flex flex-col"
-            : "relative w-full max-w-4xl h-[86vh] sm:h-[80vh] lg:h-[74vh] max-h-[92vh] bg-brand-bg/95 blueprint-border rounded-t-3xl shadow-2xl overflow-hidden flex flex-col"
+            ? "relative w-full h-full bg-brand-bg/95 shadow-2xl overflow-hidden flex flex-col will-change-transform"
+            : "relative w-full max-w-4xl h-[86vh] sm:h-[80vh] lg:h-[74vh] max-h-[92vh] bg-brand-bg/95 blueprint-border rounded-t-3xl shadow-2xl overflow-hidden flex flex-col will-change-transform"
           }
         >
+          <FocusTrap active={isSearchFocused}>
           <div className={topBarClassName}>
             <div className={searchWrapperClassName}>
               {searchControls}
@@ -186,10 +188,10 @@ export const SearchSheet = () => {
             {!isLibraryEmpty && (
               <button
                 onClick={closeSheet}
-                className="shrink-0 rounded-lg border border-brand-cyan/25 bg-brand-cyan/10 p-2 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:border-brand-cyan/40 hover:bg-brand-cyan/20 hover:text-white"
+                className="shrink-0 rounded-lg border border-brand-cyan/25 bg-brand-cyan/10 p-3 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:border-brand-cyan/40 hover:bg-brand-cyan/20 hover:text-white"
                 title="Close search"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             )}
           </div>
@@ -217,7 +219,7 @@ export const SearchSheet = () => {
             </div>
           )}
 
-          <div className="px-4 pb-24 overflow-y-auto custom-scrollbar flex-1">
+          <div className="px-4 pb-24 overflow-y-auto flex-1">
 
             {displayError && (
               <p className="text-sm text-red-400 mb-4">{displayError}</p>
@@ -253,6 +255,7 @@ export const SearchSheet = () => {
           </div>
 
           {!isLibraryEmpty && <SheetDragHandle onClose={closeSheet} />}
+          </FocusTrap>
         </motion.div>
 
         <AnimatePresence>
@@ -279,9 +282,9 @@ export const SearchSheet = () => {
                   <button
                     type="button"
                     onClick={() => setShowGistPrompt(false)}
-                    className="p-2 rounded-lg bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/25 transition-all hover:bg-brand-cyan/20 hover:text-white hover:border-brand-cyan/40"
+                    className="p-3 rounded-lg bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/25 transition-all hover:bg-brand-cyan/20 hover:text-white hover:border-brand-cyan/40"
                   >
-                    <X size={18} />
+                    <X size={20} />
                   </button>
                 </div>
 
@@ -293,7 +296,7 @@ export const SearchSheet = () => {
                       value={tempGistId}
                       onChange={(e) => setTempGistId(e.target.value)}
                       placeholder="e.g. 8f7a9b2c3d4e5f6a7b8c9d0e"
-                      className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
+                      className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-2 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
                     />
                   </div>
 
@@ -305,7 +308,7 @@ export const SearchSheet = () => {
                         value={tempGistToken}
                         onChange={(e) => setTempGistToken(e.target.value)}
                         placeholder="ghp_xxxxxxxxxxxx"
-                        className="w-full p-3 pr-12 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
+                        className="w-full p-3 pr-12 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-2 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
                       />
                       <button
                         type="button"

@@ -18,6 +18,7 @@ import type { FilterType, Media, WatchProvider } from '@/lib/types';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
+import { FocusTrap } from '@/components/FocusTrap';
 
 type LibraryMode = 'library' | 'watchlist';
 type StreamProviderItem = {
@@ -505,7 +506,7 @@ export const HomeView = () => {
     <div className="max-w-7xl mx-auto px-2 pt-4 pb-[160px] relative">
 
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-xl flex items-start gap-3 mb-6 border border-red-100 dark:border-red-900/30">
+        <div className="bg-red-900/20 text-red-400 p-4 rounded-xl flex items-start gap-3 mb-6 border border-red-900/30">
           <AlertCircle size={20} className="mt-0.5 shrink-0" />
           <p className="text-sm font-medium">{error}</p>
         </div>
@@ -691,8 +692,8 @@ export const HomeView = () => {
             {statusLabel && !statusFading ? statusLabel : persistentStatus}
           </div>
 
-          <div className="max-w-sm mx-auto relative pointer-events-auto">
-            <div className="grid grid-cols-[56px_1fr_56px] items-center gap-2 rounded-[28px] bg-brand-bg/70 backdrop-blur-xl blueprint-border p-2 shadow-2xl shadow-black/35">
+            <nav aria-label="Main navigation" className="max-w-sm mx-auto relative pointer-events-auto">
+            <div className="grid grid-cols-[56px_1fr_auto_auto] items-center gap-2 rounded-[28px] bg-brand-bg/70 backdrop-blur-xl blueprint-border p-2 shadow-2xl shadow-black/35">
               <div className="relative">
                 {showTypeMenu && (
                   <div className="absolute bottom-full left-0 mb-3 w-44 rounded-2xl bg-brand-bg blueprint-border shadow-xl overflow-hidden">
@@ -789,6 +790,8 @@ export const HomeView = () => {
                       : 'text-brand-silver hover:text-white'
                   )}
                   aria-label={showStreamView ? 'Clear Stream view' : showFavoritesOnly ? 'Clear Favorites view' : `Filter: ${activeFilterLabel}`}
+                  aria-haspopup={showStreamView || showFavoritesOnly ? undefined : 'menu'}
+                  aria-expanded={showStreamView || showFavoritesOnly ? undefined : showTypeMenu}
                   title={showStreamView ? 'Clear Stream view' : showFavoritesOnly ? 'Clear Favorites view' : `Filter: ${activeFilterLabel}`}
                 >
                   {showStreamView || showFavoritesOnly ? <X size={20} /> : <SlidersHorizontal size={19} />}
@@ -830,7 +833,22 @@ export const HomeView = () => {
                 </button>
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex items-center gap-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTypeMenu(false);
+                    startTransition(() => {
+                      setShowStreamView(false);
+                      setShowSyncModal(true);
+                    });
+                  }}
+                  className="flex h-12 w-12 items-center justify-center rounded-full text-brand-silver hover:bg-brand-cyan/10 hover:text-white transition-all"
+                  aria-label="Settings"
+                  title="Settings"
+                >
+                  <Settings size={17} />
+                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -848,7 +866,7 @@ export const HomeView = () => {
                 </button>
               </div>
             </div>
-          </div>
+          </nav>
         </div>
       )}
 
@@ -868,21 +886,22 @@ export const HomeView = () => {
               exit={{ y: '100%' }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-4xl h-[86vh] sm:h-[80vh] lg:h-[74vh] max-h-[92vh] bg-brand-bg/95 embossed-edge rounded-t-3xl overflow-hidden flex flex-col"
+              className="relative w-full max-w-4xl h-[86vh] sm:h-[80vh] lg:h-[74vh] max-h-[92vh] bg-brand-bg/95 embossed-edge rounded-t-3xl overflow-hidden flex flex-col will-change-transform"
             >
+              <FocusTrap active={showSyncModal}>
               <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-brand-bg/80">
                 <div>
                   <h2 className="text-lg font-semibold text-white">Settings</h2>
                 </div>
                 <button
                   onClick={() => setShowSyncModal(false)}
-                  className="p-2 rounded-lg bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/25 shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:bg-brand-cyan/20 hover:text-white hover:border-brand-cyan/40"
+                  className="p-3 rounded-lg bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/25 shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:bg-brand-cyan/20 hover:text-white hover:border-brand-cyan/40"
                 >
-                  <X size={18} />
+                  <X size={20} />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-5 pb-24 space-y-4">
+              <div className="flex-1 overflow-y-auto p-5 pb-24 space-y-4">
               <div className="rounded-xl bg-white/[0.03] blueprint-border p-4 space-y-3">
                  <div>
                    <h3 className="text-sm font-semibold text-white">Gist Sync</h3>
@@ -895,7 +914,7 @@ export const HomeView = () => {
                      value={tempGistId}
                      onChange={(e) => setTempGistId(e.target.value)}
                      placeholder="e.g. 8f7a9b2c3d4e5f6a7b8c9d0e"
-                     className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
+                     className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-2 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
                    />
                  </div>
 
@@ -907,7 +926,7 @@ export const HomeView = () => {
                        value={tempGistToken}
                        onChange={(e) => setTempGistToken(e.target.value)}
                        placeholder="ghp_xxxxxxxxxxxx"
-                       className="w-full p-3 pr-12 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-1 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
+                       className="w-full p-3 pr-12 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-2 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
                      />
                      <button
                        type="button"
@@ -1011,6 +1030,7 @@ export const HomeView = () => {
 
               </div>
               <SheetDragHandle onClose={() => setShowSyncModal(false)} />
+              </FocusTrap>
             </motion.div>
           </div>
         )}
