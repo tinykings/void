@@ -139,13 +139,20 @@ export const DetailsSheet = () => {
   }, []);
 
   useEffect(() => {
-    if (activeDetailsMedia) return;
+    if (!activeDetailsMedia) {
+      queueMicrotask(() => {
+        setActiveInfoSection(null);
+        setLoadingInfoSection(null);
+        setActiveTrailer(null);
+      });
+      return;
+    }
 
-    queueMicrotask(() => {
-      setActiveInfoSection(null);
-      setLoadingInfoSection(null);
-      setActiveTrailer(null);
-    });
+    if (!activeInfoSection || activeInfoSection.id !== activeDetailsMedia.id) {
+      queueMicrotask(() => {
+        setActiveInfoSection({ id: activeDetailsMedia.id, section: 'overview' });
+      });
+    }
   }, [activeDetailsMedia]);
 
   useEffect(() => {
@@ -448,7 +455,7 @@ export const DetailsSheet = () => {
                           <button
                             key={item.id}
                             type="button"
-                            onClick={() => setActiveInfoSection(isActive ? null : { id: selected.id, section: item.id })}
+                            onClick={() => !isActive && setActiveInfoSection({ id: selected.id, section: item.id })}
                             className={clsx(
                               'flex h-12 min-w-0 flex-col items-center justify-center gap-1 rounded-lg border px-1 text-[9px] font-black uppercase tracking-widest transition-all duration-200 sm:h-10 sm:flex-row sm:gap-2 sm:px-2 sm:text-[10px]',
                               isActive
