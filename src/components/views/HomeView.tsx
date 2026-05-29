@@ -693,7 +693,7 @@ export const HomeView = () => {
           </div>
 
             <nav aria-label="Main navigation" className="max-w-sm mx-auto relative pointer-events-auto">
-            <div className="grid grid-cols-[56px_1fr_auto_auto] items-center gap-2 rounded-[28px] bg-brand-bg/70 backdrop-blur-xl blueprint-border p-2 shadow-2xl shadow-black/35">
+            <div className="grid grid-cols-[56px_1fr_auto] items-center gap-2 rounded-[28px] bg-brand-bg/70 backdrop-blur-xl blueprint-border p-2 shadow-2xl shadow-black/35">
               <div className="relative">
                 {showTypeMenu && (
                   <div className="absolute bottom-full left-0 mb-3 w-44 rounded-2xl bg-brand-bg blueprint-border shadow-xl overflow-hidden">
@@ -833,38 +833,21 @@ export const HomeView = () => {
                 </button>
               </div>
 
-              <div className="flex items-center gap-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowTypeMenu(false);
-                    startTransition(() => {
-                      setShowStreamView(false);
-                      setShowSyncModal(true);
-                    });
-                  }}
-                  className="flex h-12 w-12 items-center justify-center rounded-full text-brand-silver hover:bg-brand-cyan/10 hover:text-white transition-all"
-                  aria-label="Settings"
-                  title="Settings"
-                >
-                  <Settings size={17} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    startTransition(() => {
-                      setShowStreamView(false);
-                      setIsSearchFocused(true);
-                    });
-                    setShowTypeMenu(false);
-                  }}
-                  className="flex h-12 w-12 items-center justify-center rounded-full text-brand-silver hover:bg-brand-cyan/10 hover:text-white transition-all"
-                  aria-label="Search"
-                  title="Search"
-                >
-                  <Search size={19} />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  startTransition(() => {
+                    setShowStreamView(false);
+                    setIsSearchFocused(true);
+                  });
+                  setShowTypeMenu(false);
+                }}
+                className="flex h-12 w-12 items-center justify-center rounded-full text-brand-silver hover:bg-brand-cyan/10 hover:text-white transition-all"
+                aria-label="Search"
+                title="Search"
+              >
+                <Search size={19} />
+              </button>
             </div>
           </nav>
         </div>
