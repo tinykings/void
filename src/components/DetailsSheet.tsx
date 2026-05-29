@@ -323,7 +323,7 @@ export const DetailsSheet = () => {
 
     void runActionAndClose('watchlist', () => toggleWatchlist(selected));
 
-    toast(`${title} added to watchlist`, {
+    toast(`${title} → watchlist`, {
       action: {
         label: 'Undo',
         onClick: () => toggleWatchlist(selected),
@@ -349,7 +349,7 @@ export const DetailsSheet = () => {
 
     void runActionAndClose('watched', () => toggleWatched(selected));
 
-    toast(`${title} marked as watched`, {
+    toast(`${title} → watched`, {
       action: {
         label: 'Undo',
         onClick: () => toggleWatched(selected),
@@ -521,7 +521,7 @@ export const DetailsSheet = () => {
                         <div className="space-y-4">
                           <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
                             <p className="text-sm leading-relaxed text-white/90">
-                              {selected.overview || 'No overview available.'}
+                              {selected.overview || 'Overview unavailable.'}
                             </p>
                           </div>
 
@@ -538,7 +538,7 @@ export const DetailsSheet = () => {
                               >
                                 {watchProviderItems.length > 0
                                   ? watchProviderItems.map((provider) => provider.provider_name).join(' · ')
-                                  : 'No US streaming providers found'}
+                                  : 'No US providers found.'}
                               </p>
                               <p className="mt-1 text-[10px] uppercase tracking-widest text-brand-silver">
                                 Streaming Providers - JustWatch.com
@@ -616,7 +616,7 @@ export const DetailsSheet = () => {
                                         </p>
                                       )}
                                       <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-brand-silver">
-                                        {episode.overview || 'No overview available.'}
+                                        {episode.overview || 'Overview unavailable.'}
                                       </p>
                                     </div>
                                   </motion.div>
@@ -670,7 +670,7 @@ export const DetailsSheet = () => {
                           ))}
                         </motion.div>
                       ) : (
-                        <p className="py-10 text-center text-sm text-brand-silver">Cast is not available.</p>
+                        <p className="py-10 text-center text-sm text-brand-silver">Cast unavailable.</p>
                       )
                     )}
 
@@ -705,7 +705,7 @@ export const DetailsSheet = () => {
                           ))}
                         </div>
                       ) : (
-                        <p className="py-10 text-center text-sm text-brand-silver">No backdrops available.</p>
+                        <p className="py-10 text-center text-sm text-brand-silver">No backdrops.</p>
                       )
                     )}
 
@@ -769,11 +769,11 @@ export const DetailsSheet = () => {
                           ))}
                         </div>
                       ) : (
-                        <p className="py-10 text-center text-sm text-brand-silver">No trailers available.</p>
+                        <p className="py-10 text-center text-sm text-brand-silver">No trailers.</p>
                       )
                     )}
 
-                    <p className="mt-3 text-center text-[10px] uppercase tracking-[0.2em] text-brand-silver/60">
+                    <p className="mt-3 text-center text-[10px] uppercase tracking-[0.2em] text-brand-silver/60 transition-colors duration-200 hover:text-brand-cyan/40">
                       Data provided by TMDB.
                     </p>
                   </motion.div>
@@ -805,7 +805,7 @@ export const DetailsSheet = () => {
                   <button
                     type="button"
                     onClick={closeDetails}
-                    className="flex h-11 w-full items-center justify-center rounded-lg bg-white/10 text-brand-silver border border-white/15 transition-all hover:bg-white/20 hover:text-white hover:border-white/30"
+                    className="flex h-11 w-full items-center justify-center rounded-lg bg-white/10 text-brand-silver border border-white/15 transition-all hover:bg-brand-cyan/10 hover:text-brand-cyan hover:border-brand-cyan/25 hover:shadow-[0_0_12px_rgba(34,211,238,0.06)]"
                     aria-label="Close sheet"
                     title="Tap to close"
                   >
