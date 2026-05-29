@@ -11,6 +11,16 @@ import { toast } from 'sonner';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { FocusTrap } from '@/components/FocusTrap';
 
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.04, delayChildren: 0.05 } },
+};
+
+const staggerItem = {
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] as const } },
+};
+
 type InfoSection = 'overview' | 'cast' | 'images' | 'trailers';
 
 export const DetailsSheet = () => {
@@ -364,7 +374,7 @@ export const DetailsSheet = () => {
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              transition={{ duration: 0.12, ease: 'easeOut' }}
+              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
               onClick={(e) => e.stopPropagation()}
               className="relative w-full max-w-4xl h-[92vh] max-h-[96vh] bg-brand-bg/95 embossed-edge rounded-t-3xl overflow-hidden flex flex-col will-change-transform"
             >
@@ -382,7 +392,18 @@ export const DetailsSheet = () => {
               )}
 
               <div className="absolute inset-x-0 top-[14vh] bottom-0 pointer-events-none bg-gradient-to-b from-transparent via-brand-bg/80 via-45% to-brand-bg" />
-              {currentInfoSection && <div className="absolute inset-0 pointer-events-none bg-brand-bg/55" />}
+              <AnimatePresence>
+                {currentInfoSection && (
+                  <motion.div
+                    key="overlay"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute inset-0 pointer-events-none bg-brand-bg/55"
+                  />
+                )}
+              </AnimatePresence>
 
               <div className="relative z-10 flex-1 overflow-y-auto px-4 pb-28">
                 <div className={clsx('flex flex-col justify-end pb-4', currentInfoSection ? 'min-h-0 pt-8' : 'min-h-[calc(92vh-7rem)]')}>
@@ -455,8 +476,16 @@ export const DetailsSheet = () => {
                 </div>
               </div>
 
-              {currentInfoSection && (
-                  <div className="mt-3 min-h-[calc(92vh-15rem)] rounded-2xl bg-brand-bg/88 blueprint-border p-3 shadow-2xl shadow-black/35">
+              <AnimatePresence>
+                {currentInfoSection && (
+                  <motion.div
+                    key="panel"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                    className="mt-3 min-h-[calc(92vh-15rem)] rounded-2xl bg-brand-bg/88 blueprint-border p-3 shadow-2xl shadow-black/35"
+                  >
                     {currentInfoSection === 'overview' && (
                       sectionErrors.has('overview') ? (
                         <div className="flex flex-col items-center gap-3 py-10">
@@ -471,17 +500,17 @@ export const DetailsSheet = () => {
                         </div>
                       ) : currentLoadingInfoSection === 'overview' ? (
                         <div className="space-y-3">
-                          <div className="h-24 rounded-xl bg-white/10 animate-pulse" />
-                          <div className="h-14 rounded-xl bg-white/10 animate-pulse" />
+                          <div className="h-24 rounded-xl skeleton-shimmer animate-shimmer" />
+                          <div className="h-14 rounded-xl skeleton-shimmer animate-shimmer" />
                           {selected?.media_type === 'tv' && (
                             <div className="space-y-3 rounded-xl bg-white/[0.03] p-3">
-                              <div className="h-3 w-20 rounded bg-white/10 animate-pulse" />
+                              <div className="h-3 w-20 rounded skeleton-shimmer animate-shimmer" />
                               {[...Array(3)].map((_, index) => (
                                 <div key={index} className="flex gap-3">
-                                  <div className="h-16 w-28 shrink-0 rounded-lg bg-white/10 animate-pulse" />
+                                  <div className="h-16 w-28 shrink-0 rounded-lg skeleton-shimmer animate-shimmer" />
                                   <div className="flex-1 space-y-2">
-                                    <div className="h-3 w-32 rounded bg-white/10 animate-pulse" />
-                                    <div className="h-2 w-full rounded bg-white/10 animate-pulse" />
+                                    <div className="h-3 w-32 rounded skeleton-shimmer animate-shimmer" />
+                                    <div className="h-2 w-full rounded skeleton-shimmer animate-shimmer" />
                                   </div>
                                 </div>
                               ))}
@@ -558,18 +587,18 @@ export const DetailsSheet = () => {
                               <div className="space-y-3">
                                 {[...Array(3)].map((_, index) => (
                                   <div key={index} className="flex gap-3">
-                                    <div className="h-20 w-32 shrink-0 rounded-lg bg-white/10 animate-pulse" />
+                                    <div className="h-20 w-32 shrink-0 rounded-lg skeleton-shimmer animate-shimmer" />
                                     <div className="flex-1 space-y-2">
-                                      <div className="h-3 w-32 rounded bg-white/10 animate-pulse" />
-                                      <div className="h-2 w-full rounded bg-white/10 animate-pulse" />
+                                      <div className="h-3 w-32 rounded skeleton-shimmer animate-shimmer" />
+                                      <div className="h-2 w-full rounded skeleton-shimmer animate-shimmer" />
                                     </div>
                                   </div>
                                 ))}
                               </div>
                             ) : seasonEpisodeItems.length > 0 ? (
-                              <div className="space-y-2">
+                              <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="space-y-2">
                                 {seasonEpisodeItems.map((episode) => (
-                                  <div key={episode.id} className="flex gap-3 rounded-lg bg-white/[0.03] p-2">
+                                  <motion.div key={episode.id} variants={staggerItem} className="flex gap-3 rounded-lg bg-white/[0.03] p-2">
                                     <div className="h-20 w-32 shrink-0">
                                       <div className="h-full w-full overflow-hidden rounded-lg bg-white/5">
                                         {episode.still_path ? (
@@ -590,9 +619,9 @@ export const DetailsSheet = () => {
                                         {episode.overview || 'No overview available.'}
                                       </p>
                                     </div>
-                                  </div>
+                                  </motion.div>
                                 ))}
-                              </div>
+                              </motion.div>
                             ) : null}
                           </div>
                           )}
@@ -615,14 +644,15 @@ export const DetailsSheet = () => {
                       ) : currentLoadingInfoSection === 'cast' ? (
                         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                           {[...Array(6)].map((_, index) => (
-                            <div key={index} className="aspect-[2/3] rounded-xl bg-white/10 animate-pulse" />
+                            <div key={index} className="aspect-[2/3] rounded-xl skeleton-shimmer animate-shimmer" />
                           ))}
                         </div>
                       ) : castItems.length > 0 ? (
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                           {castItems.map((member) => (
-                            <button
+                            <motion.button
                               key={`${member.id}-${member.character}`}
+                              variants={staggerItem}
                               type="button"
                               onClick={() => openActor(member)}
                               className="group overflow-hidden rounded-xl bg-brand-bg/80 blueprint-border text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-bg hover:border-brand-cyan/30 hover:shadow-[0_0_18px_rgba(34,211,238,0.08)] cursor-pointer"
@@ -636,9 +666,9 @@ export const DetailsSheet = () => {
                                 <p className="truncate text-xs font-black text-white">{member.name}</p>
                                 <p className="truncate text-[10px] text-brand-silver">{member.character}</p>
                               </div>
-                            </button>
+                            </motion.button>
                           ))}
-                        </div>
+                        </motion.div>
                       ) : (
                         <p className="py-10 text-center text-sm text-brand-silver">Cast is not available.</p>
                       )
@@ -659,7 +689,7 @@ export const DetailsSheet = () => {
                       ) : currentLoadingInfoSection === 'images' ? (
                         <div className="space-y-3">
                           {[...Array(4)].map((_, index) => (
-                            <div key={index} className="aspect-video rounded-xl bg-white/10 animate-pulse" />
+                            <div key={index} className="aspect-video rounded-xl skeleton-shimmer animate-shimmer" />
                           ))}
                         </div>
                       ) : backdropItems.length > 0 ? (
@@ -694,7 +724,7 @@ export const DetailsSheet = () => {
                       ) : currentLoadingInfoSection === 'trailers' ? (
                         <div className="space-y-2">
                           {[...Array(4)].map((_, index) => (
-                            <div key={index} className="aspect-video rounded-xl bg-white/10 animate-pulse" />
+                            <div key={index} className="aspect-video rounded-xl skeleton-shimmer animate-shimmer" />
                           ))}
                         </div>
                       ) : trailerItems.length > 0 ? (
@@ -746,8 +776,9 @@ export const DetailsSheet = () => {
                     <p className="mt-3 text-center text-[10px] uppercase tracking-[0.2em] text-brand-silver/60">
                       Data provided by TMDB.
                     </p>
-                  </div>
+                  </motion.div>
                 )}
+                </AnimatePresence>
               </div>
 
               <div className="absolute bottom-0 left-0 right-0 z-20 border-t border-white/[0.04] bg-brand-bg/75 backdrop-blur-xl px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">

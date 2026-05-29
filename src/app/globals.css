@@ -9,6 +9,17 @@
   --color-brand-silver: #94A3B8;
   --color-blueprint-border: rgba(255, 255, 255, 0.1);
   --color-theme-color: #030712;
+  --animate-shimmer: shimmer 1.8s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0%, rgba(34, 211, 238, 0.09) 50%, rgba(255, 255, 255, 0.035) 100%);
+  background-size: 200% 100%;
 }
 
 :root {
