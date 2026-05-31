@@ -162,18 +162,18 @@ export const ActorSheet = () => {
           <div className="flex-1 overflow-y-auto px-4 pb-24">
             <div className="pt-4 space-y-4">
               <div className="rounded-2xl blueprint-border bg-white/5 overflow-hidden">
-                <div className="grid gap-0 md:grid-cols-[240px_1fr]">
+                <div className="grid gap-0 grid-cols-[120px_1fr] md:grid-cols-[240px_1fr]">
                   <div className="bg-brand-bg/60">
                     {actor.profile_path ? (
                       <img
                         src={getImageUrl(actor.profile_path, 'w342')}
                         alt={actorName}
-                        className="w-full h-full min-h-72 object-cover"
+                        className="w-full h-full object-cover"
                         decoding="async"
                         loading="lazy"
                       />
                     ) : (
-                      <div className="w-full h-72 flex items-center justify-center text-brand-silver bg-brand-bg">
+                      <div className="w-full h-full min-h-24 flex items-center justify-center text-brand-silver bg-brand-bg">
                         <User size={32} />
                       </div>
                     )}
