@@ -60,3 +60,11 @@ const sortByAddedWithReleasePriority = (list: Media[]) => {
 export const sortMedia = (list: Media[]): Media[] => {
   return sortByAddedWithReleasePriority(list);
 };
+
+export const sortByAddedDate = (list: Media[]): Media[] => {
+  return [...list].sort((a, b) => {
+    const dateA = new Date(a.date_added || '0').getTime();
+    const dateB = new Date(b.date_added || '0').getTime();
+    return dateB - dateA;
+  });
+};

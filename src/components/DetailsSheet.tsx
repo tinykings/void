@@ -557,7 +557,7 @@ export const DetailsSheet = () => {
                           </a>
 
                           {(imdbUrl || commonSenseUrl) && (
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-2 justify-center">
                               {imdbUrl && (
                                 <a
                                   href={imdbUrl}

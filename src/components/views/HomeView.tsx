@@ -9,7 +9,7 @@ import { MediaCard } from '@/components/MediaCard';
 import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
 import { DetailsSheet } from '@/components/DetailsSheet';
 import { SearchSheet } from '@/components/SearchSheet';
-import { sortMedia } from '@/lib/sort';
+import { sortMedia, sortByAddedDate } from '@/lib/sort';
 import { fromGistItem, type GistLibraryData } from '@/lib/gist';
 import { getContentRating, getImageUrl, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
 import { mapWithConcurrency } from '@/lib/concurrency';
@@ -141,8 +141,8 @@ export const HomeView = () => {
       filtered = filtered.filter(m => m.isFavorite);
     }
 
-    return sortMedia(filtered);
-  }, [baseLibraryMedia, showFavoritesOnly]);
+    return showWatched ? sortByAddedDate(filtered) : sortMedia(filtered);
+  }, [baseLibraryMedia, showFavoritesOnly, showWatched]);
 
   useEffect(() => {
     if (!showStreamView) return;
@@ -628,6 +628,7 @@ export const HomeView = () => {
                 >
                   <MediaCard
                     media={item}
+                    showReleaseBadge={!showWatched}
                     onClick={() => {
                       sessionStorage.setItem('void_home_count', String(visibleItemsCount));
                     }}
