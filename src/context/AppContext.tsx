@@ -6,6 +6,7 @@ import { useStore } from '@/store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getMediaDetails } from '@/lib/tmdb';
 import { mapWithConcurrency } from '@/lib/concurrency';
+import { toast } from 'sonner';
 
 const METADATA_HYDRATION_CONCURRENCY = 1;
 
@@ -86,6 +87,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     toggleFavorite: s.toggleFavorite,
     updateMediaMetadata: s.updateMediaMetadata,
     setIsSearchFocused: s.setIsSearchFocused,
+    processTVMigrations: s.processTVMigrations,
     markEpisodePlayed: s.markEpisodePlayed,
     unmarkEpisodePlayed: s.unmarkEpisodePlayed,
     toggleWatchlist: s.toggleWatchlist,
@@ -305,6 +307,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     });
   }, [store.isLoaded, store.apiKey, store.watchlist, store.watched, store.updateMediaMetadata]);
+
+  // TV auto-migration: move watched shows with upcoming episodes to watchlist
+  useEffect(() => {
+    if (!store.isLoaded || !store.apiKey) return;
+
+    const timeout = setTimeout(async () => {
+      try {
+        const migrated = await store.processTVMigrations();
+        if (migrated && migrated.length > 0) {
+          migrated.forEach((item) => {
+            toast(`${item.name || item.title}`, {
+              description: "Moved to watchlist — new episode airing soon",
+            });
+          });
+        }
+      } catch (err) {
+        console.error('TV migration failed:', err);
+      }
+    }, 5000);
+
+    return () => clearTimeout(timeout);
+  }, [store.isLoaded, store.apiKey]);
 
   // O(1) lookup Maps for membership checks
   const watchlistIds = useMemo(() => new Set(store.watchlist.map(m => `${m.media_type}-${m.id}`)), [store.watchlist]);

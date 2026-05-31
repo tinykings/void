@@ -53,6 +53,7 @@ interface StoreState extends UserState {
   markEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
   unmarkEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
 
+  processTVMigrations: () => Promise<Media[]>;
   toggleWatchlist: (media: Media) => Promise<void>;
   toggleWatched: (media: Media, rating?: number) => Promise<void>;
   toggleFavorite: (media: Media) => Promise<void>;
@@ -230,6 +231,98 @@ export const useStore = create<StoreState>()(
           });
 
           void get().syncToGist();
+        },
+
+        processTVMigrations: async () => {
+          const state = get();
+          const { apiKey, watched } = state;
+
+          if (!apiKey || !watched.length) return [];
+
+          const now = Date.now();
+          const checkThreshold = 24 * 60 * 60 * 1000;
+
+          const eligible = watched.filter((m) =>
+            m.media_type === 'tv' &&
+            m.status !== 'Ended' &&
+            m.status !== 'Canceled' &&
+            (now - (m.lastChecked || 0) > checkThreshold)
+          );
+
+          if (!eligible.length) return [];
+
+          const migratedItems: Media[] = [];
+          const migratedIds: Set<string> = new Set();
+          const metadataUpdates: Map<string, Partial<Media>> = new Map();
+
+          for (const show of eligible) {
+            try {
+              const details = await getMediaDetails(show.id, 'tv', apiKey);
+              const airDateStr = details.next_episode_to_air?.air_date;
+              let shouldMigrate = false;
+
+              if (airDateStr) {
+                const parts = airDateStr.split('-');
+                if (parts.length === 3) {
+                  const airDate = new Date(
+                    parseInt(parts[0], 10),
+                    parseInt(parts[1], 10) - 1,
+                    parseInt(parts[2], 10)
+                  );
+                  if (!isNaN(airDate.getTime())) {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const cutoff = new Date(today);
+                    cutoff.setDate(today.getDate() + 30);
+                    cutoff.setHours(23, 59, 59, 999);
+
+                    if (airDate.getTime() >= today.getTime() && airDate.getTime() <= cutoff.getTime()) {
+                      shouldMigrate = true;
+                    }
+                  }
+                }
+              }
+
+              if (shouldMigrate) {
+                migratedItems.push({ ...show, ...details, lastChecked: now, date_added: new Date().toISOString() });
+                migratedIds.add(`${show.id}-${show.media_type}`);
+              } else {
+                metadataUpdates.set(`${show.id}-${show.media_type}`, {
+                  status: details.status,
+                  next_episode_to_air: details.next_episode_to_air,
+                  lastChecked: now,
+                });
+              }
+            } catch (err) {
+              console.error(`Migration check failed for ${show.name || show.title}:`, err);
+            }
+          }
+
+          set((state) => {
+            let newWatched = [...state.watched];
+            let newWatchlist = [...state.watchlist];
+
+            if (metadataUpdates.size > 0) {
+              newWatched = newWatched.map((m) => {
+                const key = `${m.id}-${m.media_type}`;
+                const update = metadataUpdates.get(key);
+                return update ? { ...m, ...update } : m;
+              });
+            }
+
+            if (migratedItems.length > 0) {
+              newWatched = newWatched.filter((m) => !migratedIds.has(`${m.id}-${m.media_type}`));
+              newWatchlist = [...newWatchlist, ...migratedItems];
+            }
+
+            return { watched: newWatched, watchlist: newWatchlist };
+          });
+
+          if (migratedItems.length > 0) {
+            get().syncToGist();
+          }
+
+          return migratedItems;
         },
 
       };
