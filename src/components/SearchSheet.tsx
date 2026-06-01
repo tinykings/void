@@ -130,7 +130,7 @@ export const SearchSheet = () => {
         className="h-10 w-10 rounded-xl object-cover blueprint-border bg-brand-bg shrink-0"
         decoding="async"
       />
-      <div className="relative min-w-0 flex-1 max-w-2xl">
+      <div className="relative min-w-0 flex-1">
         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-cyan" size={16} />
         <input
           type="text"
