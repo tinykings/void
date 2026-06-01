@@ -141,7 +141,7 @@ export const ActorSheet = () => {
           exit={{ y: '100%' }}
           transition={{ duration: 0.12, ease: 'easeOut' }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-4xl h-[86vh] sm:h-[80vh] lg:h-[74vh] max-h-[92vh] bg-brand-bg/95 embossed-edge rounded-t-3xl overflow-hidden flex flex-col will-change-transform"
+          className="relative w-full max-w-6xl h-[92vh] max-h-[96vh] bg-brand-bg/95 embossed-edge rounded-t-3xl overflow-hidden flex flex-col will-change-transform"
         >
           <FocusTrap active={!!actor}>
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-brand-bg/80">
