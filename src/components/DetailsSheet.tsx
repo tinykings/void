@@ -175,7 +175,8 @@ export const DetailsSheet = () => {
                 .sort((a, b) => {
                   if (a.official !== b.official) return a.official ? -1 : 1;
                   return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
-                });
+                })
+                .slice(0, 2);
               setTrailers({ id: activeDetailsMedia.id, items: selectedTrailers });
             }
           } catch {
@@ -362,6 +363,53 @@ export const DetailsSheet = () => {
               onClick={(e) => e.stopPropagation()}
               className="relative w-full max-w-6xl h-[92vh] max-h-[96vh] bg-brand-bg/95 embossed-edge rounded-t-3xl overflow-hidden flex flex-col will-change-transform"
             >
+              {(imdbUrl || commonSenseUrl) && (
+                <div className="absolute top-4 right-4 z-20" ref={linksRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowLinks(v => !v)}
+                    className="flex items-center gap-2 text-brand-cyan/80 hover:text-brand-cyan transition-colors outline-none"
+                  >
+                    <ExternalLink size={32} />
+                  </button>
+                  {showLinks && (
+                    <div className="absolute top-full right-0 mt-2 rounded-lg bg-brand-bg border border-white/15 shadow-xl shadow-black/40 overflow-hidden z-40 whitespace-nowrap">
+                      {imdbUrl && (
+                        <a href={imdbUrl} target="_blank" rel="noreferrer" className="block px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors">
+                            IMDb
+                        </a>
+                      )}
+                      {imdbUrl && (
+                        <a href={`${imdbUrl}/parentalguide`} target="_blank" rel="noreferrer" className="block px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors">
+                            Parents Guide
+                        </a>
+                      )}
+                      <a href={commonSenseUrl} target="_blank" rel="noreferrer" className="block px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors">
+                        Common Sense
+                      </a>
+                      <div className="border-t border-white/10 my-1" />
+                      {watchProviderItems.length > 0 && (
+                        <a
+                          href={`https://www.justwatch.com/us/search?q=${encodeURIComponent(selected.title || selected.name || '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between gap-2 px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors"
+                        >
+                          <span>JustWatch</span>
+                        </a>
+                      )}
+                      <a
+                        href={`https://www.cineby.sc/${selected.media_type}/${selected.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between gap-2 px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors"
+                      >
+                        <span>Cineby</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
               <FocusTrap active={isOpen}>
               <div className="relative z-10 flex-1 overflow-y-auto px-4 pb-28">
                 <div className="flex gap-4 pb-4 pt-4">
@@ -391,61 +439,17 @@ export const DetailsSheet = () => {
                       {year && <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{year}</span>}
                       <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">★ {selected.vote_average?.toFixed(1) || '0.0'}</span>
                       <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{contentRatingValue || 'N/A'}</span>
-                      {(imdbUrl || commonSenseUrl) && (
-                        <div className="relative" ref={linksRef}>
-                          <button
-                            type="button"
-                            onClick={() => setShowLinks(v => !v)}
-                            className="flex items-center gap-1 text-brand-cyan/80 hover:text-brand-cyan transition-colors outline-none"
-                          >
-                            <ExternalLink size={16} />
-                            <ChevronDown size={14} className={`transition-transform ${showLinks ? 'rotate-180' : ''}`} />
-                          </button>
-                          {showLinks && (
-                            <div className="absolute top-full left-0 mt-1 rounded-lg bg-brand-bg border border-white/15 shadow-xl shadow-black/40 overflow-hidden z-30 whitespace-nowrap">
-                              {imdbUrl && (
-                                <a href={imdbUrl} target="_blank" rel="noreferrer" className="block px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors">
-                                    IMDb
-                                </a>
-                              )}
-                              {imdbUrl && (
-                                <a href={`${imdbUrl}/parentalguide`} target="_blank" rel="noreferrer" className="block px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors">
-                                    Parents Guide
-                                </a>
-                              )}
-                              <a href={commonSenseUrl} target="_blank" rel="noreferrer" className="block px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors">
-                                Common Sense
-                              </a>
-                              <div className="border-t border-white/10 my-1" />
-                              {watchProviderItems.length > 0 && (
-                                <a
-                                  href={`https://www.justwatch.com/us/search?q=${encodeURIComponent(selected.title || selected.name || '')}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center justify-between gap-2 px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors"
-                                >
-                                  <span>{watchProviderItems.map((p) => p.provider_name).join(' · ')}</span>
-                                  <span className="text-[10px] text-brand-silver/60 shrink-0">justwatch.com</span>
-                                </a>
-                              )}
-                              <a
-                                href={`https://www.cineby.sc/${selected.media_type}/${selected.id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center justify-between gap-2 px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors"
-                              >
-                                <span>Cineby</span>
-                                <span className="text-[10px] text-brand-silver/60 shrink-0">cineby.sc</span>
-                              </a>
-                            </div>
-                          )}
-                        </div>
-                      )}
+
                     </div>
 
                     <p className="text-sm leading-relaxed text-white/90 line-clamp-6">
                       {selected.overview || 'Overview unavailable.'}
                     </p>
+                    {watchProviderItems.length > 0 && (
+                      <p className="text-xs text-brand-silver">
+                        {watchProviderItems.map((p) => p.provider_name).join(' · ')}
+                      </p>
+                    )}
 
                   {initError && (
                     <div className="flex items-center justify-between rounded-xl bg-red-900/20 border border-red-500/30 p-3">
