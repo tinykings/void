@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getImageUrl, getMediaCredits, getContentRating, getExternalIds, getMediaDetails, getMediaImages, getMediaVideos, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
 import { CastMember, ExternalIdsResponse, Media, TmdbImage, Video, WatchProvider } from '@/lib/types';
-import { Bookmark, ChevronDown, Eye, Play } from 'lucide-react';
+import { Bookmark, ChevronDown, ExternalLink, Eye, Play } from 'lucide-react';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
@@ -43,8 +43,10 @@ export const DetailsSheet = () => {
   const [contentRating, setContentRating] = useState<{ id: number; value: string | null } | null>(null);
   const [externalIds, setExternalIds] = useState<{ id: number; value: ExternalIdsResponse | null } | null>(null);
   const [activeTrailer, setActiveTrailer] = useState<{ mediaId: number; videoId: string } | null>(null);
+  const [showLinks, setShowLinks] = useState(false);
   const [actionPulse, setActionPulse] = useState<{ id: number; action: 'watchlist' | 'watched' } | null>(null);
   const closeActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const linksRef = useRef<HTMLDivElement | null>(null);
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -126,6 +128,17 @@ export const DetailsSheet = () => {
       if (closeActionTimerRef.current) clearTimeout(closeActionTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!showLinks) return;
+    const handler = (e: MouseEvent) => {
+      if (linksRef.current && !linksRef.current.contains(e.target as Node)) {
+        setShowLinks(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showLinks]);
 
   useEffect(() => {
     if (!activeDetailsMedia || !apiKey || !details || details.id !== activeDetailsMedia.id) return;
@@ -373,46 +386,66 @@ export const DetailsSheet = () => {
                       )}
                     </div>
 
-                    <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-widest font-bold text-brand-silver">
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-widest font-bold text-brand-silver">
                       <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{selected.media_type}</span>
                       {year && <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{year}</span>}
                       <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">★ {selected.vote_average?.toFixed(1) || '0.0'}</span>
                       <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{contentRatingValue || 'N/A'}</span>
+                      {(imdbUrl || commonSenseUrl) && (
+                        <div className="relative" ref={linksRef}>
+                          <button
+                            type="button"
+                            onClick={() => setShowLinks(v => !v)}
+                            className="flex items-center gap-1 text-brand-cyan/80 hover:text-brand-cyan transition-colors outline-none"
+                          >
+                            <ExternalLink size={16} />
+                            <ChevronDown size={14} className={`transition-transform ${showLinks ? 'rotate-180' : ''}`} />
+                          </button>
+                          {showLinks && (
+                            <div className="absolute top-full left-0 mt-1 rounded-lg bg-brand-bg border border-white/15 shadow-xl shadow-black/40 overflow-hidden z-30 whitespace-nowrap">
+                              {imdbUrl && (
+                                <a href={imdbUrl} target="_blank" rel="noreferrer" className="block px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors">
+                                    IMDb
+                                </a>
+                              )}
+                              {imdbUrl && (
+                                <a href={`${imdbUrl}/parentalguide`} target="_blank" rel="noreferrer" className="block px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors">
+                                    Parents Guide
+                                </a>
+                              )}
+                              <a href={commonSenseUrl} target="_blank" rel="noreferrer" className="block px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors">
+                                Common Sense
+                              </a>
+                              <div className="border-t border-white/10 my-1" />
+                              {watchProviderItems.length > 0 && (
+                                <a
+                                  href={`https://www.justwatch.com/us/search?q=${encodeURIComponent(selected.title || selected.name || '')}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center justify-between gap-2 px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors"
+                                >
+                                  <span>{watchProviderItems.map((p) => p.provider_name).join(' · ')}</span>
+                                  <span className="text-[10px] text-brand-silver/60 shrink-0">justwatch.com</span>
+                                </a>
+                              )}
+                              <a
+                                href={`https://www.cineby.sc/${selected.media_type}/${selected.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-between gap-2 px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors"
+                              >
+                                <span>Cineby</span>
+                                <span className="text-[10px] text-brand-silver/60 shrink-0">cineby.sc</span>
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <p className="text-sm leading-relaxed text-white/90 line-clamp-6">
                       {selected.overview || 'Overview unavailable.'}
                     </p>
-
-                    {(imdbUrl || commonSenseUrl) && (
-                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
-                        {imdbUrl && (
-                          <a href={imdbUrl} target="_blank" rel="noreferrer" className="text-brand-cyan/80 hover:text-brand-cyan transition-colors">
-                            IMDb
-                          </a>
-                        )}
-                        {imdbUrl && (
-                          <a href={`${imdbUrl}/parentalguide`} target="_blank" rel="noreferrer" className="text-brand-cyan/80 hover:text-brand-cyan transition-colors">
-                            Parents Guide
-                          </a>
-                        )}
-                        <a href={commonSenseUrl} target="_blank" rel="noreferrer" className="text-brand-cyan/80 hover:text-brand-cyan transition-colors">
-                          Common Sense
-                        </a>
-                      </div>
-                    )}
-
-                    {watchProviderItems.length > 0 && (
-                      <a
-                        href={`https://www.justwatch.com/us/search?q=${encodeURIComponent(selected.title || selected.name || '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block text-sm text-brand-cyan/80 hover:text-brand-cyan transition-colors"
-                      >
-                        {watchProviderItems.map((p) => p.provider_name).join(' · ')}
-                        <span className="text-[10px] text-brand-silver/60 ml-2">Streaming</span>
-                      </a>
-                    )}
 
                   {initError && (
                     <div className="flex items-center justify-between rounded-xl bg-red-900/20 border border-red-500/30 p-3">
