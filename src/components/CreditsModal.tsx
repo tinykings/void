@@ -67,7 +67,7 @@ export const CreditsModal = ({
               
               <button
                 onClick={onClose}
-                className="p-3 text-brand-silver hover:text-white transition-colors bg-white/5 rounded-full"
+                className="p-3 rounded-lg bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/25 shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:bg-brand-cyan/20 hover:text-white hover:border-brand-cyan/40"
               >
                 <X size={20} />
               </button>

@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getImageUrl, getMediaCredits, getContentRating, getExternalIds, getMediaDetails, getMediaImages, getMediaVideos, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
 import { CastMember, ExternalIdsResponse, Media, TmdbImage, Video, WatchProvider } from '@/lib/types';
-import { Bookmark, ChevronDown, ExternalLink, Eye, Play } from 'lucide-react';
+import { Bookmark, ChevronDown, ExternalLink, Eye, Heart, Play } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { FocusTrap } from '@/components/FocusTrap';
@@ -27,10 +27,12 @@ export const DetailsSheet = () => {
     apiKey,
     watchlistIds,
     watchedIds,
+    watchedMap,
     openActor,
     closeAllSheets,
     toggleWatchlist,
     toggleWatched,
+    toggleFavorite,
     updateMediaMetadata,
   } = useAppContext();
 
@@ -43,7 +45,7 @@ export const DetailsSheet = () => {
   const [externalIds, setExternalIds] = useState<{ id: number; value: ExternalIdsResponse | null } | null>(null);
   const [activeTrailer, setActiveTrailer] = useState<{ mediaId: number; videoId: string } | null>(null);
   const [showLinks, setShowLinks] = useState(false);
-  const [actionPulse, setActionPulse] = useState<{ id: number; action: 'watchlist' | 'watched' } | null>(null);
+  const [actionPulse, setActionPulse] = useState<{ id: number; action: 'watchlist' | 'watched' | 'favorite' } | null>(null);
   const closeActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const linksRef = useRef<HTMLDivElement | null>(null);
   const [modalConfig, setModalConfig] = useState<{
@@ -88,6 +90,7 @@ export const DetailsSheet = () => {
 
   const inWatchlist = mediaKey ? watchlistIds.has(mediaKey) : false;
   const inWatched = mediaKey ? watchedIds.has(mediaKey) : false;
+  const isFavorited = inWatched && selected ? watchedMap.get(mediaKey)?.isFavorite ?? false : false;
   const castItems = selected && cast?.id === selected.id ? cast.items : [];
   const backdropItems = selected && backdrops?.id === selected.id ? backdrops.items : [];
   const trailerItems = selected && trailers?.id === selected.id ? trailers.items : [];
@@ -327,6 +330,11 @@ export const DetailsSheet = () => {
     void runAction('watched', () => toggleWatched(selected));
   };
 
+  const handleFavoriteToggle = () => {
+    if (!inWatched) return;
+    void runAction('favorite' as 'watchlist' | 'watched', () => toggleFavorite(selected));
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -423,7 +431,7 @@ export const DetailsSheet = () => {
                     <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-widest font-bold text-brand-silver">
                       <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{selected.media_type}</span>
                       {year && <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{year}</span>}
-                      <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">★ {selected.vote_average?.toFixed(1) || '0.0'}</span>
+                      <span className={clsx('px-2 py-1 rounded-full backdrop-blur-sm', (selected.vote_average ?? 0) >= 7 ? 'bg-brand-cyan/10 text-brand-cyan' : 'bg-white/10 text-brand-silver')}>★ {selected.vote_average?.toFixed(1) || '0.0'}</span>
                       <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{contentRatingValue || 'N/A'}</span>
 
                     </div>
@@ -613,7 +621,7 @@ export const DetailsSheet = () => {
               </div>
 
               <div className="absolute bottom-0 left-0 right-0 z-20 border-t border-white/[0.04] bg-brand-bg/75 backdrop-blur-xl px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
-                <div className="grid grid-cols-[1fr_56px_1fr] items-center gap-2">
+                <div className={clsx('grid items-center gap-2', inWatched ? 'grid-cols-[1fr_56px_56px_1fr]' : 'grid-cols-[1fr_56px_1fr]')}>
                   <motion.button
                     type="button"
                     onClick={handleWatchedToggle}
@@ -632,6 +640,26 @@ export const DetailsSheet = () => {
                     <Eye size={14} />
                     Watched
                   </motion.button>
+
+                  {inWatched && (
+                    <motion.button
+                      type="button"
+                      onClick={handleFavoriteToggle}
+                      title={isFavorited ? 'Favorited' : 'Mark Favorite'}
+                      aria-label={isFavorited ? 'Favorited' : 'Mark Favorite'}
+                      disabled={!!currentActionPulse}
+                      animate={currentActionPulse === 'favorite' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      className={clsx(
+                        'flex h-11 w-full items-center justify-center rounded-lg border transition-all duration-200',
+                        isFavorited
+                          ? 'border-red-400/40 bg-red-500/20 text-red-300 hover:border-red-400/70 hover:bg-red-500/30 hover:text-white hover:shadow-[0_0_18px_rgba(239,68,68,0.14)] hover:-translate-y-0.5'
+                          : 'border-white/15 bg-brand-bg/80 text-white hover:border-red-400/30 hover:bg-brand-bg hover:text-red-300 hover:shadow-[0_0_18px_rgba(239,68,68,0.08)] hover:-translate-y-0.5'
+                      )}
+                    >
+                      <Heart size={16} className={isFavorited ? 'fill-current' : ''} />
+                    </motion.button>
+                  )}
 
                   <button
                     type="button"
