@@ -7,7 +7,6 @@ import { getImageUrl, getMediaCredits, getContentRating, getExternalIds, getMedi
 import { CastMember, ExternalIdsResponse, Media, TmdbImage, Video, WatchProvider } from '@/lib/types';
 import { Bookmark, ChevronDown, ExternalLink, Eye, Play } from 'lucide-react';
 import { clsx } from 'clsx';
-import { toast } from 'sonner';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { FocusTrap } from '@/components/FocusTrap';
 
@@ -279,16 +278,15 @@ export const DetailsSheet = () => {
     }).format(releaseDate)}`;
   })();
   const year = (selected.release_date || selected.first_air_date || '').split('-')[0];
-  const runActionAndClose = async (action: 'watchlist' | 'watched', commit: () => Promise<void> | void) => {
+  const runAction = async (action: 'watchlist' | 'watched', commit: () => Promise<void> | void) => {
     if (closeActionTimerRef.current) clearTimeout(closeActionTimerRef.current);
 
     setActionPulse({ id: selected.id, action });
     await Promise.resolve(commit());
 
     closeActionTimerRef.current = setTimeout(() => {
-      closeDetails();
       setActionPulse(null);
-    }, 250);
+    }, 400);
   };
 
   const handleWatchlistToggle = () => {
@@ -300,21 +298,14 @@ export const DetailsSheet = () => {
         type: 'danger',
         confirmText: 'Remove',
         onConfirm: async () => {
-          await runActionAndClose('watchlist', () => toggleWatchlist(selected));
+          await runAction('watchlist', () => toggleWatchlist(selected));
+          setModalConfig(c => ({ ...c, isOpen: false }));
         },
       });
       return;
     }
 
-    void runActionAndClose('watchlist', () => toggleWatchlist(selected));
-
-    toast(`${title} → watchlist`, {
-      action: {
-        label: 'Undo',
-        onClick: () => toggleWatchlist(selected),
-      },
-      duration: 4000,
-    });
+    void runAction('watchlist', () => toggleWatchlist(selected));
   };
 
   const handleWatchedToggle = () => {
@@ -326,21 +317,14 @@ export const DetailsSheet = () => {
         type: 'danger',
         confirmText: 'Remove',
         onConfirm: async () => {
-          await runActionAndClose('watched', () => toggleWatched(selected));
+          await runAction('watched', () => toggleWatched(selected));
+          setModalConfig(c => ({ ...c, isOpen: false }));
         },
       });
       return;
     }
 
-    void runActionAndClose('watched', () => toggleWatched(selected));
-
-    toast(`${title} → watched`, {
-      action: {
-        label: 'Undo',
-        onClick: () => toggleWatched(selected),
-      },
-      duration: 4000,
-    });
+    void runAction('watched', () => toggleWatched(selected));
   };
 
   return (
@@ -368,6 +352,8 @@ export const DetailsSheet = () => {
                   <button
                     type="button"
                     onClick={() => setShowLinks(v => !v)}
+                    title="External links"
+                    aria-label="External links"
                     className="flex items-center gap-2 text-brand-cyan/80 hover:text-brand-cyan transition-colors outline-none"
                   >
                     <ExternalLink size={32} />
@@ -650,7 +636,7 @@ export const DetailsSheet = () => {
                   <button
                     type="button"
                     onClick={closeDetails}
-                    className="flex h-11 w-full items-center justify-center rounded-lg bg-white/10 text-brand-silver border border-white/15 transition-all hover:bg-brand-cyan/10 hover:text-brand-cyan hover:border-brand-cyan/25 hover:shadow-[0_0_12px_rgba(34,211,238,0.06)]"
+                    className="flex h-11 w-full items-center justify-center rounded-lg bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/25 shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:bg-brand-cyan/20 hover:text-white hover:border-brand-cyan/40"
                     aria-label="Close sheet"
                     title="Tap to close"
                   >
