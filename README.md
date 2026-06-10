@@ -7,7 +7,7 @@
 <h3 align="center">A movie and TV show tracker hosted on GitHub Pages</h3>
 
 <p align="center">
-  <a href="https://tinykings.github.io/void/">tinykings.github.io/void</a>
+  <a href="https://void.tinyk.ing/">void.tinyk.ing</a>
 </p>
 
 ---
@@ -52,7 +52,7 @@ Data lives entirely in your browser (IndexedDB).
 - A TMDB Read Access Token set in `NEXT_PUBLIC_TMDB_READ_ACCESS_TOKEN`
 
 ### Quick Start
-1. Open the app at [tinykings.github.io/void](https://tinykings.github.io/void/)
+1. Open the app at [void.tinyk.ing](https://void.tinyk.ing/)
 2. Browse and use provider links directly from the details page
 
 ## Tech Stack
@@ -101,7 +101,7 @@ npm run lint     # Run ESLint
 
 ## Deployment
 
-GitHub Actions builds and deploys to GitHub Pages on every push to `main`. The static export is served from the `/void/` basePath.
+GitHub Actions builds and deploys to GitHub Pages on every push to `main`. The static export is served from the custom domain root at `https://void.tinyk.ing/`.
 
 ## Settings Reference
 

@@ -7,15 +7,18 @@ import { OfflineGuard } from "@/components/OfflineGuard";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 
 const inter = Inter({ subsets: ["latin"] });
-const basePath = process.env.GITHUB_PAGES ? "/void" : "";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://void.tinyk.ing"),
   title: "Void - Track your movies & TV",
   description: "Mobile-first movie and TV show watchlist tracker",
-  manifest: `${basePath}/manifest.json`,
+  manifest: "/manifest.json",
+  alternates: {
+    canonical: "/",
+  },
   icons: {
-    icon: `${basePath}/icon.svg`,
-    apple: `${basePath}/icon.svg`,
+    icon: "/icon.svg",
+    apple: "/icon.svg",
   },
   appleWebApp: {
     capable: true,

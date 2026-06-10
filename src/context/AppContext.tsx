@@ -171,11 +171,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     store.setIsSearchFocused(false);
   }, [applyPendingLibraryView, store]);
 
-  const getClientBasePath = useCallback(() => {
-    if (typeof window === 'undefined') return '';
-    return window.location.pathname.startsWith('/void') ? '/void' : '';
-  }, []);
-
   useEffect(() => {
     if (!store.isLoaded) return;
 
@@ -207,15 +202,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
       const registerServiceWorker = async () => {
         try {
-          const basePath = getClientBasePath();
-          await navigator.serviceWorker.register(`${basePath}/sw.js`, { scope: `${basePath || '/'}` });
+          await navigator.serviceWorker.register('/sw.js', { scope: '/' });
         } catch (error) {
           console.error('Service worker registration failed:', error);
         }
       };
       registerServiceWorker();
     }
-  }, [getClientBasePath]);
+  }, []);
 
   useEffect(() => {
     if (!store.isLoaded) {
