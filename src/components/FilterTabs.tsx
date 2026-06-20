@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { clsx } from 'clsx';
-import { Clapperboard, Film, Tv } from 'lucide-react';
+import { Clapperboard, Film, Gamepad2, Tv } from 'lucide-react';
 import { FilterType } from '@/lib/types';
 
 interface FilterTabsProps {
@@ -15,6 +15,7 @@ export const FilterTabs: React.FC<FilterTabsProps> = ({ currentFilter, onFilterC
     { id: 'all', label: 'All', icon: Clapperboard },
     { id: 'movie', label: 'Movies', icon: Film },
     { id: 'tv', label: 'Shows', icon: Tv },
+    { id: 'game', label: 'Games', icon: Gamepad2 },
   ];
 
   return (

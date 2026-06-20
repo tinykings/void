@@ -29,6 +29,10 @@ export interface SeasonDetails {
   episodes: Episode[];
 }
 
+export type MediaType = 'movie' | 'tv' | 'game';
+
+export type MediaSource = 'tmdb' | 'rawg' | 'steam';
+
 export interface Media {
   id: number;
   title?: string;
@@ -43,11 +47,21 @@ export interface Media {
   vote_count?: number;
   rating?: number;
   popularity: number;
-  media_type: 'movie' | 'tv';
+  media_type: MediaType;
+  source?: MediaSource;
   status?: string;
   date_added?: string;
   lastChecked?: number;
   isFavorite?: boolean;
+  platforms?: string[];
+  genres?: string[];
+  metacritic?: number | null;
+  playtime?: number;
+  website?: string | null;
+  stores?: { name: string; url: string }[];
+  screenshots?: string[];
+  source_url?: string;
+  poster_source?: 'tmdb' | 'rawg' | 'steam';
   seasons?: SeasonSummary[];
   next_episode_to_air?: {
     air_date: string;
@@ -188,7 +202,7 @@ export interface WatchProvidersResponse {
 
 export type ListType = 'watchlist' | 'watched';
 
-export type FilterType = 'all' | 'movie' | 'tv';
+export type FilterType = 'all' | MediaType;
 
 export type SortOption = 'added';
 

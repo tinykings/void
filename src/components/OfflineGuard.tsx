@@ -33,7 +33,7 @@ export const OfflineGuard = ({ children }: { children: React.ReactNode }) => {
         </h1>
         
         <p className="text-brand-silver max-w-xs mb-10 leading-relaxed">
-          Void requires an active internet connection to sync your library and fetch latest movie data.
+          Void requires an active internet connection to sync your collection and fetch the latest media data.
         </p>
 
         <button 

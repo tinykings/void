@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getImageUrl, getMediaCredits, getContentRating, getExternalIds, getMediaDetails, getMediaImages, getMediaVideos, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
+import { getRawgGameDetails } from '@/lib/rawg';
+import { getImageSrc, getMediaKey, getMediaSource } from '@/lib/media';
 import { CastMember, ExternalIdsResponse, Media, TmdbImage, Video, WatchProvider } from '@/lib/types';
 import { Bookmark, ChevronDown, ExternalLink, Eye, Heart, Play } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -82,10 +84,10 @@ export const DetailsSheet = () => {
     setRetryCount(c => c + 1);
   };
 
-  const selected = activeDetailsMedia && details?.id === activeDetailsMedia.id ? details.media : activeDetailsMedia;
+  const selected = activeDetailsMedia && details?.id === activeDetailsMedia.id && details.media.media_type === activeDetailsMedia.media_type && getMediaSource(details.media) === getMediaSource(activeDetailsMedia) ? details.media : activeDetailsMedia;
   const mediaKey = useMemo(() => {
     if (!selected) return '';
-    return `${selected.media_type}-${selected.id}`;
+    return getMediaKey(selected);
   }, [selected]);
 
   const inWatchlist = mediaKey ? watchlistIds.has(mediaKey) : false;
@@ -103,18 +105,31 @@ export const DetailsSheet = () => {
   const currentActiveTrailerId = selected && activeTrailer?.mediaId === selected.id ? activeTrailer.videoId : null;
 
   useEffect(() => {
-    if (!activeDetailsMedia || !apiKey || details?.id === activeDetailsMedia.id) return;
+    if (!activeDetailsMedia) return;
+    if (activeDetailsMedia.media_type !== 'game' && !apiKey) return;
+    if (details?.id === activeDetailsMedia.id && details.media.media_type === activeDetailsMedia.media_type && getMediaSource(details.media) === getMediaSource(activeDetailsMedia)) return;
 
     let cancelled = false;
 
-    getMediaDetails(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey)
+    const source = getMediaSource(activeDetailsMedia);
+    const detailsPromise = activeDetailsMedia.media_type === 'game'
+      ? source === 'steam'
+        ? Promise.resolve(activeDetailsMedia)
+        : getRawgGameDetails(activeDetailsMedia.id)
+      : getMediaDetails(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey);
+
+    detailsPromise
       .then((mediaData) => {
         if (cancelled) return;
+        return mediaData;
+      })
+      .then((mediaData) => {
+        if (cancelled || !mediaData) return;
         setDetails({ id: mediaData.id, media: mediaData });
         updateMediaMetadata(mediaData.id, mediaData.media_type, {
           ...mediaData,
           lastChecked: Date.now(),
-        });
+        }, getMediaSource(mediaData));
       })
       .catch(() => {
         if (!cancelled) setInitError(true);
@@ -123,7 +138,7 @@ export const DetailsSheet = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeDetailsMedia, apiKey, details?.id, updateMediaMetadata, retryCount]);
+  }, [activeDetailsMedia, apiKey, details?.id, details?.media, updateMediaMetadata, retryCount]);
 
   useEffect(() => {
     return () => {
@@ -143,16 +158,17 @@ export const DetailsSheet = () => {
   }, [showLinks]);
 
   useEffect(() => {
-    if (!activeDetailsMedia || !apiKey || !details || details.id !== activeDetailsMedia.id) return;
+    if (!activeDetailsMedia || !apiKey || !details || details.id !== activeDetailsMedia.id || activeDetailsMedia.media_type === 'game') return;
 
     let cancelled = false;
+    const tmdbType = activeDetailsMedia.media_type;
 
     const fetchData = async () => {
       await Promise.all([
         (async () => {
           if (watchProviders?.id === activeDetailsMedia.id) return;
           try {
-            const data = await getWatchProviders(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey);
+            const data = await getWatchProviders(activeDetailsMedia.id, tmdbType, apiKey);
             if (!cancelled) setWatchProviders({ id: activeDetailsMedia.id, items: getUSStreamingProviders(data) });
           } catch {
             if (!cancelled) setSectionErrors(prev => new Set(prev).add('overview'));
@@ -161,7 +177,7 @@ export const DetailsSheet = () => {
         (async () => {
           if (cast?.id === activeDetailsMedia.id) return;
           try {
-            const data = await getMediaCredits(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey);
+            const data = await getMediaCredits(activeDetailsMedia.id, tmdbType, apiKey);
             if (!cancelled) setCast({ id: activeDetailsMedia.id, items: data.cast.slice(0, 8) });
           } catch {
             if (!cancelled) setSectionErrors(prev => new Set(prev).add('cast'));
@@ -170,7 +186,7 @@ export const DetailsSheet = () => {
         (async () => {
           if (trailers?.id === activeDetailsMedia.id) return;
           try {
-            const data = await getMediaVideos(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey);
+            const data = await getMediaVideos(activeDetailsMedia.id, tmdbType, apiKey);
             if (!cancelled) {
               const selectedTrailers = [...(data.results || [])]
                 .filter((v) => v.site === 'YouTube' && v.type === 'Trailer')
@@ -188,7 +204,7 @@ export const DetailsSheet = () => {
         (async () => {
           if (backdrops?.id === activeDetailsMedia.id) return;
           try {
-            const data = await getMediaImages(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey);
+            const data = await getMediaImages(activeDetailsMedia.id, tmdbType, apiKey);
             if (!cancelled) {
               const selectedBackdrops = [...(data.backdrops || [])]
                 .sort((a, b) => {
@@ -212,11 +228,12 @@ export const DetailsSheet = () => {
   }, [activeDetailsMedia, apiKey, details, watchProviders?.id, cast?.id, trailers?.id, backdrops?.id, retryCount]);
 
   useEffect(() => {
-    if (!activeDetailsMedia || !apiKey) return;
+    if (!activeDetailsMedia || !apiKey || activeDetailsMedia.media_type === 'game') return;
 
     let cancelled = false;
+    const tmdbType = activeDetailsMedia.media_type;
 
-    getContentRating(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey)
+    getContentRating(activeDetailsMedia.id, tmdbType, apiKey)
       .then((rating) => {
         if (!cancelled) setContentRating({ id: activeDetailsMedia.id, value: rating });
       })
@@ -228,11 +245,12 @@ export const DetailsSheet = () => {
   }, [activeDetailsMedia, apiKey]);
 
   useEffect(() => {
-    if (!activeDetailsMedia || !apiKey) return;
+    if (!activeDetailsMedia || !apiKey || activeDetailsMedia.media_type === 'game') return;
 
     let cancelled = false;
+    const tmdbType = activeDetailsMedia.media_type;
 
-    getExternalIds(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey)
+    getExternalIds(activeDetailsMedia.id, tmdbType, apiKey)
       .then((ids) => {
         if (!cancelled) setExternalIds({ id: activeDetailsMedia.id, value: ids });
       })
@@ -261,6 +279,8 @@ export const DetailsSheet = () => {
   if (!isOpen || !selected) return null;
 
   const title = selected.title || selected.name || 'Unknown';
+  const isGame = selected.media_type === 'game';
+  const source = getMediaSource(selected);
   const nextEpisode = selected.media_type === 'tv' ? selected.next_episode_to_air : null;
   const episodeLabel = nextEpisode
     ? `Next • S${nextEpisode.season_number}E${nextEpisode.episode_number} • ${nextEpisode.name}`
@@ -281,6 +301,9 @@ export const DetailsSheet = () => {
     }).format(releaseDate)}`;
   })();
   const year = (selected.release_date || selected.first_air_date || '').split('-')[0];
+  const providerLabel = source === 'rawg' ? 'RAWG' : source === 'steam' ? 'Steam' : 'TMDB';
+  const posterSrc = getImageSrc(selected.poster_path, (tmdbPath) => getImageUrl(tmdbPath, 'w342'));
+  const gameScreenshots = isGame ? (selected.screenshots || []).slice(0, 5) : [];
   const runAction = async (action: 'watchlist' | 'watched', commit: () => Promise<void> | void) => {
     if (closeActionTimerRef.current) clearTimeout(closeActionTimerRef.current);
 
@@ -296,8 +319,8 @@ export const DetailsSheet = () => {
     if (inWatchlist) {
       setModalConfig({
         isOpen: true,
-        title: 'Remove from Watchlist',
-        message: `Remove \"${title}\" from your watchlist?`,
+        title: 'Remove from Playlist',
+        message: `Remove \"${title}\" from your playlist?`,
         type: 'danger',
         confirmText: 'Remove',
         onConfirm: async () => {
@@ -315,8 +338,8 @@ export const DetailsSheet = () => {
     if (inWatched) {
       setModalConfig({
         isOpen: true,
-        title: 'Remove from Watched',
-        message: `Remove \"${title}\" from watched?`,
+        title: 'Remove from History',
+        message: `Remove \"${title}\" from history?`,
         type: 'danger',
         confirmText: 'Remove',
         onConfirm: async () => {
@@ -355,7 +378,7 @@ export const DetailsSheet = () => {
               onClick={(e) => e.stopPropagation()}
               className="relative w-full max-w-6xl h-[92vh] max-h-[96vh] bg-brand-bg/95 embossed-edge rounded-t-3xl overflow-hidden flex flex-col will-change-transform"
             >
-              {(imdbUrl || commonSenseUrl) && (
+              {(imdbUrl || commonSenseUrl || selected.source_url || selected.website) && (
                 <div className="absolute top-4 right-4 z-20" ref={linksRef}>
                   <button
                     type="button"
@@ -378,9 +401,11 @@ export const DetailsSheet = () => {
                             Parents Guide
                         </a>
                       )}
-                      <a href={commonSenseUrl} target="_blank" rel="noreferrer" className="block px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors">
-                        Common Sense
-                      </a>
+                      {!isGame && (
+                        <a href={commonSenseUrl} target="_blank" rel="noreferrer" className="block px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors">
+                          Common Sense
+                        </a>
+                      )}
                       <div className="border-t border-white/10 my-1" />
                       {watchProviderItems.length > 0 && (
                         <a
@@ -392,14 +417,36 @@ export const DetailsSheet = () => {
                           <span>JustWatch</span>
                         </a>
                       )}
-                      <a
-                        href={`https://www.cineby.sc/${selected.media_type}/${selected.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-between gap-2 px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors"
-                      >
-                        <span>Cineby</span>
-                      </a>
+                      {selected.source_url && (
+                        <a
+                          href={selected.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between gap-2 px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors"
+                        >
+                          <span>{providerLabel}</span>
+                        </a>
+                      )}
+                      {selected.website && (
+                        <a
+                          href={selected.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between gap-2 px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors"
+                        >
+                          <span>Website</span>
+                        </a>
+                      )}
+                      {!isGame && (
+                        <a
+                          href={`https://www.cineby.sc/${selected.media_type}/${selected.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between gap-2 px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors"
+                        >
+                          <span>Cineby</span>
+                        </a>
+                      )}
                     </div>
                   )}
                 </div>
@@ -407,9 +454,9 @@ export const DetailsSheet = () => {
               <FocusTrap active={isOpen}>
               <div className="relative z-10 flex-1 overflow-y-auto px-4 pb-28">
                 <div className="flex gap-4 pb-4 pt-4">
-                  {selected.poster_path && (
+                  {posterSrc && (
                     <img
-                      src={getImageUrl(selected.poster_path, 'w342')}
+                      src={posterSrc}
                       alt=""
                       className="w-24 sm:w-32 rounded-xl object-cover shrink-0 self-start blueprint-border"
                       decoding="async"
@@ -429,10 +476,12 @@ export const DetailsSheet = () => {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-widest font-bold text-brand-silver">
-                      <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{selected.media_type}</span>
+                      <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{isGame ? 'game' : selected.media_type}</span>
                       {year && <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{year}</span>}
                       <span className={clsx('px-2 py-1 rounded-full backdrop-blur-sm', (selected.vote_average ?? 0) >= 7 ? 'bg-brand-cyan/10 text-brand-cyan' : 'bg-white/10 text-brand-silver')}>★ {selected.vote_average?.toFixed(1) || '0.0'}</span>
-                      <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{contentRatingValue || 'N/A'}</span>
+                      {!isGame && <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{contentRatingValue || 'N/A'}</span>}
+                      {isGame && selected.metacritic ? <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">MC {selected.metacritic}</span> : null}
+                      {isGame && selected.playtime ? <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{selected.playtime}H</span> : null}
 
                     </div>
 
@@ -442,6 +491,16 @@ export const DetailsSheet = () => {
                     {watchProviderItems.length > 0 && (
                       <p className="text-xs text-brand-silver">
                         {watchProviderItems.map((p) => p.provider_name).join(' · ')}
+                      </p>
+                    )}
+                    {isGame && selected.platforms && selected.platforms.length > 0 && (
+                      <p className="text-xs text-brand-silver">
+                        {selected.platforms.slice(0, 8).join(' · ')}
+                      </p>
+                    )}
+                    {isGame && selected.genres && selected.genres.length > 0 && (
+                      <p className="text-xs text-brand-silver/80">
+                        {selected.genres.slice(0, 6).join(' · ')}
                       </p>
                     )}
 
@@ -461,6 +520,8 @@ export const DetailsSheet = () => {
               </div>
 
               <div className="mt-3 space-y-4">
+                  {!isGame && (
+                    <>
                     {/* Trailers */}
                     <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
                       <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-brand-silver">Trailers</h3>
@@ -573,11 +634,31 @@ export const DetailsSheet = () => {
                         <p className="py-10 text-center text-sm text-brand-silver">Cast unavailable.</p>
                       )}
                     </div>
+                    </>
+                  )}
 
                     {/* Images */}
                     <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
                       <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-brand-silver">Images</h3>
-                      {sectionErrors.has('images') ? (
+                      {isGame ? (
+                        gameScreenshots.length > 0 ? (
+                          <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="space-y-3">
+                            {gameScreenshots.map((image) => (
+                              <motion.img
+                                key={image}
+                                variants={staggerItem}
+                                src={image}
+                                alt=""
+                                className="aspect-video w-full rounded-xl object-cover blueprint-border"
+                                decoding="async"
+                                loading="lazy"
+                              />
+                            ))}
+                          </motion.div>
+                        ) : (
+                          <p className="py-10 text-center text-sm text-brand-silver">No images.</p>
+                        )
+                      ) : sectionErrors.has('images') ? (
                         <div className="flex flex-col items-center gap-3 py-10">
                           <p className="text-sm text-red-200">Failed to load images.</p>
                           <button
@@ -615,7 +696,7 @@ export const DetailsSheet = () => {
                     </div>
 
                 <p className="text-center text-[10px] uppercase tracking-[0.2em] text-brand-silver/60">
-                  Data provided by TMDB.
+                  Data provided by {providerLabel}.
                 </p>
               </div>
               </div>
@@ -625,8 +706,8 @@ export const DetailsSheet = () => {
                   <motion.button
                     type="button"
                     onClick={handleWatchedToggle}
-                    title={inWatched ? 'Watched' : 'Mark Watched'}
-                    aria-label={inWatched ? 'Watched' : 'Mark Watched'}
+                    title={inWatched ? 'In History' : 'Add to History'}
+                    aria-label={inWatched ? 'In History' : 'Add to History'}
                     disabled={!!currentActionPulse}
                     animate={currentActionPulse === 'watched' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
                     transition={{ duration: 0.2, ease: 'easeOut' }}
@@ -638,7 +719,7 @@ export const DetailsSheet = () => {
                     )}
                   >
                     <Eye size={14} />
-                    Watched
+                    History
                   </motion.button>
 
                   {inWatched && (
@@ -674,8 +755,8 @@ export const DetailsSheet = () => {
                   <motion.button
                     type="button"
                     onClick={handleWatchlistToggle}
-                    title={inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
-                    aria-label={inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
+                    title={inWatchlist ? 'In Playlist' : 'Add to Playlist'}
+                    aria-label={inWatchlist ? 'In Playlist' : 'Add to Playlist'}
                     disabled={!!currentActionPulse}
                     animate={currentActionPulse === 'watchlist' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
                     transition={{ duration: 0.2, ease: 'easeOut' }}
@@ -687,7 +768,7 @@ export const DetailsSheet = () => {
                     )}
                   >
                     <Bookmark size={14} />
-                    Watchlist
+                    Playlist
                   </motion.button>
                 </div>
               </div>

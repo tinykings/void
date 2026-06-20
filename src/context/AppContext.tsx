@@ -5,7 +5,9 @@ import { Media, UserState, SortOption, FilterType, CastMember } from '@/lib/type
 import { useStore } from '@/store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getMediaDetails } from '@/lib/tmdb';
+import { getRawgGameDetails } from '@/lib/rawg';
 import { mapWithConcurrency } from '@/lib/concurrency';
+import { getMediaKey, getMediaSource } from '@/lib/media';
 import { toast } from 'sonner';
 
 const METADATA_HYDRATION_CONCURRENCY = 1;
@@ -35,7 +37,7 @@ interface AppContextType extends UserState {
   showFavoritesOnly: boolean;
   setShowFavoritesOnly: (show: boolean) => void;
   toggleFavorite: (media: Media) => void;
-  updateMediaMetadata: (id: number, type: 'movie' | 'tv', metadata: Partial<Media>) => void;
+  updateMediaMetadata: (id: number, type: 'movie' | 'tv' | 'game', metadata: Partial<Media>, source?: Media['source']) => void;
   isSearchFocused: boolean;
   setIsSearchFocused: (focused: boolean) => void;
   syncFromGist: (showIndicator?: boolean) => Promise<void>;
@@ -182,16 +184,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [store.isLoaded, store.watchlist.length, store.watched.length]);
 
   const toggleWatchlist = useCallback(async (media: Media) => {
-    const mediaKey = `${media.media_type}-${media.id}`;
-    const inWatchlist = store.watchlist.some((item) => `${item.media_type}-${item.id}` === mediaKey);
+    const mediaKey = getMediaKey(media);
+    const inWatchlist = store.watchlist.some((item) => getMediaKey(item) === mediaKey);
 
     setPendingLibraryView(inWatchlist ? null : { mode: 'watchlist', filter: 'all' });
     await store.toggleWatchlist(media);
   }, [store.watchlist, store.toggleWatchlist]);
 
   const toggleWatched = useCallback(async (media: Media, rating?: number) => {
-    const mediaKey = `${media.media_type}-${media.id}`;
-    const inWatched = store.watched.some((item) => `${item.media_type}-${item.id}` === mediaKey);
+    const mediaKey = getMediaKey(media);
+    const inWatched = store.watched.some((item) => getMediaKey(item) === mediaKey);
 
     setPendingLibraryView(inWatched ? null : { mode: 'watched', filter: 'all' });
     await store.toggleWatched(media, rating);
@@ -273,7 +275,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const incompleteItems = [...store.watchlist, ...store.watched].filter((item) => !item.poster_path);
     const itemsToHydrate = incompleteItems.filter((item) => {
-      const key = `${item.media_type}-${item.id}`;
+      const key = getMediaKey(item);
       if (hydratedMediaKeys.current.has(key)) return false;
       if (hydratingMediaKeys.current.has(key)) return false;
       hydratingMediaKeys.current.add(key);
@@ -283,16 +285,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (itemsToHydrate.length === 0) return;
 
     void mapWithConcurrency(itemsToHydrate, METADATA_HYDRATION_CONCURRENCY, async (item) => {
-      const key = `${item.media_type}-${item.id}`;
+      const key = getMediaKey(item);
 
       try {
-        const details = await getMediaDetails(item.id, item.media_type, store.apiKey);
+        const source = getMediaSource(item);
+        const details = item.media_type === 'game'
+          ? source === 'steam'
+            ? item
+            : await getRawgGameDetails(item.id)
+          : await getMediaDetails(item.id, item.media_type, store.apiKey);
         store.updateMediaMetadata(item.id, item.media_type, {
           ...details,
           date_added: item.date_added,
           isFavorite: item.isFavorite,
           lastChecked: Date.now(),
-        });
+        }, source);
         hydratedMediaKeys.current.add(key);
       } catch (error) {
         console.error('Failed to hydrate library metadata:', error);
@@ -312,7 +319,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (migrated && migrated.length > 0) {
           migrated.forEach((item) => {
             toast(`${item.name || item.title}`, {
-              description: "Moved to watchlist — new episode airing soon",
+              description: "Moved to playlist, new episode airing soon",
             });
           });
         }
@@ -325,11 +332,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [store.isLoaded, store.apiKey]);
 
   // O(1) lookup Maps for membership checks
-  const watchlistIds = useMemo(() => new Set(store.watchlist.map(m => `${m.media_type}-${m.id}`)), [store.watchlist]);
-  const watchedIds = useMemo(() => new Set(store.watched.map(m => `${m.media_type}-${m.id}`)), [store.watched]);
+  const watchlistIds = useMemo(() => new Set(store.watchlist.map(m => getMediaKey(m))), [store.watchlist]);
+  const watchedIds = useMemo(() => new Set(store.watched.map(m => getMediaKey(m))), [store.watched]);
   const watchedMap = useMemo(() => {
     const map = new Map<string, Media>();
-    store.watched.forEach(m => map.set(`${m.media_type}-${m.id}`, m));
+    store.watched.forEach(m => map.set(getMediaKey(m), m));
     return map;
   }, [store.watched]);
 

@@ -4,7 +4,9 @@ import { get, set, del } from 'idb-keyval';
 import { Media, UserState, FilterType, SortOption } from '@/lib/types';
 import { buildGistPayload, fromGistItem, getGistContent, isEmptyGistPayload, updateGist } from '@/lib/gist';
 import { getMediaDetails } from '@/lib/tmdb';
+import { getRawgGameDetails } from '@/lib/rawg';
 import { mapWithConcurrency } from '@/lib/concurrency';
+import { getMediaKey, getMediaSource } from '@/lib/media';
 
 const DEFAULT_TMDB_ACCESS_TOKEN = process.env.NEXT_PUBLIC_TMDB_READ_ACCESS_TOKEN || '';
 const METADATA_HYDRATION_CONCURRENCY = 1;
@@ -48,7 +50,7 @@ interface StoreState extends UserState {
   setShowWatched: (show: boolean) => void;
   setIsSearchFocused: (focused: boolean) => void;
 
-  updateMediaMetadata: (id: number, type: 'movie' | 'tv', metadata: Partial<Media>) => void;
+  updateMediaMetadata: (id: number, type: 'movie' | 'tv' | 'game', metadata: Partial<Media>, source?: Media['source']) => void;
   
   markEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
   unmarkEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
@@ -104,9 +106,12 @@ export const useStore = create<StoreState>()(
         
         setIsSearchFocused: (isSearchFocused) => set({ isSearchFocused }),
 
-        updateMediaMetadata: (id, type, metadata) => set((state) => {
+        updateMediaMetadata: (id, type, metadata, source) => set((state) => {
           const updateList = (list: Media[]) => 
-            list.map(m => m.id === id && m.media_type === type ? { ...m, ...metadata } : m);
+            list.map(m => {
+              const sameProvider = type !== 'game' || !source || getMediaSource(m) === source;
+              return m.id === id && m.media_type === type && sameProvider ? { ...m, ...metadata } : m;
+            });
           
           return {
             watchlist: updateList(state.watchlist),
@@ -143,14 +148,22 @@ export const useStore = create<StoreState>()(
 
               if (!gist) return;
 
-              const favoriteKeys = new Set(gist.favorites.map((item) => `${item.media_type}-${item.id}`));
+              const favoriteKeys = new Set(gist.favorites.map((item) => getMediaKey(fromGistItem(item))));
               const localWatchlist = gist.watchlist.map((item) => fromGistItem(item));
-              const localWatched = gist.watched.map((item) => fromGistItem(item, favoriteKeys.has(`${item.media_type}-${item.id}`)));
+              const localWatched = gist.watched.map((item) => {
+                const media = fromGistItem(item);
+                return fromGistItem(item, favoriteKeys.has(getMediaKey(media)));
+              });
 
               const hydrateList = async (items: Media[]) => {
                 const hydrated = await mapWithConcurrency(items, METADATA_HYDRATION_CONCURRENCY, async (item) => {
                   try {
-                    const details = await getMediaDetails(item.id, item.media_type, apiKey);
+                    const source = getMediaSource(item);
+                    const details = item.media_type === 'game'
+                      ? source === 'steam'
+                        ? item
+                        : await getRawgGameDetails(item.id)
+                      : await getMediaDetails(item.id, item.media_type, apiKey);
                     return {
                       ...details,
                       date_added: item.date_added,
@@ -186,14 +199,15 @@ export const useStore = create<StoreState>()(
 
         toggleWatchlist: async (media) => {
           const { watchlist, watched } = get();
-          const inWatchlist = watchlist.some((m) => m.id === media.id && m.media_type === media.media_type);
+          const mediaKey = getMediaKey(media);
+          const inWatchlist = watchlist.some((m) => getMediaKey(m) === mediaKey);
           
           if (inWatchlist) {
-            set({ watchlist: watchlist.filter((m) => !(m.id === media.id && m.media_type === media.media_type)) });
+            set({ watchlist: watchlist.filter((m) => getMediaKey(m) !== mediaKey) });
           } else {
             set({ 
               watchlist: [...watchlist, { ...media, date_added: new Date().toISOString() }],
-              watched: watched.filter((m) => !(m.id === media.id && m.media_type === media.media_type))
+              watched: watched.filter((m) => getMediaKey(m) !== mediaKey)
             });
           }
 
@@ -202,14 +216,15 @@ export const useStore = create<StoreState>()(
 
         toggleWatched: async (media, rating) => {
           const { watched, watchlist } = get();
-          const inWatched = watched.some((m) => m.id === media.id && m.media_type === media.media_type);
+          const mediaKey = getMediaKey(media);
+          const inWatched = watched.some((m) => getMediaKey(m) === mediaKey);
 
           if (inWatched && !rating) {
-            set({ watched: watched.filter((m) => !(m.id === media.id && m.media_type === media.media_type)) });
+            set({ watched: watched.filter((m) => getMediaKey(m) !== mediaKey) });
           } else {
             set({
               watched: [...watched, { ...media, date_added: new Date().toISOString(), lastChecked: Date.now() }],
-              watchlist: watchlist.filter((m) => !(m.id === media.id && m.media_type === media.media_type))
+              watchlist: watchlist.filter((m) => getMediaKey(m) !== mediaKey)
             });
           }
 
@@ -218,13 +233,14 @@ export const useStore = create<StoreState>()(
 
         toggleFavorite: async (media) => {
           const { watched } = get();
-          const item = watched.find((m) => m.id === media.id && m.media_type === media.media_type);
+          const mediaKey = getMediaKey(media);
+          const item = watched.find((m) => getMediaKey(m) === mediaKey);
           if (!item) return;
 
           const newIsFavorite = !item.isFavorite;
           set({
             watched: watched.map((m) =>
-              m.id === media.id && m.media_type === media.media_type
+              getMediaKey(m) === mediaKey
                 ? { ...m, isFavorite: newIsFavorite }
                 : m
             ),
@@ -330,13 +346,26 @@ export const useStore = create<StoreState>()(
     {
       name: 'void_user_state',
       storage: createJSONStorage(() => storage),
-      version: 2,
+      version: 3,
       migrate: (persistedState, version) => {
         const state = persistedState as Partial<StoreState> | undefined;
         if (!state) return state;
 
         if (version < 2) {
-          return { ...state, filter: 'all' as FilterType };
+          state.filter = 'all' as FilterType;
+        }
+
+        if (version < 3) {
+          const withSource = (items?: Media[]) => (items || []).map((item) => ({
+            ...item,
+            source: item.source || (item.media_type === 'game' ? 'rawg' : 'tmdb' as const),
+          }));
+
+          return {
+            ...state,
+            watchlist: withSource(state.watchlist),
+            watched: withSource(state.watched),
+          };
         }
 
         return state;

@@ -10,8 +10,8 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://void.tinyk.ing"),
-  title: "Void - Track your movies & TV",
-  description: "Mobile-first movie and TV show watchlist tracker",
+  title: "Void - Track your movies, shows, and games",
+  description: "Mobile-first media playlist and history tracker",
   manifest: "/manifest.json",
   alternates: {
     canonical: "/",

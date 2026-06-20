@@ -1,6 +1,6 @@
 ---
 name: Void
-description: A movie and TV show tracker
+description: A movie, show, and game tracker
 colors:
   brand-bg: "#0F1115"
   surface-raised: "#1A1D23"
@@ -104,7 +104,7 @@ One accent, one neutral, one ground. The palette is deliberately narrow: cyan sa
 - **Overlay** (`rgba(0,0,0,0.7)` / `rgba(0,0,0,0.8)`): Sheet backdrops. Heavy blur is paired with this to create depth.
 
 ### Named Rules
-**The Single Voice Rule.** Cyan is the only interaction color. Green for "watched" confirmations and red for "remove" danger are semantic exceptions, not aesthetic choices. If it's interactive, it gets cyan or nothing.
+**The Single Voice Rule.** Cyan is the only interaction color. Green for history confirmations and red for "remove" danger are semantic exceptions, not aesthetic choices. If it's interactive, it gets cyan or nothing.
 
 **The Blueprint Edge Rule.** Every surface boundary is `1px solid rgba(255,255,255,0.1)`. Not 2px, not colored. A thicker border is a mistake; a colored side-stripe is forbidden.
 
@@ -145,7 +145,7 @@ Sheets overlay the void with `embossed-edge` border treatment: an inner highligh
 - **Shape:** Gently rounded corners (12px rounded-xl) for primary and sheet actions. Fully rounded (28px pill or 9999px full) for icon-only and bottom-bar buttons.
 - **Primary CTA** (e.g., "Save," "Sync"): Solid cyan fill (`#22D3EE`), dark text (`#0F1115`), black 900 weight, uppercase, wide tracking. Hover brightens; active scales down slightly (`scale(95%)`).
 - **Ghost / Icon** (e.g., filter buttons, close buttons): Transparent, silver text at rest. On hover, cyan/10 background tint with cyan text. No border unless it's a grouped control.
-- **Action in Sheets** ("Watched," "Watchlist"): Bordered with background tint. Active state gets a stronger tint, cyan glow, and slight lift (`translateY(-0.5px)`).
+- **Action in Sheets** ("History," "Playlist"): Bordered with background tint. Active state gets a stronger tint, cyan glow, and slight lift (`translateY(-0.5px)`).
 - **Pulse on Confirm:** Action buttons in the details sheet animate a scale pulse on press (1 → 1.06 → 0.98 → 1, 200ms ease-out).
 
 ### Cards (MediaCard)
@@ -168,9 +168,9 @@ Sheets overlay the void with `embossed-edge` border treatment: an inner highligh
 
 ### Navigation (Bottom Bar)
 - **Style:** Fixed bottom, pill-shaped (28px radius), glass background (`bg-brand-bg/70 backdrop-blur-xl`), blueprint border. Deepest shadow in the system.
-- **Layout:** Three zones: filter/menu (left), Library/Watchlist toggle (center), search (right).
-- **Toggle:** A two-segment control with an animated cyan pill indicator (`300ms ease-out`). The pill slides between Library and Watchlist positions. Active segment gets cyan text; inactive gets silver.
-- **Context badge:** Floating status pill above the bar showing the current view ("Watchlist · All," "Library · Movies").
+- **Layout:** Three zones: filter/menu (left), History/Playlist toggle (center), search (right).
+- **Toggle:** A two-segment control with an animated cyan pill indicator (`300ms ease-out`). The pill slides between History and Playlist positions. Active segment gets cyan text; inactive gets silver.
+- **Context badge:** Floating status pill above the bar showing the current view ("Playlist · All," "History · Movies").
 
 ### Chips / Badges
 - **Style:** `rounded-full` with `bg-white/10` background, 10px black 900 uppercase label, wide tracking. Used for content ratings, media type labels (movie/TV), year, vote average.

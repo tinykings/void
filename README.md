@@ -4,7 +4,7 @@
 
 <h1 align="center">VOID</h1>
 
-<h3 align="center">A movie and TV show tracker hosted on GitHub Pages</h3>
+<h3 align="center">A movie, show, and game tracker hosted on GitHub Pages</h3>
 
 <p align="center">
   <a href="https://void.tinyk.ing/">void.tinyk.ing</a>
@@ -21,19 +21,19 @@
 
 ## Overview
 
-VOID is a personal media tracker built as a static Next.js app deployed to GitHub Pages. Track your watchlist and watch history for movies and TV shows, keep your library local, and browse TMDB metadata from the browser with no backend required.
+VOID is a personal media tracker built as a static Next.js app deployed to GitHub Pages. Track your playlist and history for movies, TV shows, and games, keep your collection local, and browse TMDB and RAWG metadata from the browser with no backend required.
 
 Data lives entirely in your browser (IndexedDB).
 
 ## Features
 
 ### Core Tracking
-- **Watchlist & History** — Add movies and shows to your watchlist or mark them as watched. Items are mutually exclusive between the two lists.
-- **TV Show Auto-Migration** — Shows in your watch history automatically move back to the watchlist when a new episode airs within 7 days. Ended or canceled shows are excluded.
-- **Ratings** — Rate watched content 1–5 stars, synced bidirectionally with TMDB.
+- **Playlist & History** — Add movies, shows, and games to your playlist or move them to history. Items are mutually exclusive between the two lists.
+- **TV Show Auto-Migration** — Shows in your history automatically move back to the playlist when a new episode airs within 7 days. Ended or canceled shows are excluded.
+- **Ratings** — Rate history content 1–5 stars, synced bidirectionally with TMDB where supported.
 
 ### Discovery
-- **Search** — Real-time search across all TMDB movies and TV shows.
+- **Search** — Real-time search across TMDB movies and TV shows, plus RAWG games.
 - **Trending** — Browse weekly trending content from TMDB when opening search.
 - **Media Details** — Full detail pages with cast, trailers, watch providers, season/episode info, content ratings, and next episode data.
 
@@ -50,6 +50,7 @@ Data lives entirely in your browser (IndexedDB).
 
 ### Requirements
 - A TMDB Read Access Token set in `NEXT_PUBLIC_TMDB_READ_ACCESS_TOKEN`
+- A RAWG API key set in `NEXT_PUBLIC_RAWG_API_KEY` for game lookup
 
 ### Quick Start
 1. Open the app at [void.tinyk.ing](https://void.tinyk.ing/)
@@ -65,7 +66,7 @@ Data lives entirely in your browser (IndexedDB).
 | Animations | Framer Motion |
 | State | Zustand 5 |
 | Persistence | IndexedDB via `idb-keyval` |
-| Data | TMDB API v3/v4 |
+| Data | TMDB API v3/v4, RAWG API |
 | Hosting | GitHub Pages |
 
 ## Architecture
@@ -73,7 +74,7 @@ Data lives entirely in your browser (IndexedDB).
 ```
 src/
 ├── app/                  # Next.js App Router pages
-│   ├── page.tsx          # Home page (watchlist/history/search)
+│   ├── page.tsx          # Home page (playlist/history/search)
 │   ├── details/          # Media detail page
 │   └── ...               # Other routes
 ├── components/
@@ -82,13 +83,14 @@ src/
 ├── store/
 │   └── useStore.ts       # Zustand store — all app state and local persistence
 ├── lib/
-│   ├── tmdb.ts           # All TMDB API calls
+│   ├── tmdb.ts           # TMDB API calls
+│   ├── rawg.ts           # RAWG game API calls
 │   ├── types.ts          # Core TypeScript interfaces
 ├── context/
     └── AppContext.tsx     # React context wrapper around Zustand store
 ```
 
-**Data flow:** Components → `useAppContext()` → Zustand store → persisted to IndexedDB (`void_user_state`). TMDB is used for metadata only.
+**Data flow:** Components → `useAppContext()` → Zustand store → persisted to IndexedDB (`void_user_state`). TMDB and RAWG are used for metadata only.
 
 ## Development
 
@@ -107,7 +109,7 @@ GitHub Actions builds and deploys to GitHub Pages on every push to `main`. The s
 
 | Setting | Description |
 |---|---|
-| Local Library | Watchlist, watched, and favorites stored in IndexedDB |
+| Local Collection | Playlist, history, and favorites stored in IndexedDB |
 | Watch Providers | Open JustWatch search from provider icons |
 
 ## License

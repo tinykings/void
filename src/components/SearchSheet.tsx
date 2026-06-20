@@ -4,13 +4,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getTrending, searchMedia } from '@/lib/tmdb';
+import { hasRawgApiKey, searchRawgGames } from '@/lib/rawg';
 import { Media } from '@/lib/types';
+import { getMediaKey } from '@/lib/media';
 import { MediaCard } from '@/components/MediaCard';
-import { Eye, EyeOff, LoaderCircle, Save, Search as SearchIcon, X } from 'lucide-react';
+import { Eye, EyeOff, Film, Gamepad2, LoaderCircle, Save, Search as SearchIcon, X } from 'lucide-react';
 import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 import { FocusTrap } from '@/components/FocusTrap';
 import logoPng from '../../public/logo.png';
+import { clsx } from 'clsx';
+
+type SearchMode = 'media' | 'game';
 
 export const SearchSheet = () => {
   const {
@@ -28,6 +33,7 @@ export const SearchSheet = () => {
     isSyncingLibrary,
   } = useAppContext();
   const [query, setQuery] = useState('');
+  const [searchMode, setSearchMode] = useState<SearchMode>('media');
   const [searchResults, setSearchResults] = useState<Media[]>([]);
   const [trending, setTrending] = useState<Media[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +50,7 @@ export const SearchSheet = () => {
   const displayError = isSearchFocused ? error : null;
 
   const runSearch = useCallback(async (value: string) => {
-    if (!apiKey || value.trim().length < 2) {
+    if (value.trim().length < 2) {
       return;
     }
 
@@ -52,14 +58,26 @@ export const SearchSheet = () => {
     searchAbortController.current = new AbortController();
 
     try {
-      const results = await searchMedia(value, apiKey, searchAbortController.current.signal);
-      setSearchResults(results);
+      setError(null);
+      const signal = searchAbortController.current.signal;
+      if (searchMode === 'media') {
+        const tmdbResults = apiKey ? await searchMedia(value, apiKey, signal).catch(() => [] as Media[]) : [];
+        setSearchResults(tmdbResults);
+        return;
+      }
+
+      if (!hasRawgApiKey()) {
+        throw new Error('RAWG API key is not configured');
+      }
+
+      const rawgResults = await searchRawgGames(value, signal);
+      setSearchResults(rawgResults);
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') return;
       console.error('Search error:', err);
       setError(err instanceof Error ? err.message : 'Search failed');
     }
-  }, [apiKey]);
+  }, [apiKey, searchMode]);
 
   const debouncedSearch = useDebouncedCallback(runSearch, 300);
 
@@ -87,7 +105,7 @@ export const SearchSheet = () => {
     } else if (searchAbortController.current) {
       searchAbortController.current.abort();
     }
-  }, [query, searchTerm.length, debouncedSearch, isSearchFocused]);
+  }, [query, searchMode, searchTerm.length, debouncedSearch, isSearchFocused]);
 
   useEffect(() => {
     return () => {
@@ -121,9 +139,12 @@ export const SearchSheet = () => {
     setShowGistPrompt(false);
     void syncFromGist(true);
   };
-  const displayedMedia = useMemo(() => (showSearchResults ? searchResults : trending), [showSearchResults, searchResults, trending]);
+  const displayedMedia = useMemo(() => {
+    if (showSearchResults) return searchResults;
+    return searchMode === 'media' ? trending : [];
+  }, [showSearchResults, searchMode, searchResults, trending]);
   const searchControls = (
-    <div className="flex min-w-0 flex-1 items-center gap-3">
+    <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
       <img
         src={logoPng.src}
         alt="Void"
@@ -136,8 +157,11 @@ export const SearchSheet = () => {
           type="text"
           value={query}
           autoFocus
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search movies, shows..."
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setSearchResults([]);
+          }}
+          placeholder={searchMode === 'media' ? 'Search movies, shows...' : 'Search games...'}
           className="w-full rounded-xl border border-brand-cyan/20 bg-brand-bg/90 py-2.5 pl-10 pr-11 text-sm font-medium text-white outline-none shadow-[0_0_20px_rgba(34,211,238,0.08)] ring-2 ring-brand-cyan/10 placeholder:text-brand-silver/50"
         />
         <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -149,6 +173,39 @@ export const SearchSheet = () => {
             <X size={16} />
           </button>
         </div>
+      </div>
+      <div className="grid shrink-0 grid-cols-2 rounded-xl bg-black/20 p-1 ring-1 ring-white/[0.06]">
+        {[
+          { id: 'media' as const, label: 'Movie/Show', shortLabel: 'Video', icon: Film },
+          { id: 'game' as const, label: 'Game', shortLabel: 'Game', icon: Gamepad2 },
+        ].map((item) => {
+          const Icon = item.icon;
+          const isActive = searchMode === item.id;
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => {
+                setSearchMode(item.id);
+                setSearchResults([]);
+                if (searchAbortController.current) searchAbortController.current.abort();
+              }}
+              className={clsx(
+                'flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-lg px-2 text-[10px] font-black uppercase tracking-widest transition-colors sm:min-w-24 sm:px-3',
+                isActive
+                  ? 'bg-brand-cyan/15 text-brand-cyan shadow-[0_0_16px_rgba(34,211,238,0.12)]'
+                  : 'text-brand-silver hover:text-white'
+              )}
+              aria-pressed={isActive}
+              title={item.label}
+            >
+              <Icon size={14} />
+              <span className="hidden sm:inline">{item.label}</span>
+              <span className="sr-only sm:hidden">{item.shortLabel}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -207,14 +264,14 @@ export const SearchSheet = () => {
                 {isSyncingLibrary ? (
                   <LoaderCircle size={14} className="animate-spin" />
                 ) : null}
-                Sync library from Gist
+                Sync collection from Gist
               </button>
 
               <p className="text-xs uppercase tracking-[0.2em] text-brand-silver/60 text-center">
-                Search and add titles to your library
+                Search and add titles to your collection
               </p>
               <p className="text-[11px] text-brand-silver/40 text-center">
-                Enter your Gist ID and token to sync an existing library.
+                Enter your Gist ID and token to sync an existing collection.
               </p>
             </div>
           )}
@@ -235,7 +292,7 @@ export const SearchSheet = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                 {displayedMedia.map((item) => (
                   <MediaCard
-                    key={`${item.media_type}-${item.id}`}
+                    key={getMediaKey(item)}
                     media={item}
                     showReleaseBadge={false}
                   />
@@ -243,13 +300,13 @@ export const SearchSheet = () => {
               </div>
             ) : (
               <p className="text-sm text-brand-silver text-center py-16">
-                {showSearchResults ? 'Try a different search term.' : 'No titles to show.'}
+                {showSearchResults ? 'Try a different search term.' : searchMode === 'media' ? 'No titles to show.' : 'Search for a game.'}
               </p>
             )}
 
             {isLibraryEmpty && (
               <div className="pt-10 pb-4 text-center text-xs uppercase tracking-[0.2em] text-brand-silver/60">
-                Data provided by TMDB.
+                Data provided by TMDB and RAWG.
               </div>
             )}
           </div>

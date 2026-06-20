@@ -13,14 +13,16 @@ import { sortMedia, sortByAddedDate } from '@/lib/sort';
 import { fromGistItem, type GistLibraryData } from '@/lib/gist';
 import { getContentRating, getImageUrl, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
 import { mapWithConcurrency } from '@/lib/concurrency';
-import { AlertCircle, Bookmark, Clapperboard, Download, Eye, EyeOff, Film, Heart, Library, LoaderCircle, Radio, Save, Search, Settings, SlidersHorizontal, Tv, Upload, X } from 'lucide-react';
+import { AlertCircle, Bookmark, Clapperboard, Download, Eye, EyeOff, Film, Gamepad2, Heart, History, LoaderCircle, Radio, Save, Search, Settings, SlidersHorizontal, Tv, Upload, X } from 'lucide-react';
 import type { FilterType, Media, WatchProvider } from '@/lib/types';
+import { getImageSrc, getMediaKey } from '@/lib/media';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 import { FocusTrap } from '@/components/FocusTrap';
 
 type LibraryMode = 'library' | 'watchlist';
+type StreamableMedia = Media & { media_type: 'movie' | 'tv' };
 type StreamProviderItem = {
   media: Media;
   contentRating: string | null;
@@ -35,7 +37,7 @@ const STREAM_PROVIDER_CONCURRENCY = 2;
 const getMediaTitle = (media: Media) => media.title || media.name || 'Unknown title';
 const getStreamPosterUrl = (media: Media) => {
   const path = media.poster_path || media.backdrop_path;
-  return path ? getImageUrl(path, 'w185') : '';
+  return path ? getImageSrc(path, (tmdbPath) => getImageUrl(tmdbPath, 'w185')) : '';
 };
 
 export const HomeView = () => {
@@ -73,15 +75,16 @@ export const HomeView = () => {
 
   const activeFilter = filter || 'all';
   const activeLibraryMode: LibraryMode = showWatched ? 'library' : 'watchlist';
+  const streamablePlaylist = useMemo(() => watchlist.filter((item): item is StreamableMedia => item.media_type === 'movie' || item.media_type === 'tv'), [watchlist]);
   const [showStreamView, setShowStreamView] = useState(false);
   const [streamGroups, setStreamGroups] = useState<StreamProviderGroup[]>([]);
   const [isStreamLoading, setIsStreamLoading] = useState(false);
   const [streamFailureCount, setStreamFailureCount] = useState(0);
-  const activeModeLabel = showStreamView ? 'Stream' : showFavoritesOnly ? 'Favorites' : activeLibraryMode === 'library' ? 'Library' : 'Watchlist';
-  const activeFilterLabel = activeFilter === 'all' ? 'All' : activeFilter === 'movie' ? 'Movies' : 'Shows';
+  const activeModeLabel = showStreamView ? 'Stream' : showFavoritesOnly ? 'Favorites' : activeLibraryMode === 'library' ? 'History' : 'Playlist';
+  const activeFilterLabel = activeFilter === 'all' ? 'All' : activeFilter === 'movie' ? 'Movies' : activeFilter === 'tv' ? 'Shows' : 'Games';
 
   const persistentStatus = useMemo(() => {
-    if (showStreamView) return 'Stream · Watchlist';
+    if (showStreamView) return 'Stream · Playlist';
     return `${activeModeLabel} · ${activeFilterLabel}`;
   }, [activeFilterLabel, activeModeLabel, showStreamView]);
 
@@ -147,7 +150,7 @@ export const HomeView = () => {
   useEffect(() => {
     if (!showStreamView) return;
 
-    if (watchlist.length === 0 || !apiKey) {
+    if (streamablePlaylist.length === 0 || !apiKey) {
       setStreamGroups([]);
       setStreamFailureCount(0);
       setIsStreamLoading(false);
@@ -158,7 +161,7 @@ export const HomeView = () => {
     setIsStreamLoading(true);
     setStreamFailureCount(0);
 
-    void mapWithConcurrency(watchlist, STREAM_PROVIDER_CONCURRENCY, async (item) => {
+    void mapWithConcurrency(streamablePlaylist, STREAM_PROVIDER_CONCURRENCY, async (item) => {
       let providers: WatchProvider[] = [];
       let failed = false;
       const providerPromise = apiKey
@@ -227,28 +230,28 @@ export const HomeView = () => {
     return () => {
       cancelled = true;
     };
-  }, [apiKey, showStreamView, watchlist]);
+  }, [apiKey, showStreamView, streamablePlaylist]);
 
   const hasGistSync = !!(gistId && gistToken);
   const emptyTitle = (() => {
-    if (showStreamView) return watchlist.length === 0 ? 'Your watchlist is empty' : 'No streaming providers found';
+    if (showStreamView) return streamablePlaylist.length === 0 ? 'Your playlist has no streamable titles' : 'No streaming providers found';
     if (showFavoritesOnly) return 'No favorites yet';
-    if (activeLibraryMode === 'library') return 'Your library is empty';
-    return 'Your watchlist is empty';
+    if (activeLibraryMode === 'library') return 'Your history is empty';
+    return 'Your playlist is empty';
   })();
   const emptyDescription = (() => {
     if (showStreamView) {
-      if (watchlist.length === 0) return 'Search for movies and shows to add them to your watchlist.';
-      return 'No US free or subscription providers were found for your watchlist.';
+      if (streamablePlaylist.length === 0) return 'Add movies or shows to your playlist to see streaming options.';
+      return 'No US free or subscription providers were found for your playlist.';
     }
 
     if (activeFilter !== 'all') {
       return `No ${activeFilterLabel.toLowerCase()} found in ${activeModeLabel.toLowerCase()}.`;
     }
 
-    if (showFavoritesOnly) return 'Mark watched movies and shows as favorites to see them here.';
-    if (activeLibraryMode === 'library') return 'Mark movies and shows as watched to build your library.';
-    return 'Search for movies and shows to add them to your watchlist.';
+    if (showFavoritesOnly) return 'Mark history items as favorites to see them here.';
+    if (activeLibraryMode === 'library') return 'Move movies, shows, and games to history after finishing them.';
+    return 'Search for movies, shows, and games to add them to your playlist.';
   })();
 
   useEffect(() => {
@@ -280,11 +283,15 @@ export const HomeView = () => {
       id: item.id,
       title: item.title || item.name || 'Unknown',
       media_type: item.media_type,
+      source: item.source || (item.media_type === 'game' ? 'rawg' as const : 'tmdb' as const),
       date_added: item.date_added || new Date().toISOString(),
+      release_date: item.release_date,
+      image: item.poster_path || item.backdrop_path,
+      poster_source: item.poster_source,
     });
 
     const backup: GistLibraryData = {
-      version: 1,
+      version: 2,
       watchlist: watchlist.map(toBackupItem),
       watched: watched.map(toBackupItem),
       favorites: watched.filter((item) => item.isFavorite).map(toBackupItem),
@@ -314,13 +321,16 @@ export const HomeView = () => {
       const text = await file.text();
       const parsed = JSON.parse(text) as Partial<GistLibraryData>;
 
-      if (parsed.version !== 1 || !Array.isArray(parsed.watchlist) || !Array.isArray(parsed.watched) || !Array.isArray(parsed.favorites)) {
+      if ((parsed.version !== 1 && parsed.version !== 2) || !Array.isArray(parsed.watchlist) || !Array.isArray(parsed.watched) || !Array.isArray(parsed.favorites)) {
         throw new Error('Invalid backup file');
       }
 
-      const favoriteKeys = new Set(parsed.favorites.map((item) => `${item.media_type}-${item.id}`));
+      const favoriteKeys = new Set(parsed.favorites.map((item) => getMediaKey(fromGistItem(item))));
       const nextWatchlist = parsed.watchlist.map((item) => fromGistItem(item));
-      const nextWatched = parsed.watched.map((item) => fromGistItem(item, favoriteKeys.has(`${item.media_type}-${item.id}`)));
+      const nextWatched = parsed.watched.map((item) => {
+        const media = fromGistItem(item);
+        return fromGistItem(item, favoriteKeys.has(getMediaKey(media)));
+      });
 
       setLists(nextWatchlist, nextWatched);
       toast.success('Backup restored');
@@ -335,7 +345,7 @@ export const HomeView = () => {
       setFilter(nextFilter);
     });
 
-    showStatus(nextFilter === 'all' ? 'All' : nextFilter === 'movie' ? 'Movies' : 'Shows');
+    showStatus(nextFilter === 'all' ? 'All' : nextFilter === 'movie' ? 'Movies' : nextFilter === 'tv' ? 'Shows' : 'Games');
     setShowTypeMenu(false);
     window.scrollTo(0, 0);
   };
@@ -374,7 +384,7 @@ export const HomeView = () => {
       setIsSearchFocused(false);
     });
 
-    showStatus(mode === 'library' ? 'Library' : 'Watchlist');
+    showStatus(mode === 'library' ? 'History' : 'Playlist');
     setShowTypeMenu(false);
     window.scrollTo(0, 0);
   };
@@ -386,7 +396,7 @@ export const HomeView = () => {
       setIsSearchFocused(false);
     });
 
-    showStatus(activeLibraryMode === 'library' ? 'Library' : 'Watchlist');
+    showStatus(activeLibraryMode === 'library' ? 'History' : 'Playlist');
     setShowTypeMenu(false);
     window.scrollTo(0, 0);
   };
@@ -526,13 +536,13 @@ export const HomeView = () => {
                 <div className="min-w-0">
                   <h1 className="text-xl font-black uppercase tracking-[0.18em] text-white">Stream</h1>
                   <p className="mt-1 text-xs font-medium text-brand-silver">
-                    US free and subscription providers for your watchlist. Data provided by JustWatch.
+                    US free and subscription providers for your playlist. Data provided by JustWatch.
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">
                   <div className="flex items-center gap-2">
                     <div className="rounded-full border border-brand-cyan/20 bg-brand-cyan/10 px-3 py-1 text-xs font-black uppercase tracking-widest text-brand-cyan">
-                      {watchlist.length}
+                      {streamablePlaylist.length}
                     </div>
                   </div>
                 </div>
@@ -569,7 +579,7 @@ export const HomeView = () => {
 
                           return (
                             <button
-                              key={`${group.provider.provider_id}-${media.media_type}-${media.id}`}
+                              key={`${group.provider.provider_id}-${getMediaKey(media)}`}
                               type="button"
                               onClick={() => openDetails(media)}
                               className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold text-brand-silver transition-colors hover:bg-brand-cyan/10 hover:text-white"
@@ -623,7 +633,7 @@ export const HomeView = () => {
             <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
               {displayMedia.map((item, index) => (
                 <div
-                  key={`${item.media_type}-${item.id}`}
+                  key={getMediaKey(item)}
                   ref={(node) => lastItemRef(index === displayMedia.length - 1 ? node : null)}
                 >
                   <MediaCard
@@ -668,7 +678,7 @@ export const HomeView = () => {
             <div className="flex flex-col items-center gap-3 rounded-2xl border border-brand-cyan/20 bg-brand-bg/90 px-5 py-4 text-center shadow-2xl shadow-black/40 backdrop-blur-md">
               <LoaderCircle size={22} className="animate-spin text-brand-cyan" />
               <div className="space-y-1">
-                <p className="text-sm font-semibold text-white">Syncing library</p>
+                <p className="text-sm font-semibold text-white">Syncing collection</p>
                 <p className="text-[11px] uppercase tracking-[0.18em] text-brand-silver/60">
                   Updating from your Gist
                 </p>
@@ -702,6 +712,7 @@ export const HomeView = () => {
                       { id: 'all' as const, label: 'All', icon: Clapperboard },
                       { id: 'movie' as const, label: 'Movies', icon: Film },
                       { id: 'tv' as const, label: 'Shows', icon: Tv },
+                      { id: 'game' as const, label: 'Games', icon: Gamepad2 },
                     ].map((item) => {
                       const Icon = item.icon;
                       const isActive = !showStreamView && activeFilter === item.id;
@@ -814,10 +825,10 @@ export const HomeView = () => {
                     'relative z-10 flex h-10 items-center justify-center rounded-full transition-colors',
                     activeLibraryMode === 'library' && !showFavoritesOnly && !showStreamView ? 'text-brand-cyan' : 'text-brand-silver hover:text-white'
                   )}
-                  aria-label="Library"
-                  title="Library"
+                  aria-label="History"
+                  title="History"
                 >
-                  <Library size={18} />
+                  <History size={18} />
                 </button>
 
                 <button
@@ -827,8 +838,8 @@ export const HomeView = () => {
                     'relative z-10 flex h-10 items-center justify-center rounded-full transition-colors',
                     activeLibraryMode === 'watchlist' && !showFavoritesOnly && !showStreamView ? 'text-brand-cyan' : 'text-brand-silver hover:text-white'
                   )}
-                  aria-label="Watchlist"
-                  title="Watchlist"
+                  aria-label="Playlist"
+                  title="Playlist"
                 >
                   <Bookmark size={18} />
                 </button>
@@ -938,7 +949,7 @@ export const HomeView = () => {
                    )}
                  >
                    <LoaderCircle size={16} className={isSyncingLibrary ? 'animate-spin' : undefined} />
-                   {isSyncingLibrary ? 'Syncing' : 'Sync library now'}
+                   {isSyncingLibrary ? 'Syncing' : 'Sync collection now'}
                  </button>
                </div>
 
@@ -980,7 +991,7 @@ export const HomeView = () => {
                 </div>
 
                 <p className={clsx('text-[11px]', hasGistSync ? 'text-brand-silver/50' : 'text-brand-silver/70')}>
-                  {hasGistSync ? 'Disable Gist sync to use local backup.' : 'Imports replace your current local library.'}
+                  {hasGistSync ? 'Disable Gist sync to use local backup.' : 'Imports replace your current collection.'}
                 </p>
 
                 <input
@@ -1001,7 +1012,7 @@ export const HomeView = () => {
               </button>
 
               <div className="pt-2 text-center space-y-1">
-                <p className="text-xs text-brand-silver/50">Data provided by TMDB.</p>
+                <p className="text-xs text-brand-silver/50">Data provided by TMDB and RAWG.</p>
                 <a
                   href="https://github.com/tinykings/void"
                   target="_blank"

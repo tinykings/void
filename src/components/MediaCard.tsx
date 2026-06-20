@@ -3,6 +3,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { Media } from '@/lib/types';
 import { getImageUrl } from '@/lib/tmdb';
+import { getImageSrc, getMediaKey } from '@/lib/media';
 import { useAppContext } from '@/context/AppContext';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
@@ -20,9 +21,10 @@ interface MediaCardProps {
 interface PosterImageProps {
   candidates: string[];
   title?: string;
+  fit?: 'cover' | 'contain';
 }
 
-const PosterImage = ({ candidates, title }: PosterImageProps) => {
+const PosterImage = ({ candidates, title, fit = 'cover' }: PosterImageProps) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageIndex, setImageIndex] = useState(0);
   const [imageFailed, setImageFailed] = useState(false);
@@ -44,7 +46,8 @@ const PosterImage = ({ candidates, title }: PosterImageProps) => {
         src={imageSrc}
         alt={title}
         className={clsx(
-          'object-cover w-full h-full group-hover:scale-105 transition-all duration-300 rounded-xl shadow-2xl shadow-brand-cyan/10',
+          'w-full h-full group-hover:scale-105 transition-all duration-300 rounded-xl shadow-2xl shadow-brand-cyan/10',
+          fit === 'contain' ? 'object-contain bg-brand-bg' : 'object-cover',
           imageLoaded ? 'opacity-100' : 'opacity-0'
         )}
         loading="lazy"
@@ -77,10 +80,10 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, onClick }
 
   const imageCandidates = useMemo(() => {
     const paths = [media.poster_path, media.backdrop_path].filter((path): path is string => !!path);
-    return [...new Set(paths)].map((path) => getImageUrl(path));
+    return [...new Set(paths)].map((path) => getImageSrc(path, (tmdbPath) => getImageUrl(tmdbPath)));
   }, [media.backdrop_path, media.poster_path]);
 
-  const mediaKey = `${media.media_type}-${media.id}`;
+  const mediaKey = getMediaKey(media);
   const inWatchlist = watchlistIds.has(mediaKey);
   const inWatched = watchedIds.has(mediaKey);
 
@@ -102,7 +105,7 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, onClick }
     const diffTime = releaseDate.getTime() - nowTime;
     const diffDays = Math.ceil(diffTime / DAY_MS);
     
-    if (media.media_type === 'movie') {
+    if (media.media_type === 'movie' || media.media_type === 'game') {
       if (diffDays > MOVIE_PRIORITY_WINDOW_DAYS) return null;
 
       if (diffDays >= 0) return diffDays;
@@ -191,6 +194,7 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, onClick }
               )}
             </div>
           ) : null}
+
         </button>
       </div>
 

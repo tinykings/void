@@ -5,16 +5,21 @@ import { useAppContext } from '@/context/AppContext';
 import { Download, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { Media } from '@/lib/types';
+import { getMediaSource } from '@/lib/media';
 
 type BackupItem = {
   id: number;
   title: string;
-  media_type: 'movie' | 'tv';
+  media_type: 'movie' | 'tv' | 'game';
+  source?: 'tmdb' | 'rawg' | 'steam';
   date_added: string;
+  release_date?: string;
+  image?: string | null;
+  poster_source?: Media['poster_source'];
 };
 
 interface LibraryBackup {
-  version: 1;
+  version: 2;
   watchlist: BackupItem[];
   watched: BackupItem[];
   favorites: BackupItem[];
@@ -30,11 +35,15 @@ export const SettingsView = () => {
       id: item.id,
       title: item.title || item.name || 'Unknown',
       media_type: item.media_type,
+      source: getMediaSource(item),
       date_added: item.date_added || new Date().toISOString(),
+      release_date: item.release_date,
+      image: item.poster_path || item.backdrop_path,
+      poster_source: item.poster_source,
     });
 
     const backup: LibraryBackup = {
-      version: 1,
+      version: 2,
       watchlist: watchlist.map(toBackupItem),
       watched: watched.map(toBackupItem),
       favorites: watched.filter((item) => item.isFavorite).map(toBackupItem),
@@ -70,11 +79,11 @@ export const SettingsView = () => {
           <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">
             <div className="flex items-center gap-2 mb-4">
               <Download className="text-brand-cyan" size={20} />
-              <h2 className="text-lg font-semibold text-white">Backup Library</h2>
+              <h2 className="text-lg font-semibold text-white">Backup Collection</h2>
             </div>
 
             <p className="text-sm text-brand-silver mb-4">
-              Download a JSON backup of your watchlist, watched items, and favorites for future restore or gist storage.
+              Download a JSON backup of your playlist, history, and favorites for future restore or gist storage.
             </p>
 
             <button
@@ -88,7 +97,7 @@ export const SettingsView = () => {
         )}
 
         <section className="text-center pt-4">
-          <p className="text-xs text-brand-silver/50">Data provided by TMDB.</p>
+          <p className="text-xs text-brand-silver/50">Data provided by TMDB and RAWG.</p>
         </section>
       </div>
     </div>
