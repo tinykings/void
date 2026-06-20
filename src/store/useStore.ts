@@ -4,7 +4,7 @@ import { get, set, del } from 'idb-keyval';
 import { Media, UserState, FilterType, SortOption } from '@/lib/types';
 import { buildGistPayload, fromGistItem, getGistContent, isEmptyGistPayload, updateGist } from '@/lib/gist';
 import { getMediaDetails } from '@/lib/tmdb';
-import { getRawgGameDetails } from '@/lib/rawg';
+import { getIgdbGameDetails } from '@/lib/igdb';
 import { mapWithConcurrency } from '@/lib/concurrency';
 import { getMediaKey, getMediaSource } from '@/lib/media';
 
@@ -162,7 +162,7 @@ export const useStore = create<StoreState>()(
                     const details = item.media_type === 'game'
                       ? source === 'steam'
                         ? item
-                        : await getRawgGameDetails(item.id)
+                        : await getIgdbGameDetails(item.id)
                       : await getMediaDetails(item.id, item.media_type, apiKey);
                     return {
                       ...details,
@@ -346,7 +346,7 @@ export const useStore = create<StoreState>()(
     {
       name: 'void_user_state',
       storage: createJSONStorage(() => storage),
-      version: 3,
+      version: 4,
       migrate: (persistedState, version) => {
         const state = persistedState as Partial<StoreState> | undefined;
         if (!state) return state;
@@ -358,14 +358,21 @@ export const useStore = create<StoreState>()(
         if (version < 3) {
           const withSource = (items?: Media[]) => (items || []).map((item) => ({
             ...item,
-            source: item.source || (item.media_type === 'game' ? 'rawg' : 'tmdb' as const),
+            source: item.source || (item.media_type === 'game' ? 'igdb' : 'tmdb' as const),
           }));
 
-          return {
-            ...state,
-            watchlist: withSource(state.watchlist),
-            watched: withSource(state.watched),
-          };
+          state.watchlist = withSource(state.watchlist);
+          state.watched = withSource(state.watched);
+        }
+
+        if (version < 4) {
+          const withIgdbDefaults = (items?: Media[]) => (items || []).map((item) => ({
+            ...item,
+            source: item.source || (item.media_type === 'game' ? 'igdb' : 'tmdb' as const),
+          }));
+
+          state.watchlist = withIgdbDefaults(state.watchlist);
+          state.watched = withIgdbDefaults(state.watched);
         }
 
         return state;

@@ -11,7 +11,7 @@ type BackupItem = {
   id: number;
   title: string;
   media_type: 'movie' | 'tv' | 'game';
-  source?: 'tmdb' | 'rawg' | 'steam';
+  source?: 'tmdb' | 'igdb' | 'rawg' | 'steam';
   date_added: string;
   release_date?: string;
   image?: string | null;
@@ -97,7 +97,7 @@ export const SettingsView = () => {
         )}
 
         <section className="text-center pt-4">
-          <p className="text-xs text-brand-silver/50">Data provided by TMDB and RAWG.</p>
+          <p className="text-xs text-brand-silver/50">Data provided by TMDB and IGDB.</p>
         </section>
       </div>
     </div>

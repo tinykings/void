@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getImageUrl, getMediaCredits, getContentRating, getExternalIds, getMediaDetails, getMediaImages, getMediaVideos, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
-import { getRawgGameDetails } from '@/lib/rawg';
+import { getIgdbGameDetails } from '@/lib/igdb';
 import { getImageSrc, getMediaKey, getMediaSource } from '@/lib/media';
 import { CastMember, ExternalIdsResponse, Media, TmdbImage, Video, WatchProvider } from '@/lib/types';
 import { Bookmark, ChevronDown, ExternalLink, Eye, Heart, Play } from 'lucide-react';
@@ -115,7 +115,7 @@ export const DetailsSheet = () => {
     const detailsPromise = activeDetailsMedia.media_type === 'game'
       ? source === 'steam'
         ? Promise.resolve(activeDetailsMedia)
-        : getRawgGameDetails(activeDetailsMedia.id)
+        : getIgdbGameDetails(activeDetailsMedia.id)
       : getMediaDetails(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey);
 
     detailsPromise
@@ -301,7 +301,7 @@ export const DetailsSheet = () => {
     }).format(releaseDate)}`;
   })();
   const year = (selected.release_date || selected.first_air_date || '').split('-')[0];
-  const providerLabel = source === 'rawg' ? 'RAWG' : source === 'steam' ? 'Steam' : 'TMDB';
+  const providerLabel = source === 'igdb' ? 'IGDB' : source === 'rawg' ? 'RAWG' : source === 'steam' ? 'Steam' : 'TMDB';
   const posterSrc = getImageSrc(selected.poster_path, (tmdbPath) => getImageUrl(tmdbPath, 'w342'));
   const gameScreenshots = isGame ? (selected.screenshots || []).slice(0, 5) : [];
   const runAction = async (action: 'watchlist' | 'watched', commit: () => Promise<void> | void) => {

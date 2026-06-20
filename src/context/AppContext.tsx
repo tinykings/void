@@ -5,7 +5,7 @@ import { Media, UserState, SortOption, FilterType, CastMember } from '@/lib/type
 import { useStore } from '@/store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getMediaDetails } from '@/lib/tmdb';
-import { getRawgGameDetails } from '@/lib/rawg';
+import { getIgdbGameDetails } from '@/lib/igdb';
 import { mapWithConcurrency } from '@/lib/concurrency';
 import { getMediaKey, getMediaSource } from '@/lib/media';
 import { toast } from 'sonner';
@@ -271,7 +271,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ]);
 
   useEffect(() => {
-    if (!store.isLoaded || !store.apiKey) return;
+    if (!store.isLoaded) return;
 
     const incompleteItems = [...store.watchlist, ...store.watched].filter((item) => !item.poster_path);
     const itemsToHydrate = incompleteItems.filter((item) => {
@@ -292,7 +292,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const details = item.media_type === 'game'
           ? source === 'steam'
             ? item
-            : await getRawgGameDetails(item.id)
+            : await getIgdbGameDetails(item.id)
+          : !store.apiKey
+            ? item
           : await getMediaDetails(item.id, item.media_type, store.apiKey);
         store.updateMediaMetadata(item.id, item.media_type, {
           ...details,

@@ -21,7 +21,7 @@
 
 ## Overview
 
-VOID is a personal media tracker built as a static Next.js app deployed to GitHub Pages. Track your playlist and history for movies, TV shows, and games, keep your collection local, and browse TMDB and RAWG metadata from the browser with no backend required.
+VOID is a personal media tracker built as a static Next.js app deployed to GitHub Pages. Track your playlist and history for movies, TV shows, and games, keep your collection local, and browse TMDB metadata from the browser with game metadata provided by an IGDB-backed Cloudflare Worker.
 
 Data lives entirely in your browser (IndexedDB).
 
@@ -33,7 +33,7 @@ Data lives entirely in your browser (IndexedDB).
 - **Ratings** — Rate history content 1–5 stars, synced bidirectionally with TMDB where supported.
 
 ### Discovery
-- **Search** — Real-time search across TMDB movies and TV shows, plus RAWG games.
+- **Search** — Real-time search across TMDB movies and TV shows, plus IGDB games.
 - **Trending** — Browse weekly trending content from TMDB when opening search.
 - **Media Details** — Full detail pages with cast, trailers, watch providers, season/episode info, content ratings, and next episode data.
 
@@ -50,7 +50,8 @@ Data lives entirely in your browser (IndexedDB).
 
 ### Requirements
 - A TMDB Read Access Token set in `NEXT_PUBLIC_TMDB_READ_ACCESS_TOKEN`
-- A RAWG API key set in `NEXT_PUBLIC_RAWG_API_KEY` for game lookup
+- A Cloudflare Worker URL set in `NEXT_PUBLIC_GAME_API_BASE_URL` for game lookup
+- Twitch/IGDB credentials stored as Cloudflare Worker secrets: `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET`
 
 ### Quick Start
 1. Open the app at [void.tinyk.ing](https://void.tinyk.ing/)
@@ -66,8 +67,9 @@ Data lives entirely in your browser (IndexedDB).
 | Animations | Framer Motion |
 | State | Zustand 5 |
 | Persistence | IndexedDB via `idb-keyval` |
-| Data | TMDB API v3/v4, RAWG API |
+| Data | TMDB API v3/v4, IGDB API via Cloudflare Worker |
 | Hosting | GitHub Pages |
+| Game API | Cloudflare Workers |
 
 ## Architecture
 
@@ -84,22 +86,27 @@ src/
 │   └── useStore.ts       # Zustand store — all app state and local persistence
 ├── lib/
 │   ├── tmdb.ts           # TMDB API calls
-│   ├── rawg.ts           # RAWG game API calls
+│   ├── igdb.ts           # Game API Worker client
 │   ├── types.ts          # Core TypeScript interfaces
 ├── context/
     └── AppContext.tsx     # React context wrapper around Zustand store
+├── worker/
+    └── src/index.ts       # Cloudflare Worker proxy for IGDB
 ```
 
-**Data flow:** Components → `useAppContext()` → Zustand store → persisted to IndexedDB (`void_user_state`). TMDB and RAWG are used for metadata only.
+**Data flow:** Components → `useAppContext()` → Zustand store → persisted to IndexedDB (`void_user_state`). TMDB is called directly for movies/shows; games are fetched through the IGDB Worker.
 
 ## Development
 
 ```bash
 npm install
 npm run dev      # Start dev server at localhost:3000
+npm run worker:dev  # Start game API Worker at localhost:8787
 npm run build    # Production static export to out/
 npm run lint     # Run ESLint
 ```
+
+For local game search, copy `worker/.dev.vars.example` to `worker/.dev.vars`, fill in the Twitch/IGDB credentials, and set `NEXT_PUBLIC_GAME_API_BASE_URL=http://localhost:8787` in `.env.local`.
 
 ## Deployment
 

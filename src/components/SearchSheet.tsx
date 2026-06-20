@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getTrending, searchMedia } from '@/lib/tmdb';
-import { hasRawgApiKey, searchRawgGames } from '@/lib/rawg';
+import { hasGameApi, searchIgdbGames } from '@/lib/igdb';
 import { Media } from '@/lib/types';
 import { getMediaKey } from '@/lib/media';
 import { MediaCard } from '@/components/MediaCard';
@@ -66,12 +66,12 @@ export const SearchSheet = () => {
         return;
       }
 
-      if (!hasRawgApiKey()) {
-        throw new Error('RAWG API key is not configured');
+      if (!hasGameApi()) {
+        throw new Error('Game API URL is not configured');
       }
 
-      const rawgResults = await searchRawgGames(value, signal);
-      setSearchResults(rawgResults);
+      const gameResults = await searchIgdbGames(value, signal);
+      setSearchResults(gameResults);
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') return;
       console.error('Search error:', err);
@@ -306,7 +306,7 @@ export const SearchSheet = () => {
 
             {isLibraryEmpty && (
               <div className="pt-10 pb-4 text-center text-xs uppercase tracking-[0.2em] text-brand-silver/60">
-                Data provided by TMDB and RAWG.
+                Data provided by TMDB and IGDB.
               </div>
             )}
           </div>

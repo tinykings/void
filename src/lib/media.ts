@@ -2,7 +2,7 @@ import { Media, MediaSource } from './types';
 
 export const getMediaSource = (media: Pick<Media, 'media_type' | 'source'>): MediaSource => {
   if (media.source) return media.source;
-  return media.media_type === 'game' ? 'rawg' : 'tmdb';
+  return media.media_type === 'game' ? 'igdb' : 'tmdb';
 };
 
 export const getMediaKey = (media: Pick<Media, 'id' | 'media_type' | 'source'>) => {

@@ -1,0 +1,6 @@
+name = "void-game-api"
+main = "src/index.ts"
+compatibility_date = "2026-06-20"
+
+[vars]
+ALLOWED_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000"

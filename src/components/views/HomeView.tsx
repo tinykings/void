@@ -283,7 +283,7 @@ export const HomeView = () => {
       id: item.id,
       title: item.title || item.name || 'Unknown',
       media_type: item.media_type,
-      source: item.source || (item.media_type === 'game' ? 'rawg' as const : 'tmdb' as const),
+      source: item.source || (item.media_type === 'game' ? 'igdb' as const : 'tmdb' as const),
       date_added: item.date_added || new Date().toISOString(),
       release_date: item.release_date,
       image: item.poster_path || item.backdrop_path,
@@ -1012,7 +1012,7 @@ export const HomeView = () => {
               </button>
 
               <div className="pt-2 text-center space-y-1">
-                <p className="text-xs text-brand-silver/50">Data provided by TMDB and RAWG.</p>
+                <p className="text-xs text-brand-silver/50">Data provided by TMDB and IGDB.</p>
                 <a
                   href="https://github.com/tinykings/void"
                   target="_blank"

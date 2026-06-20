@@ -5,7 +5,7 @@ export type GistLibraryItem = {
   id: number;
   title: string;
   media_type: 'movie' | 'tv' | 'game';
-  source?: 'tmdb' | 'rawg' | 'steam';
+  source?: 'tmdb' | 'igdb' | 'rawg' | 'steam';
   date_added: string;
   release_date?: string;
   image?: string | null;
@@ -42,7 +42,7 @@ export const fromGistItem = (item: GistLibraryItem, isFavorite = false): Media =
   vote_average: 0,
   popularity: 0,
   media_type: item.media_type,
-  source: item.source || (item.media_type === 'game' ? 'rawg' : 'tmdb'),
+  source: item.source || (item.media_type === 'game' ? 'igdb' : 'tmdb'),
   date_added: item.date_added,
   release_date: item.release_date,
   poster_source: item.poster_source,

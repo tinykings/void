@@ -31,7 +31,7 @@ export interface SeasonDetails {
 
 export type MediaType = 'movie' | 'tv' | 'game';
 
-export type MediaSource = 'tmdb' | 'rawg' | 'steam';
+export type MediaSource = 'tmdb' | 'igdb' | 'rawg' | 'steam';
 
 export interface Media {
   id: number;
@@ -61,7 +61,7 @@ export interface Media {
   stores?: { name: string; url: string }[];
   screenshots?: string[];
   source_url?: string;
-  poster_source?: 'tmdb' | 'rawg' | 'steam';
+  poster_source?: 'tmdb' | 'igdb' | 'rawg' | 'steam';
   seasons?: SeasonSummary[];
   next_episode_to_air?: {
     air_date: string;
