@@ -204,7 +204,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
       const registerServiceWorker = async () => {
         try {
-          await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+          await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' });
         } catch (error) {
           console.error('Service worker registration failed:', error);
         }
