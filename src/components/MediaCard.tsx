@@ -7,7 +7,7 @@ import { getImageSrc, getMediaKey } from '@/lib/media';
 import { useAppContext } from '@/context/AppContext';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
-import { Bookmark, Check } from 'lucide-react';
+import { Bookmark, Check, Gamepad2 } from 'lucide-react';
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 const MOVIE_PRIORITY_WINDOW_DAYS = 30;
@@ -151,6 +151,7 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, onClick }
   });
 
   const title = media.title || media.name || 'Untitled';
+  const isGame = media.media_type === 'game';
 
   return (
     <>
@@ -179,8 +180,14 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, onClick }
             </div>
           )}
 
-          {isSearchFocused && (inWatched || inWatchlist) ? (
+          {isSearchFocused && (isGame || inWatched || inWatchlist) ? (
             <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1.5">
+              {isGame && (
+                <div className="flex items-center justify-center w-6 h-6 bg-brand-bg/80 backdrop-blur-md text-brand-cyan rounded-full shadow-lg border border-brand-cyan/55">
+                  <Gamepad2 size={13} strokeWidth={2.5} />
+                </div>
+              )}
+
               {isSearchFocused && inWatchlist && !inWatched && (
                 <div className="flex items-center justify-center w-6 h-6 bg-brand-cyan/65 backdrop-blur-md text-brand-bg rounded-full shadow-lg border border-brand-cyan/55">
                   <Bookmark size={12} className="fill-current" />
