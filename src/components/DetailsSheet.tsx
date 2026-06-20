@@ -7,7 +7,7 @@ import { getImageUrl, getMediaCredits, getContentRating, getExternalIds, getMedi
 import { getIgdbGameDetails } from '@/lib/igdb';
 import { getImageSrc, getMediaKey, getMediaSource } from '@/lib/media';
 import { CastMember, ExternalIdsResponse, Media, TmdbImage, Video, WatchProvider } from '@/lib/types';
-import { Bookmark, ChevronDown, ExternalLink, Eye, Heart, Play, X } from 'lucide-react';
+import { Bookmark, ChevronDown, Eye, Heart, Play, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { FocusTrap } from '@/components/FocusTrap';
@@ -47,10 +47,8 @@ export const DetailsSheet = () => {
   const [externalIds, setExternalIds] = useState<{ id: number; value: ExternalIdsResponse | null } | null>(null);
   const [activeTrailer, setActiveTrailer] = useState<{ mediaId: number; videoId: string } | null>(null);
   const [activeImage, setActiveImage] = useState<{ src: string; alt: string; mediaKey: string } | null>(null);
-  const [showLinks, setShowLinks] = useState(false);
   const [actionPulse, setActionPulse] = useState<{ id: number; action: 'watchlist' | 'watched' | 'favorite' } | null>(null);
   const closeActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const linksRef = useRef<HTMLDivElement | null>(null);
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -146,17 +144,6 @@ export const DetailsSheet = () => {
       if (closeActionTimerRef.current) clearTimeout(closeActionTimerRef.current);
     };
   }, []);
-
-  useEffect(() => {
-    if (!showLinks) return;
-    const handler = (e: MouseEvent) => {
-      if (linksRef.current && !linksRef.current.contains(e.target as Node)) {
-        setShowLinks(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showLinks]);
 
   useEffect(() => {
     if (!activeImage) return;
@@ -292,6 +279,7 @@ export const DetailsSheet = () => {
 
   const title = selected.title || selected.name || 'Unknown';
   const isGame = selected.media_type === 'game';
+  const ggDealsUrl = isGame ? `https://gg.deals/search/?title=${encodeURIComponent(title)}` : '';
   const source = getMediaSource(selected);
   const nextEpisode = selected.media_type === 'tv' ? selected.next_episode_to_air : null;
   const episodeLabel = nextEpisode
@@ -316,7 +304,17 @@ export const DetailsSheet = () => {
   const providerLabel = source === 'igdb' ? 'IGDB' : source === 'rawg' ? 'RAWG' : source === 'steam' ? 'Steam' : 'TMDB';
   const posterSrc = getImageSrc(selected.poster_path, (tmdbPath) => getImageUrl(tmdbPath, 'w342'));
   const gameScreenshots = isGame ? (selected.screenshots || []).slice(0, 5) : [];
-  const gameVideos = isGame ? (selected.videos || []).filter((video) => video.site === 'YouTube' && video.key) : [];
+  const gameVideos = isGame ? (selected.videos || []).filter((video) => video.site === 'YouTube' && video.key).slice(0, 2) : [];
+  const externalLinks = [
+    imdbUrl ? { label: 'IMDb', url: imdbUrl } : null,
+    imdbUrl ? { label: 'Parents Guide', url: `${imdbUrl}/parentalguide` } : null,
+    !isGame ? { label: 'Common Sense', url: commonSenseUrl } : null,
+    !isGame && watchProviderItems.length > 0 ? { label: 'JustWatch', url: `https://www.justwatch.com/us/search?q=${encodeURIComponent(title)}` } : null,
+    selected.source_url ? { label: providerLabel, url: selected.source_url } : null,
+    ggDealsUrl ? { label: 'GG.deals', url: ggDealsUrl } : null,
+    selected.website ? { label: 'Website', url: selected.website } : null,
+    !isGame ? { label: 'Cineby', url: `https://www.cineby.sc/${selected.media_type}/${selected.id}` } : null,
+  ].filter((link): link is { label: string; url: string } => !!link && !!link.url);
   const renderImageGrid = (items: { src: string; alt: string }[]) => (
     <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
       {items.map((image) => (
@@ -454,79 +452,6 @@ export const DetailsSheet = () => {
               onClick={(e) => e.stopPropagation()}
               className="relative w-full max-w-6xl h-[92vh] max-h-[96vh] bg-brand-bg/95 embossed-edge rounded-t-3xl overflow-hidden flex flex-col will-change-transform"
             >
-              {(imdbUrl || commonSenseUrl || selected.source_url || selected.website) && (
-                <div className="absolute top-4 right-4 z-20" ref={linksRef}>
-                  <button
-                    type="button"
-                    onClick={() => setShowLinks(v => !v)}
-                    title="External links"
-                    aria-label="External links"
-                    className="flex items-center gap-2 text-brand-cyan/80 hover:text-brand-cyan transition-colors outline-none"
-                  >
-                    <ExternalLink size={32} />
-                  </button>
-                  {showLinks && (
-                    <div className="absolute top-full right-0 mt-2 rounded-lg bg-brand-bg border border-white/15 shadow-xl shadow-black/40 overflow-hidden z-40 whitespace-nowrap">
-                      {imdbUrl && (
-                        <a href={imdbUrl} target="_blank" rel="noreferrer" className="block px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors">
-                            IMDb
-                        </a>
-                      )}
-                      {imdbUrl && (
-                        <a href={`${imdbUrl}/parentalguide`} target="_blank" rel="noreferrer" className="block px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors">
-                            Parents Guide
-                        </a>
-                      )}
-                      {!isGame && (
-                        <a href={commonSenseUrl} target="_blank" rel="noreferrer" className="block px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors">
-                          Common Sense
-                        </a>
-                      )}
-                      <div className="border-t border-white/10 my-1" />
-                      {watchProviderItems.length > 0 && (
-                        <a
-                          href={`https://www.justwatch.com/us/search?q=${encodeURIComponent(selected.title || selected.name || '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-between gap-2 px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors"
-                        >
-                          <span>JustWatch</span>
-                        </a>
-                      )}
-                      {selected.source_url && (
-                        <a
-                          href={selected.source_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-between gap-2 px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors"
-                        >
-                          <span>{providerLabel}</span>
-                        </a>
-                      )}
-                      {selected.website && (
-                        <a
-                          href={selected.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-between gap-2 px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors"
-                        >
-                          <span>Website</span>
-                        </a>
-                      )}
-                      {!isGame && (
-                        <a
-                          href={`https://www.cineby.sc/${selected.media_type}/${selected.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-between gap-2 px-3 py-2 text-sm text-brand-silver hover:text-white hover:bg-white/5 transition-colors"
-                        >
-                          <span>Cineby</span>
-                        </a>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
               <FocusTrap active={isOpen}>
               <div className="relative z-10 flex-1 overflow-y-auto px-4 pb-28">
                 <div className="flex gap-4 pb-4 pt-4">
@@ -596,6 +521,24 @@ export const DetailsSheet = () => {
               </div>
 
               <div className="mt-3 space-y-4">
+                  {externalLinks.length > 0 && (
+                    <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
+                      <div className="flex flex-wrap gap-2">
+                        {externalLinks.map((link) => (
+                          <a
+                            key={`${link.label}-${link.url}`}
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-lg border border-white/15 bg-white/[0.03] px-3 py-2 text-xs font-black uppercase tracking-widest text-brand-silver transition-colors hover:border-brand-cyan/35 hover:bg-brand-cyan/10 hover:text-white"
+                          >
+                            {link.label}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {!isGame && (
                     <>
                     {/* Trailers */}
@@ -619,7 +562,7 @@ export const DetailsSheet = () => {
                           ))}
                         </div>
                       ) : trailerItems.length > 0 ? (
-                        renderTrailerGrid(trailerItems)
+                        renderTrailerGrid(trailerItems.slice(0, 2))
                       ) : (
                         <p className="py-10 text-center text-sm text-brand-silver">No trailers.</p>
                       )}
