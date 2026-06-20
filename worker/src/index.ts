@@ -33,6 +33,7 @@ type IgdbGame = {
   platforms?: IgdbNamedItem[];
   genres?: IgdbNamedItem[];
   websites?: IgdbWebsite[];
+  videos?: { name?: string; video_id?: string }[];
 };
 
 type TokenCache = {
@@ -107,6 +108,17 @@ const normalizeGame = (game: IgdbGame) => {
     .filter((url): url is string => !!url);
   const poster = imageUrl(game.cover?.image_id, 'cover_big_2x') || screenshots[0] || null;
   const slug = game.slug || '';
+  const videos = (game.videos || [])
+    .filter((video) => video.video_id)
+    .map((video) => ({
+      id: video.video_id || '',
+      key: video.video_id || '',
+      name: video.name || 'Trailer',
+      site: 'YouTube',
+      type: 'Trailer',
+      official: true,
+      published_at: '',
+    }));
 
   return {
     id: game.id,
@@ -126,6 +138,7 @@ const normalizeGame = (game: IgdbGame) => {
     genres: (game.genres || []).map((genre) => genre.name).filter(Boolean),
     website: game.websites?.find((site) => site.url)?.url || null,
     screenshots,
+    videos,
     source_url: slug ? `https://www.igdb.com/games/${slug}` : undefined,
   };
 };
@@ -199,6 +212,8 @@ const gameFields = [
   'platforms.name',
   'genres.name',
   'websites.url',
+  'videos.name',
+  'videos.video_id',
 ].join(',');
 
 const searchGames = async (env: Env, query: string) => {

@@ -8,8 +8,7 @@ import { hasGameApi, searchIgdbGames } from '@/lib/igdb';
 import { Media } from '@/lib/types';
 import { getMediaKey } from '@/lib/media';
 import { MediaCard } from '@/components/MediaCard';
-import { Eye, EyeOff, LoaderCircle, Save, Search as SearchIcon, X } from 'lucide-react';
-import { useDebouncedCallback } from '@/hooks/useDebouncedCallback';
+import { ArrowRight, Eye, EyeOff, LoaderCircle, Save, Search as SearchIcon, X } from 'lucide-react';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 import { FocusTrap } from '@/components/FocusTrap';
 import logoPng from '../../public/logo.png';
@@ -33,6 +32,8 @@ export const SearchSheet = () => {
   const [searchResults, setSearchResults] = useState<Media[]>([]);
   const [trending, setTrending] = useState<Media[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSubmittedSearch, setHasSubmittedSearch] = useState(false);
   const [showGistPrompt, setShowGistPrompt] = useState(false);
   const [tempGistId, setTempGistId] = useState(gistId || '');
   const [tempGistToken, setTempGistToken] = useState(gistToken || '');
@@ -40,9 +41,8 @@ export const SearchSheet = () => {
   const searchAbortController = useRef<AbortController | null>(null);
 
   const searchTerm = query.trim();
-  const showSearchResults = searchTerm.length >= 2;
   const isLibraryEmpty = watchlist.length === 0 && watched.length === 0;
-  const trendingLoading = isSearchFocused && !!apiKey && isLoaded && trending.length === 0 && !showSearchResults;
+  const trendingLoading = isSearchFocused && !!apiKey && isLoaded && trending.length === 0 && !hasSubmittedSearch;
   const displayError = isSearchFocused ? error : null;
 
   const runSearch = useCallback(async (value: string) => {
@@ -55,6 +55,8 @@ export const SearchSheet = () => {
 
     try {
       setError(null);
+      setIsSearching(true);
+      setHasSubmittedSearch(true);
       const signal = searchAbortController.current.signal;
       const [tmdbResult, gameResult] = await Promise.allSettled([
         apiKey ? searchMedia(value, apiKey, signal) : Promise.resolve([] as Media[]),
@@ -81,10 +83,10 @@ export const SearchSheet = () => {
       if (err instanceof Error && err.name === 'AbortError') return;
       console.error('Search error:', err);
       setError(err instanceof Error ? err.message : 'Search failed');
+    } finally {
+      setIsSearching(false);
     }
   }, [apiKey]);
-
-  const debouncedSearch = useDebouncedCallback(runSearch, 300);
 
   useEffect(() => {
     if (!isSearchFocused) return;
@@ -101,16 +103,6 @@ export const SearchSheet = () => {
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load popular titles'))
   }, [apiKey, isLoaded, isSearchFocused, trending.length]);
-
-  useEffect(() => {
-    if (!isSearchFocused) return;
-
-    if (searchTerm.length >= 2) {
-      debouncedSearch(query);
-    } else if (searchAbortController.current) {
-      searchAbortController.current.abort();
-    }
-  }, [query, searchTerm.length, debouncedSearch, isSearchFocused]);
 
   useEffect(() => {
     return () => {
@@ -144,12 +136,17 @@ export const SearchSheet = () => {
     setShowGistPrompt(false);
     void syncFromGist(true);
   };
+  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (searchTerm.length < 2 || isSearching) return;
+    void runSearch(searchTerm);
+  };
   const displayedMedia = useMemo(() => {
-    if (showSearchResults) return searchResults;
+    if (hasSubmittedSearch) return searchResults;
     return trending;
-  }, [showSearchResults, searchResults, trending]);
+  }, [hasSubmittedSearch, searchResults, trending]);
   const searchControls = (
-    <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+    <form className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" onSubmit={handleSearchSubmit}>
       <img
         src={logoPng.src}
         alt="Void"
@@ -164,14 +161,20 @@ export const SearchSheet = () => {
           autoFocus
           onChange={(e) => {
             setQuery(e.target.value);
-            setSearchResults([]);
           }}
           placeholder="Search movies, shows, games..."
           className="w-full rounded-xl border border-brand-cyan/20 bg-brand-bg/90 py-2.5 pl-10 pr-11 text-sm font-medium text-white outline-none shadow-[0_0_20px_rgba(34,211,238,0.08)] ring-2 ring-brand-cyan/10 placeholder:text-brand-silver/50"
         />
         <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
           <button
-            onClick={() => setQuery('')}
+            type="button"
+            onClick={() => {
+              setQuery('');
+              setSearchResults([]);
+              setHasSubmittedSearch(false);
+              setError(null);
+              if (searchAbortController.current) searchAbortController.current.abort();
+            }}
             className="p-2 text-brand-silver transition-colors hover:text-white"
             title="Clear search"
           >
@@ -179,7 +182,16 @@ export const SearchSheet = () => {
           </button>
         </div>
       </div>
-    </div>
+      <button
+        type="submit"
+        disabled={searchTerm.length < 2 || isSearching}
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-brand-cyan/25 bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:border-brand-cyan/40 hover:bg-brand-cyan/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
+        title="Search"
+        aria-label="Search"
+      >
+        {isSearching ? <LoaderCircle size={16} className="animate-spin" /> : <ArrowRight size={17} />}
+      </button>
+    </form>
   );
   const topBarClassName = isLibraryEmpty
     ? 'flex items-center justify-center gap-2 border-b border-white/5 bg-brand-bg/80 px-3 py-3 sm:px-4'
@@ -254,7 +266,13 @@ export const SearchSheet = () => {
               <p className="text-sm text-red-400 mb-4">{displayError}</p>
             )}
 
-            {trendingLoading && !showSearchResults ? (
+            {isSearching ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="aspect-[2/3] rounded-xl bg-white/10 animate-pulse" />
+                ))}
+              </div>
+            ) : trendingLoading && !hasSubmittedSearch ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                 {[...Array(8)].map((_, i) => (
                   <div key={i} className="aspect-[2/3] rounded-xl bg-white/10 animate-pulse" />
@@ -272,7 +290,7 @@ export const SearchSheet = () => {
               </div>
             ) : (
               <p className="text-sm text-brand-silver text-center py-16">
-                {showSearchResults ? 'Try a different search term.' : 'No titles to show.'}
+                {hasSubmittedSearch ? 'Try a different search term.' : 'No titles to show.'}
               </p>
             )}
 

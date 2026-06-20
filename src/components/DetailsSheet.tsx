@@ -7,7 +7,7 @@ import { getImageUrl, getMediaCredits, getContentRating, getExternalIds, getMedi
 import { getIgdbGameDetails } from '@/lib/igdb';
 import { getImageSrc, getMediaKey, getMediaSource } from '@/lib/media';
 import { CastMember, ExternalIdsResponse, Media, TmdbImage, Video, WatchProvider } from '@/lib/types';
-import { Bookmark, ChevronDown, ExternalLink, Eye, Heart, Play } from 'lucide-react';
+import { Bookmark, ChevronDown, ExternalLink, Eye, Heart, Play, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { FocusTrap } from '@/components/FocusTrap';
@@ -46,6 +46,7 @@ export const DetailsSheet = () => {
   const [contentRating, setContentRating] = useState<{ id: number; value: string | null } | null>(null);
   const [externalIds, setExternalIds] = useState<{ id: number; value: ExternalIdsResponse | null } | null>(null);
   const [activeTrailer, setActiveTrailer] = useState<{ mediaId: number; videoId: string } | null>(null);
+  const [activeImage, setActiveImage] = useState<{ src: string; alt: string; mediaKey: string } | null>(null);
   const [showLinks, setShowLinks] = useState(false);
   const [actionPulse, setActionPulse] = useState<{ id: number; action: 'watchlist' | 'watched' | 'favorite' } | null>(null);
   const closeActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -156,6 +157,17 @@ export const DetailsSheet = () => {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showLinks]);
+
+  useEffect(() => {
+    if (!activeImage) return;
+
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setActiveImage(null);
+    };
+
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [activeImage]);
 
   useEffect(() => {
     if (!activeDetailsMedia || !apiKey || !details || details.id !== activeDetailsMedia.id || activeDetailsMedia.media_type === 'game') return;
@@ -304,6 +316,70 @@ export const DetailsSheet = () => {
   const providerLabel = source === 'igdb' ? 'IGDB' : source === 'rawg' ? 'RAWG' : source === 'steam' ? 'Steam' : 'TMDB';
   const posterSrc = getImageSrc(selected.poster_path, (tmdbPath) => getImageUrl(tmdbPath, 'w342'));
   const gameScreenshots = isGame ? (selected.screenshots || []).slice(0, 5) : [];
+  const gameVideos = isGame ? (selected.videos || []).filter((video) => video.site === 'YouTube' && video.key) : [];
+  const renderImageGrid = (items: { src: string; alt: string }[]) => (
+    <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+      {items.map((image) => (
+        <motion.button
+          key={image.src}
+          variants={staggerItem}
+          type="button"
+          onClick={() => setActiveImage({ ...image, mediaKey })}
+          className="group overflow-hidden rounded-xl bg-white/5 blueprint-border transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-cyan/35 hover:shadow-[0_0_18px_rgba(34,211,238,0.08)]"
+        >
+          <img
+            src={image.src}
+            alt={image.alt}
+            className="aspect-square w-full object-cover transition-transform duration-200 group-hover:scale-105"
+            decoding="async"
+            loading="lazy"
+          />
+        </motion.button>
+      ))}
+    </motion.div>
+  );
+  const renderTrailerGrid = (items: Video[]) => (
+    <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {items.map((video) => (
+        <motion.div
+          key={video.id}
+          variants={staggerItem}
+          className="group block overflow-hidden rounded-xl bg-brand-bg/80 blueprint-border transition-colors hover:bg-brand-bg"
+        >
+          <div className="relative aspect-video bg-white/5">
+            {currentActiveTrailerId === video.id ? (
+              <iframe
+                src={`https://www.youtube.com/embed/${video.key}?autoplay=1`}
+                title={video.name}
+                className="h-full w-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setActiveTrailer({ mediaId: selected.id, videoId: video.id })}
+                className="absolute inset-0 block h-full w-full text-left"
+              >
+                <img
+                  src={`https://img.youtube.com/vi/${video.key}/hqdefault.jpg`}
+                  alt=""
+                  className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-bg/75 text-brand-cyan border border-brand-cyan/35 backdrop-blur-sm">
+                    <Play size={20} className="ml-0.5" />
+                  </div>
+                </div>
+              </button>
+            )}
+          </div>
+        </motion.div>
+      ))}
+    </motion.div>
+  );
   const runAction = async (action: 'watchlist' | 'watched', commit: () => Promise<void> | void) => {
     if (closeActionTimerRef.current) clearTimeout(closeActionTimerRef.current);
 
@@ -543,46 +619,7 @@ export const DetailsSheet = () => {
                           ))}
                         </div>
                       ) : trailerItems.length > 0 ? (
-                        <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {trailerItems.map((video) => (
-                            <motion.div
-                              key={video.id}
-                              variants={staggerItem}
-                              className="group block overflow-hidden rounded-xl bg-brand-bg/80 blueprint-border transition-colors hover:bg-brand-bg"
-                            >
-                              <div className="relative aspect-video bg-white/5">
-                                {currentActiveTrailerId === video.id ? (
-                                  <iframe
-                                    src={`https://www.youtube.com/embed/${video.key}?autoplay=1`}
-                                    title={video.name}
-                                    className="h-full w-full"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                    allowFullScreen
-                                  />
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => setActiveTrailer({ mediaId: selected.id, videoId: video.id })}
-                                    className="absolute inset-0 block h-full w-full text-left"
-                                  >
-                                    <img
-                                      src={`https://img.youtube.com/vi/${video.key}/hqdefault.jpg`}
-                                      alt=""
-                                      className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
-                                      loading="lazy"
-                                      decoding="async"
-                                    />
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-bg/75 text-brand-cyan border border-brand-cyan/35 backdrop-blur-sm">
-                                        <Play size={20} className="ml-0.5" />
-                                      </div>
-                                    </div>
-                                  </button>
-                                )}
-                              </div>
-                            </motion.div>
-                          ))}
-                        </motion.div>
+                        renderTrailerGrid(trailerItems)
                       ) : (
                         <p className="py-10 text-center text-sm text-brand-silver">No trailers.</p>
                       )}
@@ -637,24 +674,26 @@ export const DetailsSheet = () => {
                     </>
                   )}
 
+                    {isGame && (
+                      <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
+                        <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-brand-silver">Trailers</h3>
+                        {gameVideos.length > 0 ? (
+                          renderTrailerGrid(gameVideos)
+                        ) : (
+                          <p className="py-10 text-center text-sm text-brand-silver">No trailers.</p>
+                        )}
+                      </div>
+                    )}
+
                     {/* Images */}
                     <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
                       <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-brand-silver">Images</h3>
                       {isGame ? (
                         gameScreenshots.length > 0 ? (
-                          <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="space-y-3">
-                            {gameScreenshots.map((image) => (
-                              <motion.img
-                                key={image}
-                                variants={staggerItem}
-                                src={image}
-                                alt=""
-                                className="aspect-video w-full rounded-xl object-cover blueprint-border"
-                                decoding="async"
-                                loading="lazy"
-                              />
-                            ))}
-                          </motion.div>
+                          renderImageGrid(gameScreenshots.map((image, index) => ({
+                            src: image,
+                            alt: `${title} screenshot ${index + 1}`,
+                          })))
                         ) : (
                           <p className="py-10 text-center text-sm text-brand-silver">No images.</p>
                         )
@@ -672,24 +711,14 @@ export const DetailsSheet = () => {
                       ) : backdrops?.id !== selected.id ? (
                         <div className="space-y-3">
                           {[...Array(3)].map((_, index) => (
-                            <div key={index} className="aspect-video rounded-xl skeleton-shimmer animate-shimmer" />
+                            <div key={index} className="aspect-square rounded-xl skeleton-shimmer animate-shimmer" />
                           ))}
                         </div>
                       ) : backdropItems.length > 0 ? (
-                        <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="space-y-3">
-                          {backdropItems.map((image) => (
-                            <motion.img
-                              key={image.file_path}
-                              variants={staggerItem}
-                              src={getImageUrl(image.file_path, 'w780')}
-                              alt=""
-                              className="aspect-video w-full rounded-xl object-cover blueprint-border"
-                              decoding="async"
-                              loading="lazy"
-                              sizes="(max-width: 768px) 100vw, 780px"
-                            />
-                          ))}
-                        </motion.div>
+                        renderImageGrid(backdropItems.map((image, index) => ({
+                          src: getImageUrl(image.file_path, 'w780'),
+                          alt: `${title} image ${index + 1}`,
+                        })))
                       ) : (
                         <p className="py-10 text-center text-sm text-brand-silver">No backdrops.</p>
                       )}
@@ -700,6 +729,43 @@ export const DetailsSheet = () => {
                 </p>
               </div>
               </div>
+
+              <AnimatePresence>
+                {activeImage?.mediaKey === mediaKey && (
+                  <div className="fixed inset-0 z-[380] flex items-center justify-center p-4" onClick={() => setActiveImage(null)}>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-black/90 backdrop-blur-sm"
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.96 }}
+                      transition={{ duration: 0.16, ease: 'easeOut' }}
+                      className="relative z-10 max-h-full max-w-6xl"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setActiveImage(null)}
+                        className="absolute right-2 top-2 z-20 rounded-lg border border-brand-cyan/25 bg-brand-bg/75 p-3 text-brand-cyan backdrop-blur-md transition-colors hover:bg-brand-cyan/15 hover:text-white"
+                        title="Close image"
+                        aria-label="Close image"
+                      >
+                        <X size={18} />
+                      </button>
+                      <img
+                        src={activeImage.src}
+                        alt={activeImage.alt}
+                        className="max-h-[88vh] max-w-full rounded-2xl object-contain blueprint-border shadow-2xl shadow-black/60"
+                        decoding="async"
+                      />
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
 
               <div className="absolute bottom-0 left-0 right-0 z-20 border-t border-white/[0.04] bg-brand-bg/75 backdrop-blur-xl px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
                 <div className={clsx('grid items-center gap-2', inWatched ? 'grid-cols-[1fr_56px_56px_1fr]' : 'grid-cols-[1fr_56px_1fr]')}>

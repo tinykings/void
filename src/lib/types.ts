@@ -60,6 +60,7 @@ export interface Media {
   website?: string | null;
   stores?: { name: string; url: string }[];
   screenshots?: string[];
+  videos?: Video[];
   source_url?: string;
   poster_source?: 'tmdb' | 'igdb' | 'rawg' | 'steam';
   seasons?: SeasonSummary[];
