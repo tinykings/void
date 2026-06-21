@@ -7,7 +7,7 @@ import { getImageUrl, getMediaCredits, getContentRating, getExternalIds, getMedi
 import { getIgdbGameDetails } from '@/lib/igdb';
 import { getImageSrc, getMediaKey, getMediaSource } from '@/lib/media';
 import { CastMember, ExternalIdsResponse, Media, TmdbImage, Video, WatchProvider } from '@/lib/types';
-import { Bookmark, ChevronDown, Eye, Heart, Play, X } from 'lucide-react';
+import { Bookmark, ChevronDown, ChevronLeft, ChevronRight, Eye, Heart, Play, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { FocusTrap } from '@/components/FocusTrap';
@@ -48,7 +48,13 @@ export const DetailsSheet = () => {
   const [activeTrailer, setActiveTrailer] = useState<{ mediaId: number; videoId: string } | null>(null);
   const [activeImage, setActiveImage] = useState<{ src: string; alt: string; mediaKey: string } | null>(null);
   const [actionPulse, setActionPulse] = useState<{ id: number; action: 'watchlist' | 'watched' | 'favorite' } | null>(null);
+  const [showCastLeftButton, setShowCastLeftButton] = useState(false);
+  const [showCastRightButton, setShowCastRightButton] = useState(false);
+  const [showImageLeftButton, setShowImageLeftButton] = useState(false);
+  const [showImageRightButton, setShowImageRightButton] = useState(false);
   const closeActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const castScrollerRef = useRef<HTMLDivElement | null>(null);
+  const imageScrollerRef = useRef<HTMLDivElement | null>(null);
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -102,6 +108,7 @@ export const DetailsSheet = () => {
   const commonSenseUrl = selected ? `https://www.commonsensemedia.org/search/${encodeURIComponent(selected.title || selected.name || '')}` : '';
   const currentActionPulse = selected && actionPulse?.id === selected.id ? actionPulse.action : null;
   const currentActiveTrailerId = selected && activeTrailer?.mediaId === selected.id ? activeTrailer.videoId : null;
+  const railButtonClass = 'absolute inset-y-0 z-10 flex w-10 items-center justify-center rounded-lg border border-brand-cyan/25 bg-brand-bg/85 text-brand-cyan backdrop-blur-md transition-colors hover:bg-brand-cyan/15 hover:text-white';
 
   useEffect(() => {
     if (!activeDetailsMedia) return;
@@ -157,6 +164,23 @@ export const DetailsSheet = () => {
   }, [activeImage]);
 
   useEffect(() => {
+    setShowCastLeftButton(false);
+    setShowCastRightButton(false);
+    setShowImageLeftButton(false);
+    setShowImageRightButton(false);
+    if (castScrollerRef.current) castScrollerRef.current.scrollLeft = 0;
+    if (imageScrollerRef.current) imageScrollerRef.current.scrollLeft = 0;
+  }, [mediaKey]);
+
+  useEffect(() => {
+    handleCastScroll();
+  }, [castItems.length, mediaKey]);
+
+  useEffect(() => {
+    handleImageScroll();
+  }, [backdropItems.length, mediaKey, selected?.screenshots?.length]);
+
+  useEffect(() => {
     if (!activeDetailsMedia || !apiKey || !details || details.id !== activeDetailsMedia.id || activeDetailsMedia.media_type === 'game') return;
 
     let cancelled = false;
@@ -177,7 +201,7 @@ export const DetailsSheet = () => {
           if (cast?.id === activeDetailsMedia.id) return;
           try {
             const data = await getMediaCredits(activeDetailsMedia.id, tmdbType, apiKey);
-            if (!cancelled) setCast({ id: activeDetailsMedia.id, items: data.cast.slice(0, 8) });
+            if (!cancelled) setCast({ id: activeDetailsMedia.id, items: data.cast.slice(0, 20) });
           } catch {
             if (!cancelled) setSectionErrors(prev => new Set(prev).add('cast'));
           }
@@ -211,7 +235,7 @@ export const DetailsSheet = () => {
                   if (voteCountDiff !== 0) return voteCountDiff;
                   return b.vote_average - a.vote_average;
                 })
-                .slice(0, 5);
+                .slice(0, 20);
               setBackdrops({ id: activeDetailsMedia.id, items: selectedBackdrops });
             }
           } catch {
@@ -303,7 +327,7 @@ export const DetailsSheet = () => {
   const year = (selected.release_date || selected.first_air_date || '').split('-')[0];
   const providerLabel = source === 'igdb' ? 'IGDB' : source === 'rawg' ? 'RAWG' : source === 'steam' ? 'Steam' : 'TMDB';
   const posterSrc = getImageSrc(selected.poster_path, (tmdbPath) => getImageUrl(tmdbPath, 'w342'));
-  const gameScreenshots = isGame ? (selected.screenshots || []).slice(0, 5) : [];
+  const gameScreenshots = isGame ? (selected.screenshots || []).slice(0, 20) : [];
   const gameVideos = isGame ? (selected.videos || []).filter((video) => video.site === 'YouTube' && video.key).slice(0, 2) : [];
   const showTrailerSection = isGame
     ? gameVideos.length > 0
@@ -322,25 +346,56 @@ export const DetailsSheet = () => {
     !isGame ? { label: 'Cineby', url: `https://www.cineby.sc/${selected.media_type}/${selected.id}` } : null,
   ].filter((link): link is { label: string; url: string } => !!link && !!link.url);
   const renderImageGrid = (items: { src: string; alt: string }[]) => (
-    <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-      {items.map((image) => (
-        <motion.button
-          key={image.src}
-          variants={staggerItem}
+    <div className="relative">
+      {showImageLeftButton && (
+        <button
           type="button"
-          onClick={() => setActiveImage({ ...image, mediaKey })}
-          className="group overflow-hidden rounded-xl bg-white/5 blueprint-border transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-cyan/35 hover:shadow-[0_0_18px_rgba(34,211,238,0.08)]"
+          onClick={() => scrollImages('left')}
+          className={`${railButtonClass} left-0`}
+          aria-label="Scroll images left"
+          title="Scroll images left"
         >
-          <img
-            src={image.src}
-            alt={image.alt}
-            className="aspect-square w-full object-cover transition-transform duration-200 group-hover:scale-105"
-            decoding="async"
-            loading="lazy"
-          />
-        </motion.button>
-      ))}
-    </motion.div>
+          <ChevronLeft size={18} />
+        </button>
+      )}
+      <motion.div
+        ref={imageScrollerRef}
+        onScroll={handleImageScroll}
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+        className="flex snap-x gap-2 overflow-x-auto scroll-smooth pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {items.map((image) => (
+          <motion.button
+            key={image.src}
+            variants={staggerItem}
+            type="button"
+            onClick={() => setActiveImage({ ...image, mediaKey })}
+            className="group w-[31%] shrink-0 snap-start overflow-hidden rounded-xl bg-white/5 blueprint-border transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-cyan/35 hover:shadow-[0_0_18px_rgba(34,211,238,0.08)] sm:w-[23.5%] md:w-[18.4%]"
+          >
+            <img
+              src={image.src}
+              alt={image.alt}
+              className="aspect-square w-full object-cover transition-transform duration-200 group-hover:scale-105"
+              decoding="async"
+              loading="lazy"
+            />
+          </motion.button>
+        ))}
+      </motion.div>
+      {showImageRightButton && (
+        <button
+          type="button"
+          onClick={() => scrollImages('right')}
+          className={`${railButtonClass} right-0`}
+          aria-label="Scroll images right"
+          title="Scroll images right"
+        >
+          <ChevronRight size={18} />
+        </button>
+      )}
+    </div>
   );
   const renderTrailerGrid = (items: Video[]) => (
     <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -437,6 +492,38 @@ export const DetailsSheet = () => {
     if (!inWatched) return;
     void runAction('favorite' as 'watchlist' | 'watched', () => toggleFavorite(selected));
   };
+
+  function scrollCast(direction: 'left' | 'right') {
+    const scroller = castScrollerRef.current;
+    if (!scroller) return;
+
+    scroller.scrollBy({
+      left: direction === 'left' ? -scroller.clientWidth * 0.85 : scroller.clientWidth * 0.85,
+      behavior: 'smooth',
+    });
+  }
+
+  function handleCastScroll() {
+    const scroller = castScrollerRef.current;
+    setShowCastLeftButton(!!scroller && scroller.scrollLeft > 4);
+    setShowCastRightButton(!!scroller && scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 4);
+  }
+
+  function scrollImages(direction: 'left' | 'right') {
+    const scroller = imageScrollerRef.current;
+    if (!scroller) return;
+
+    scroller.scrollBy({
+      left: direction === 'left' ? -scroller.clientWidth * 0.85 : scroller.clientWidth * 0.85,
+      behavior: 'smooth',
+    });
+  }
+
+  function handleImageScroll() {
+    const scroller = imageScrollerRef.current;
+    setShowImageLeftButton(!!scroller && scroller.scrollLeft > 4);
+    setShowImageRightButton(!!scroller && scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 4);
+  }
 
   return (
     <AnimatePresence>
@@ -573,7 +660,7 @@ export const DetailsSheet = () => {
                       </div>
                     )}
 
-                    {/* Cast (limited to 4) */}
+                    {/* Cast */}
                     <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
                       <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-brand-silver">Cast</h3>
                       {sectionErrors.has('cast') ? (
@@ -588,33 +675,64 @@ export const DetailsSheet = () => {
                           </button>
                         </div>
                       ) : cast?.id !== selected.id ? (
-                        <div className="grid grid-cols-4 gap-3">
-                          {[...Array(4)].map((_, index) => (
-                            <div key={index} className="aspect-[2/3] rounded-xl skeleton-shimmer animate-shimmer" />
+                        <div className="flex gap-2 overflow-hidden">
+                          {[...Array(5)].map((_, index) => (
+                            <div key={index} className="aspect-square w-[31%] shrink-0 rounded-xl skeleton-shimmer animate-shimmer sm:w-[23.5%] md:w-[18.4%]" />
                           ))}
                         </div>
                       ) : castItems.length > 0 ? (
-                        <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-4 gap-3">
-                          {castItems.map((member) => (
-                            <motion.button
-                              key={`${member.id}-${member.character}`}
-                              variants={staggerItem}
+                        <div className="relative">
+                          {showCastLeftButton && (
+                            <button
                               type="button"
-                              onClick={() => openActor(member)}
-                              className="group overflow-hidden rounded-xl bg-brand-bg/80 blueprint-border text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-bg hover:border-brand-cyan/30 hover:shadow-[0_0_18px_rgba(34,211,238,0.08)] cursor-pointer"
+                              onClick={() => scrollCast('left')}
+                              className={`${railButtonClass} left-0`}
+                              aria-label="Scroll cast left"
+                              title="Scroll cast left"
                             >
-                              <div className="aspect-[2/3] bg-white/5">
-                                {member.profile_path ? (
-                                  <img src={getImageUrl(member.profile_path, 'w342')} alt={member.name} className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]" decoding="async" loading="lazy" />
-                                ) : null}
-                              </div>
-                              <div className="p-2">
-                                <p className="truncate text-xs font-black text-white">{member.name}</p>
-                                <p className="truncate text-[10px] text-brand-silver">{member.character}</p>
-                              </div>
-                            </motion.button>
-                          ))}
-                        </motion.div>
+                              <ChevronLeft size={18} />
+                            </button>
+                          )}
+                          <motion.div
+                            ref={castScrollerRef}
+                            onScroll={handleCastScroll}
+                            variants={staggerContainer}
+                            initial="hidden"
+                            animate="visible"
+                            className="flex snap-x gap-2 overflow-x-auto scroll-smooth pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                          >
+                            {castItems.map((member) => (
+                              <motion.button
+                                key={`${member.id}-${member.character}`}
+                                variants={staggerItem}
+                                type="button"
+                                onClick={() => openActor(member)}
+                                className="group w-[31%] shrink-0 snap-start overflow-hidden rounded-xl bg-brand-bg/80 blueprint-border text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-bg hover:border-brand-cyan/30 hover:shadow-[0_0_18px_rgba(34,211,238,0.08)] cursor-pointer sm:w-[23.5%] md:w-[18.4%]"
+                              >
+                                <div className="aspect-square bg-white/5">
+                                  {member.profile_path ? (
+                                    <img src={getImageUrl(member.profile_path, 'w342')} alt={member.name} className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]" decoding="async" loading="lazy" />
+                                  ) : null}
+                                </div>
+                                <div className="p-2">
+                                  <p className="break-words text-xs font-black leading-tight text-white">{member.name}</p>
+                                  <p className="truncate text-[10px] text-brand-silver">{member.character}</p>
+                                </div>
+                              </motion.button>
+                            ))}
+                          </motion.div>
+                          {showCastRightButton && (
+                            <button
+                              type="button"
+                              onClick={() => scrollCast('right')}
+                              className={`${railButtonClass} right-0`}
+                              aria-label="Scroll cast right"
+                              title="Scroll cast right"
+                            >
+                              <ChevronRight size={18} />
+                            </button>
+                          )}
+                        </div>
                       ) : (
                         <p className="py-10 text-center text-sm text-brand-silver">Cast unavailable.</p>
                       )}
@@ -650,9 +768,9 @@ export const DetailsSheet = () => {
                             </button>
                           </div>
                         ) : backdrops?.id !== selected.id ? (
-                          <div className="space-y-3">
+                          <div className="flex gap-2 overflow-hidden">
                             {[...Array(3)].map((_, index) => (
-                              <div key={index} className="aspect-square rounded-xl skeleton-shimmer animate-shimmer" />
+                              <div key={index} className="aspect-square w-[31%] shrink-0 rounded-xl skeleton-shimmer animate-shimmer sm:w-[23.5%] md:w-[18.4%]" />
                             ))}
                           </div>
                         ) : (
