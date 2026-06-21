@@ -305,6 +305,12 @@ export const DetailsSheet = () => {
   const posterSrc = getImageSrc(selected.poster_path, (tmdbPath) => getImageUrl(tmdbPath, 'w342'));
   const gameScreenshots = isGame ? (selected.screenshots || []).slice(0, 5) : [];
   const gameVideos = isGame ? (selected.videos || []).filter((video) => video.site === 'YouTube' && video.key).slice(0, 2) : [];
+  const showTrailerSection = isGame
+    ? gameVideos.length > 0
+    : sectionErrors.has('trailers') || trailers?.id !== selected.id || trailerItems.length > 0;
+  const showImageSection = isGame
+    ? gameScreenshots.length > 0
+    : sectionErrors.has('images') || backdrops?.id !== selected.id || backdropItems.length > 0;
   const externalLinks = [
     imdbUrl ? { label: 'IMDb', url: imdbUrl } : null,
     imdbUrl ? { label: 'Parents Guide', url: `${imdbUrl}/parentalguide` } : null,
@@ -541,32 +547,31 @@ export const DetailsSheet = () => {
 
                   {!isGame && (
                     <>
-                    {/* Trailers */}
-                    <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
-                      <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-brand-silver">Trailers</h3>
-                      {sectionErrors.has('trailers') ? (
-                        <div className="flex flex-col items-center gap-3 py-10">
-                          <p className="text-sm text-red-200">Failed to load trailers.</p>
-                          <button
-                            type="button"
-                            onClick={() => handleRetrySection('trailers')}
-                            className="rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
-                          >
-                            Retry
-                          </button>
-                        </div>
-                      ) : trailers?.id !== selected.id ? (
-                        <div className="space-y-2">
-                          {[...Array(2)].map((_, index) => (
-                            <div key={index} className="aspect-video rounded-xl skeleton-shimmer animate-shimmer" />
-                          ))}
-                        </div>
-                      ) : trailerItems.length > 0 ? (
-                        renderTrailerGrid(trailerItems.slice(0, 2))
-                      ) : (
-                        <p className="py-10 text-center text-sm text-brand-silver">No trailers.</p>
-                      )}
-                    </div>
+                    {showTrailerSection && (
+                      <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
+                        <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-brand-silver">Trailers</h3>
+                        {sectionErrors.has('trailers') ? (
+                          <div className="flex flex-col items-center gap-3 py-10">
+                            <p className="text-sm text-red-200">Failed to load trailers.</p>
+                            <button
+                              type="button"
+                              onClick={() => handleRetrySection('trailers')}
+                              className="rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
+                            >
+                              Retry
+                            </button>
+                          </div>
+                        ) : trailers?.id !== selected.id ? (
+                          <div className="space-y-2">
+                            {[...Array(2)].map((_, index) => (
+                              <div key={index} className="aspect-video rounded-xl skeleton-shimmer animate-shimmer" />
+                            ))}
+                          </div>
+                        ) : (
+                          renderTrailerGrid(trailerItems.slice(0, 2))
+                        )}
+                      </div>
+                    )}
 
                     {/* Cast (limited to 4) */}
                     <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
@@ -617,55 +622,47 @@ export const DetailsSheet = () => {
                     </>
                   )}
 
-                    {isGame && (
+                    {isGame && showTrailerSection && (
                       <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
                         <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-brand-silver">Trailers</h3>
-                        {gameVideos.length > 0 ? (
-                          renderTrailerGrid(gameVideos)
-                        ) : (
-                          <p className="py-10 text-center text-sm text-brand-silver">No trailers.</p>
-                        )}
+                        {renderTrailerGrid(gameVideos)}
                       </div>
                     )}
 
                     {/* Images */}
-                    <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
-                      <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-brand-silver">Images</h3>
-                      {isGame ? (
-                        gameScreenshots.length > 0 ? (
+                    {showImageSection && (
+                      <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
+                        <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-brand-silver">Images</h3>
+                        {isGame ? (
                           renderImageGrid(gameScreenshots.map((image, index) => ({
                             src: image,
                             alt: `${title} screenshot ${index + 1}`,
                           })))
+                        ) : sectionErrors.has('images') ? (
+                          <div className="flex flex-col items-center gap-3 py-10">
+                            <p className="text-sm text-red-200">Failed to load images.</p>
+                            <button
+                              type="button"
+                              onClick={() => handleRetrySection('images')}
+                              className="rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
+                            >
+                              Retry
+                            </button>
+                          </div>
+                        ) : backdrops?.id !== selected.id ? (
+                          <div className="space-y-3">
+                            {[...Array(3)].map((_, index) => (
+                              <div key={index} className="aspect-square rounded-xl skeleton-shimmer animate-shimmer" />
+                            ))}
+                          </div>
                         ) : (
-                          <p className="py-10 text-center text-sm text-brand-silver">No images.</p>
-                        )
-                      ) : sectionErrors.has('images') ? (
-                        <div className="flex flex-col items-center gap-3 py-10">
-                          <p className="text-sm text-red-200">Failed to load images.</p>
-                          <button
-                            type="button"
-                            onClick={() => handleRetrySection('images')}
-                            className="rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
-                          >
-                            Retry
-                          </button>
-                        </div>
-                      ) : backdrops?.id !== selected.id ? (
-                        <div className="space-y-3">
-                          {[...Array(3)].map((_, index) => (
-                            <div key={index} className="aspect-square rounded-xl skeleton-shimmer animate-shimmer" />
-                          ))}
-                        </div>
-                      ) : backdropItems.length > 0 ? (
-                        renderImageGrid(backdropItems.map((image, index) => ({
-                          src: getImageUrl(image.file_path, 'w780'),
-                          alt: `${title} image ${index + 1}`,
-                        })))
-                      ) : (
-                        <p className="py-10 text-center text-sm text-brand-silver">No backdrops.</p>
-                      )}
-                    </div>
+                          renderImageGrid(backdropItems.map((image, index) => ({
+                            src: getImageUrl(image.file_path, 'w780'),
+                            alt: `${title} image ${index + 1}`,
+                          })))
+                        )}
+                      </div>
+                    )}
 
                 <p className="text-center text-[10px] uppercase tracking-[0.2em] text-brand-silver/60">
                   Data provided by {providerLabel}.
