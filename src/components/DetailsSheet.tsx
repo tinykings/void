@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
-import { getImageUrl, getMediaCredits, getContentRating, getExternalIds, getMediaDetails, getMediaImages, getMediaVideos, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
+import { getImageUrl, getMediaCredits, getContentRating, getExternalIds, getMediaDetails, getMediaImages, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
 import { getIgdbGameDetails } from '@/lib/igdb';
 import { getImageSrc, getMediaKey, getMediaSource } from '@/lib/media';
-import { CastMember, ExternalIdsResponse, Media, TmdbImage, Video, WatchProvider } from '@/lib/types';
-import { Bookmark, ChevronDown, ChevronLeft, ChevronRight, Eye, Heart, Play, X } from 'lucide-react';
+import { CastMember, ExternalIdsResponse, Media, TmdbImage, WatchProvider } from '@/lib/types';
+import { Bookmark, ChevronDown, ChevronLeft, ChevronRight, Eye, Heart, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { FocusTrap } from '@/components/FocusTrap';
@@ -41,11 +41,9 @@ export const DetailsSheet = () => {
   const [details, setDetails] = useState<{ id: number; media: Media } | null>(null);
   const [cast, setCast] = useState<{ id: number; items: CastMember[] } | null>(null);
   const [backdrops, setBackdrops] = useState<{ id: number; items: TmdbImage[] } | null>(null);
-  const [trailers, setTrailers] = useState<{ id: number; items: Video[] } | null>(null);
   const [watchProviders, setWatchProviders] = useState<{ id: number; items: WatchProvider[] } | null>(null);
   const [contentRating, setContentRating] = useState<{ id: number; value: string | null } | null>(null);
   const [externalIds, setExternalIds] = useState<{ id: number; value: ExternalIdsResponse | null } | null>(null);
-  const [activeTrailer, setActiveTrailer] = useState<{ mediaId: number; videoId: string } | null>(null);
   const [activeImage, setActiveImage] = useState<{ src: string; alt: string; mediaKey: string } | null>(null);
   const [actionPulse, setActionPulse] = useState<{ id: number; action: 'watchlist' | 'watched' | 'favorite' } | null>(null);
   const [showCastLeftButton, setShowCastLeftButton] = useState(false);
@@ -100,15 +98,44 @@ export const DetailsSheet = () => {
   const isFavorited = inWatched && selected ? watchedMap.get(mediaKey)?.isFavorite ?? false : false;
   const castItems = selected && cast?.id === selected.id ? cast.items : [];
   const backdropItems = selected && backdrops?.id === selected.id ? backdrops.items : [];
-  const trailerItems = selected && trailers?.id === selected.id ? trailers.items : [];
   const watchProviderItems = selected && watchProviders?.id === selected.id ? watchProviders.items : [];
   const contentRatingValue = selected && contentRating?.id === selected.id ? contentRating.value : null;
   const externalIdsValue = selected && externalIds?.id === selected.id ? externalIds.value : null;
   const imdbUrl = externalIdsValue?.imdb_id ? `https://www.imdb.com/title/${externalIdsValue.imdb_id}` : '';
-  const commonSenseUrl = selected ? `https://www.commonsensemedia.org/search/${encodeURIComponent(selected.title || selected.name || '')}` : '';
   const currentActionPulse = selected && actionPulse?.id === selected.id ? actionPulse.action : null;
-  const currentActiveTrailerId = selected && activeTrailer?.mediaId === selected.id ? activeTrailer.videoId : null;
   const railButtonClass = 'absolute inset-y-0 z-10 flex w-10 items-center justify-center rounded-lg border border-brand-cyan/25 bg-brand-bg/85 text-brand-cyan backdrop-blur-md transition-colors hover:bg-brand-cyan/15 hover:text-white';
+
+  function scrollCast(direction: 'left' | 'right') {
+    const scroller = castScrollerRef.current;
+    if (!scroller) return;
+
+    scroller.scrollBy({
+      left: direction === 'left' ? -scroller.clientWidth * 0.85 : scroller.clientWidth * 0.85,
+      behavior: 'smooth',
+    });
+  }
+
+  function handleCastScroll() {
+    const scroller = castScrollerRef.current;
+    setShowCastLeftButton(!!scroller && scroller.scrollLeft > 4);
+    setShowCastRightButton(!!scroller && scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 4);
+  }
+
+  function scrollImages(direction: 'left' | 'right') {
+    const scroller = imageScrollerRef.current;
+    if (!scroller) return;
+
+    scroller.scrollBy({
+      left: direction === 'left' ? -scroller.clientWidth * 0.85 : scroller.clientWidth * 0.85,
+      behavior: 'smooth',
+    });
+  }
+
+  function handleImageScroll() {
+    const scroller = imageScrollerRef.current;
+    setShowImageLeftButton(!!scroller && scroller.scrollLeft > 4);
+    setShowImageRightButton(!!scroller && scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 4);
+  }
 
   useEffect(() => {
     if (!activeDetailsMedia) return;
@@ -164,20 +191,22 @@ export const DetailsSheet = () => {
   }, [activeImage]);
 
   useEffect(() => {
-    setShowCastLeftButton(false);
-    setShowCastRightButton(false);
-    setShowImageLeftButton(false);
-    setShowImageRightButton(false);
     if (castScrollerRef.current) castScrollerRef.current.scrollLeft = 0;
     if (imageScrollerRef.current) imageScrollerRef.current.scrollLeft = 0;
+    queueMicrotask(() => {
+      setShowCastLeftButton(false);
+      setShowCastRightButton(false);
+      setShowImageLeftButton(false);
+      setShowImageRightButton(false);
+    });
   }, [mediaKey]);
 
   useEffect(() => {
-    handleCastScroll();
+    queueMicrotask(handleCastScroll);
   }, [castItems.length, mediaKey]);
 
   useEffect(() => {
-    handleImageScroll();
+    queueMicrotask(handleImageScroll);
   }, [backdropItems.length, mediaKey, selected?.screenshots?.length]);
 
   useEffect(() => {
@@ -207,24 +236,6 @@ export const DetailsSheet = () => {
           }
         })(),
         (async () => {
-          if (trailers?.id === activeDetailsMedia.id) return;
-          try {
-            const data = await getMediaVideos(activeDetailsMedia.id, tmdbType, apiKey);
-            if (!cancelled) {
-              const selectedTrailers = [...(data.results || [])]
-                .filter((v) => v.site === 'YouTube' && v.type === 'Trailer')
-                .sort((a, b) => {
-                  if (a.official !== b.official) return a.official ? -1 : 1;
-                  return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
-                })
-                .slice(0, 2);
-              setTrailers({ id: activeDetailsMedia.id, items: selectedTrailers });
-            }
-          } catch {
-            if (!cancelled) setSectionErrors(prev => new Set(prev).add('trailers'));
-          }
-        })(),
-        (async () => {
           if (backdrops?.id === activeDetailsMedia.id) return;
           try {
             const data = await getMediaImages(activeDetailsMedia.id, tmdbType, apiKey);
@@ -248,7 +259,7 @@ export const DetailsSheet = () => {
     fetchData();
 
     return () => { cancelled = true; };
-  }, [activeDetailsMedia, apiKey, details, watchProviders?.id, cast?.id, trailers?.id, backdrops?.id, retryCount]);
+  }, [activeDetailsMedia, apiKey, details, watchProviders?.id, cast?.id, backdrops?.id, retryCount]);
 
   useEffect(() => {
     if (!activeDetailsMedia || !apiKey || activeDetailsMedia.media_type === 'game') return;
@@ -328,19 +339,15 @@ export const DetailsSheet = () => {
   const providerLabel = source === 'igdb' ? 'IGDB' : source === 'rawg' ? 'RAWG' : source === 'steam' ? 'Steam' : 'TMDB';
   const posterSrc = getImageSrc(selected.poster_path, (tmdbPath) => getImageUrl(tmdbPath, 'w342'));
   const gameScreenshots = isGame ? (selected.screenshots || []).slice(0, 20) : [];
-  const gameVideos = isGame ? (selected.videos || []).filter((video) => video.site === 'YouTube' && video.key).slice(0, 2) : [];
-  const showTrailerSection = isGame
-    ? gameVideos.length > 0
-    : sectionErrors.has('trailers') || trailers?.id !== selected.id || trailerItems.length > 0;
+  const trailerSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${title} trailer`)}`;
   const showImageSection = isGame
     ? gameScreenshots.length > 0
     : sectionErrors.has('images') || backdrops?.id !== selected.id || backdropItems.length > 0;
   const externalLinks = [
+    { label: 'Trailer', url: trailerSearchUrl },
     imdbUrl ? { label: 'IMDb', url: imdbUrl } : null,
-    imdbUrl ? { label: 'Parents Guide', url: `${imdbUrl}/parentalguide` } : null,
-    !isGame ? { label: 'Common Sense', url: commonSenseUrl } : null,
     !isGame && watchProviderItems.length > 0 ? { label: 'JustWatch', url: `https://www.justwatch.com/us/search?q=${encodeURIComponent(title)}` } : null,
-    selected.source_url ? { label: providerLabel, url: selected.source_url } : null,
+    selected.source_url && source !== 'igdb' ? { label: providerLabel, url: selected.source_url } : null,
     ggDealsUrl ? { label: 'GG.deals', url: ggDealsUrl } : null,
     selected.website ? { label: 'Website', url: selected.website } : null,
     !isGame ? { label: 'Cineby', url: `https://www.cineby.sc/${selected.media_type}/${selected.id}` } : null,
@@ -397,48 +404,6 @@ export const DetailsSheet = () => {
       )}
     </div>
   );
-  const renderTrailerGrid = (items: Video[]) => (
-    <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      {items.map((video) => (
-        <motion.div
-          key={video.id}
-          variants={staggerItem}
-          className="group block overflow-hidden rounded-xl bg-brand-bg/80 blueprint-border transition-colors hover:bg-brand-bg"
-        >
-          <div className="relative aspect-video bg-white/5">
-            {currentActiveTrailerId === video.id ? (
-              <iframe
-                src={`https://www.youtube.com/embed/${video.key}?autoplay=1`}
-                title={video.name}
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
-            ) : (
-              <button
-                type="button"
-                onClick={() => setActiveTrailer({ mediaId: selected.id, videoId: video.id })}
-                className="absolute inset-0 block h-full w-full text-left"
-              >
-                <img
-                  src={`https://img.youtube.com/vi/${video.key}/hqdefault.jpg`}
-                  alt=""
-                  className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-bg/75 text-brand-cyan border border-brand-cyan/35 backdrop-blur-sm">
-                    <Play size={20} className="ml-0.5" />
-                  </div>
-                </div>
-              </button>
-            )}
-          </div>
-        </motion.div>
-      ))}
-    </motion.div>
-  );
   const runAction = async (action: 'watchlist' | 'watched', commit: () => Promise<void> | void) => {
     if (closeActionTimerRef.current) clearTimeout(closeActionTimerRef.current);
 
@@ -492,38 +457,6 @@ export const DetailsSheet = () => {
     if (!inWatched) return;
     void runAction('favorite' as 'watchlist' | 'watched', () => toggleFavorite(selected));
   };
-
-  function scrollCast(direction: 'left' | 'right') {
-    const scroller = castScrollerRef.current;
-    if (!scroller) return;
-
-    scroller.scrollBy({
-      left: direction === 'left' ? -scroller.clientWidth * 0.85 : scroller.clientWidth * 0.85,
-      behavior: 'smooth',
-    });
-  }
-
-  function handleCastScroll() {
-    const scroller = castScrollerRef.current;
-    setShowCastLeftButton(!!scroller && scroller.scrollLeft > 4);
-    setShowCastRightButton(!!scroller && scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 4);
-  }
-
-  function scrollImages(direction: 'left' | 'right') {
-    const scroller = imageScrollerRef.current;
-    if (!scroller) return;
-
-    scroller.scrollBy({
-      left: direction === 'left' ? -scroller.clientWidth * 0.85 : scroller.clientWidth * 0.85,
-      behavior: 'smooth',
-    });
-  }
-
-  function handleImageScroll() {
-    const scroller = imageScrollerRef.current;
-    setShowImageLeftButton(!!scroller && scroller.scrollLeft > 4);
-    setShowImageRightButton(!!scroller && scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 4);
-  }
 
   return (
     <AnimatePresence>
@@ -616,7 +549,7 @@ export const DetailsSheet = () => {
               <div className="mt-3 space-y-4">
                   {externalLinks.length > 0 && (
                     <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap justify-center gap-2">
                         {externalLinks.map((link) => (
                           <a
                             key={`${link.label}-${link.url}`}
@@ -634,32 +567,6 @@ export const DetailsSheet = () => {
 
                   {!isGame && (
                     <>
-                    {showTrailerSection && (
-                      <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
-                        <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-brand-silver">Trailers</h3>
-                        {sectionErrors.has('trailers') ? (
-                          <div className="flex flex-col items-center gap-3 py-10">
-                            <p className="text-sm text-red-200">Failed to load trailers.</p>
-                            <button
-                              type="button"
-                              onClick={() => handleRetrySection('trailers')}
-                              className="rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
-                            >
-                              Retry
-                            </button>
-                          </div>
-                        ) : trailers?.id !== selected.id ? (
-                          <div className="space-y-2">
-                            {[...Array(2)].map((_, index) => (
-                              <div key={index} className="aspect-video rounded-xl skeleton-shimmer animate-shimmer" />
-                            ))}
-                          </div>
-                        ) : (
-                          renderTrailerGrid(trailerItems.slice(0, 2))
-                        )}
-                      </div>
-                    )}
-
                     {/* Cast */}
                     <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
                       <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-brand-silver">Cast</h3>
@@ -739,13 +646,6 @@ export const DetailsSheet = () => {
                     </div>
                     </>
                   )}
-
-                    {isGame && showTrailerSection && (
-                      <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
-                        <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-brand-silver">Trailers</h3>
-                        {renderTrailerGrid(gameVideos)}
-                      </div>
-                    )}
 
                     {/* Images */}
                     {showImageSection && (

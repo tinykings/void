@@ -1,4 +1,4 @@
-import { Media, WatchProvider, WatchProvidersResponse, SeasonDetails, TmdbResult, ReleaseDatesResponse, ContentRatingsResponse, ExternalIdsResponse, ReleaseDatesResult, ContentRating, ReleaseDate, VideosResponse, CreditsResponse, PersonCreditsResponse, PersonDetails, ImagesResponse } from './types';
+import { Media, WatchProvider, WatchProvidersResponse, SeasonDetails, TmdbResult, ReleaseDatesResponse, ContentRatingsResponse, ExternalIdsResponse, ReleaseDatesResult, ContentRating, ReleaseDate, CreditsResponse, PersonCreditsResponse, PersonDetails, ImagesResponse } from './types';
 
 const BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_MAX_RETRIES = 2;
@@ -147,10 +147,6 @@ export const getUSStreamingProviders = (data: WatchProvidersResponse): WatchProv
       return providerName.startsWith(`${candidateName} `);
     });
   });
-};
-
-export const getMediaVideos = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<VideosResponse> => {
-  return fetchFromTMDB(`/${type}/${id}/videos`, apiKey);
 };
 
 export const getMediaImages = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<ImagesResponse> => {

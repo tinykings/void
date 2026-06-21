@@ -161,11 +161,6 @@ export interface PersonCreditsResponse {
   cast: (TmdbResult & { character: string })[];
 }
 
-export interface VideosResponse {
-  id: number;
-  results: Video[];
-}
-
 export interface TmdbImage {
   file_path: string;
   vote_count: number;
