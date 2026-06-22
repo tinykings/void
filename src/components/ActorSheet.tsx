@@ -162,25 +162,9 @@ export const ActorSheet = () => {
           <div className="flex-1 overflow-y-auto px-4 pb-24">
             <div className="pt-4 space-y-4">
               <div className="rounded-2xl blueprint-border bg-white/5 overflow-hidden">
-                <div className="grid gap-0 grid-cols-[120px_1fr] md:grid-cols-[240px_1fr]">
-                  <div className="bg-brand-bg/60">
-                    {actor.profile_path ? (
-                      <img
-                        src={getImageUrl(actor.profile_path, 'w342')}
-                        alt={actorName}
-                        className="w-full h-full object-cover"
-                        decoding="async"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full min-h-24 flex items-center justify-center text-brand-silver bg-brand-bg">
-                        <User size={32} />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-4 sm:p-5 space-y-4">
-                    <div className="grid gap-3 text-sm">
+                <div className="p-4 sm:p-5 space-y-5">
+                  <div className="grid grid-cols-[minmax(0,1fr)_6rem] sm:grid-cols-[minmax(0,1fr)_8rem] md:grid-cols-[minmax(0,1fr)_10rem] gap-4 sm:gap-5 items-start">
+                    <div className="min-w-0 grid gap-3 text-sm">
                       <div>
                         <p className="text-[10px] uppercase tracking-[0.2em] text-brand-silver/60">Born</p>
                         <p className="mt-1 text-white font-medium">{bornLabel}</p>
@@ -190,12 +174,28 @@ export const ActorSheet = () => {
                       </div>
                     </div>
 
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.2em] text-brand-silver/60">Biography</p>
-                      <p className="mt-2 text-sm leading-relaxed text-brand-silver">
-                        {biography || 'No biography available.'}
-                      </p>
+                    <div className="aspect-square w-24 sm:w-32 md:w-40 justify-self-end rounded-xl blueprint-border bg-brand-bg/60 overflow-hidden">
+                      {actor.profile_path ? (
+                        <img
+                          src={getImageUrl(actor.profile_path, 'w342')}
+                          alt={actorName}
+                          className="w-full h-full object-cover"
+                          decoding="async"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-brand-silver bg-brand-bg">
+                          <User size={32} />
+                        </div>
+                      )}
                     </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-brand-silver/60">Biography</p>
+                    <p className="mt-2 text-sm leading-relaxed text-brand-silver">
+                      {biography || 'No biography available.'}
+                    </p>
                   </div>
                 </div>
               </div>
