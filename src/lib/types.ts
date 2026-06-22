@@ -134,6 +134,11 @@ export interface Video {
   published_at: string;
 }
 
+export interface VideosResponse {
+  id: number;
+  results: Video[];
+}
+
 export interface CastMember {
   id: number;
   name: string;

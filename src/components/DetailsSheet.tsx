@@ -6,8 +6,8 @@ import { useAppContext } from '@/context/AppContext';
 import { getImageUrl, getMediaCredits, getContentRating, getExternalIds, getMediaDetails, getMediaImages, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
 import { getIgdbGameDetails } from '@/lib/igdb';
 import { getImageSrc, getMediaKey, getMediaSource } from '@/lib/media';
-import { CastMember, ExternalIdsResponse, Media, TmdbImage, WatchProvider } from '@/lib/types';
-import { Bookmark, ChevronDown, ChevronLeft, ChevronRight, Eye, Heart, X } from 'lucide-react';
+import { CastMember, ExternalIdsResponse, Media, TmdbImage, Video, WatchProvider } from '@/lib/types';
+import { Bookmark, ChevronDown, ChevronLeft, ChevronRight, Eye, Heart, Play, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { FocusTrap } from '@/components/FocusTrap';
@@ -45,14 +45,18 @@ export const DetailsSheet = () => {
   const [contentRating, setContentRating] = useState<{ id: number; value: string | null } | null>(null);
   const [externalIds, setExternalIds] = useState<{ id: number; value: ExternalIdsResponse | null } | null>(null);
   const [activeImage, setActiveImage] = useState<{ src: string; alt: string; mediaKey: string } | null>(null);
+  const [activeTrailer, setActiveTrailer] = useState<{ video: Video; mediaKey: string } | null>(null);
   const [actionPulse, setActionPulse] = useState<{ id: number; action: 'watchlist' | 'watched' | 'favorite' } | null>(null);
   const [showCastLeftButton, setShowCastLeftButton] = useState(false);
   const [showCastRightButton, setShowCastRightButton] = useState(false);
   const [showImageLeftButton, setShowImageLeftButton] = useState(false);
   const [showImageRightButton, setShowImageRightButton] = useState(false);
+  const [showTrailerLeftButton, setShowTrailerLeftButton] = useState(false);
+  const [showTrailerRightButton, setShowTrailerRightButton] = useState(false);
   const closeActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const castScrollerRef = useRef<HTMLDivElement | null>(null);
   const imageScrollerRef = useRef<HTMLDivElement | null>(null);
+  const trailerScrollerRef = useRef<HTMLDivElement | null>(null);
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -137,6 +141,22 @@ export const DetailsSheet = () => {
     setShowImageRightButton(!!scroller && scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 4);
   }
 
+  function scrollTrailers(direction: 'left' | 'right') {
+    const scroller = trailerScrollerRef.current;
+    if (!scroller) return;
+
+    scroller.scrollBy({
+      left: direction === 'left' ? -scroller.clientWidth * 0.85 : scroller.clientWidth * 0.85,
+      behavior: 'smooth',
+    });
+  }
+
+  function handleTrailerScroll() {
+    const scroller = trailerScrollerRef.current;
+    setShowTrailerLeftButton(!!scroller && scroller.scrollLeft > 4);
+    setShowTrailerRightButton(!!scroller && scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 4);
+  }
+
   useEffect(() => {
     if (!activeDetailsMedia) return;
     if (activeDetailsMedia.media_type !== 'game' && !apiKey) return;
@@ -180,24 +200,30 @@ export const DetailsSheet = () => {
   }, []);
 
   useEffect(() => {
-    if (!activeImage) return;
+    if (!activeImage && !activeTrailer) return;
 
     const handler = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setActiveImage(null);
+      if (event.key === 'Escape') {
+        setActiveImage(null);
+        setActiveTrailer(null);
+      }
     };
 
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [activeImage]);
+  }, [activeImage, activeTrailer]);
 
   useEffect(() => {
     if (castScrollerRef.current) castScrollerRef.current.scrollLeft = 0;
     if (imageScrollerRef.current) imageScrollerRef.current.scrollLeft = 0;
+    if (trailerScrollerRef.current) trailerScrollerRef.current.scrollLeft = 0;
     queueMicrotask(() => {
       setShowCastLeftButton(false);
       setShowCastRightButton(false);
       setShowImageLeftButton(false);
       setShowImageRightButton(false);
+      setShowTrailerLeftButton(false);
+      setShowTrailerRightButton(false);
     });
   }, [mediaKey]);
 
@@ -208,6 +234,10 @@ export const DetailsSheet = () => {
   useEffect(() => {
     queueMicrotask(handleImageScroll);
   }, [backdropItems.length, mediaKey, selected?.screenshots?.length]);
+
+  useEffect(() => {
+    queueMicrotask(handleTrailerScroll);
+  }, [mediaKey, selected?.videos?.length]);
 
   useEffect(() => {
     if (!activeDetailsMedia || !apiKey || !details || details.id !== activeDetailsMedia.id || activeDetailsMedia.media_type === 'game') return;
@@ -339,12 +369,27 @@ export const DetailsSheet = () => {
   const providerLabel = source === 'igdb' ? 'IGDB' : source === 'rawg' ? 'RAWG' : source === 'steam' ? 'Steam' : 'TMDB';
   const posterSrc = getImageSrc(selected.poster_path, (tmdbPath) => getImageUrl(tmdbPath, 'w342'));
   const gameScreenshots = isGame ? (selected.screenshots || []).slice(0, 20) : [];
+  const trailerItems = [...(selected.videos || [])]
+    .filter((video) => video.site === 'YouTube' && !!video.key)
+    .sort((a, b) => {
+      const score = (video: Video) => {
+        if (video.type === 'Trailer') return 0;
+        if (video.type === 'Teaser') return 1;
+        if (video.type === 'Clip') return 2;
+        return 3;
+      };
+      const scoreDiff = score(a) - score(b);
+      if (scoreDiff !== 0) return scoreDiff;
+      if (a.official !== b.official) return a.official ? -1 : 1;
+      return (b.published_at || '').localeCompare(a.published_at || '');
+    })
+    .slice(0, 10);
   const trailerSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${title} trailer`)}`;
   const showImageSection = isGame
     ? gameScreenshots.length > 0
     : sectionErrors.has('images') || backdrops?.id !== selected.id || backdropItems.length > 0;
   const externalLinks = [
-    { label: 'Trailer', url: trailerSearchUrl },
+    trailerItems.length === 0 ? { label: 'Trailer', url: trailerSearchUrl } : null,
     imdbUrl ? { label: 'IMDb', url: imdbUrl } : null,
     !isGame && watchProviderItems.length > 0 ? { label: 'JustWatch', url: `https://www.justwatch.com/us/search?q=${encodeURIComponent(title)}` } : null,
     selected.source_url && source !== 'igdb' ? { label: providerLabel, url: selected.source_url } : null,
@@ -398,6 +443,69 @@ export const DetailsSheet = () => {
           className={`${railButtonClass} right-0`}
           aria-label="Scroll images right"
           title="Scroll images right"
+        >
+          <ChevronRight size={18} />
+        </button>
+      )}
+    </div>
+  );
+  const renderTrailerGrid = (items: Video[]) => (
+    <div className="relative">
+      {showTrailerLeftButton && (
+        <button
+          type="button"
+          onClick={() => scrollTrailers('left')}
+          className={`${railButtonClass} left-0`}
+          aria-label="Scroll trailers left"
+          title="Scroll trailers left"
+        >
+          <ChevronLeft size={18} />
+        </button>
+      )}
+      <motion.div
+        ref={trailerScrollerRef}
+        onScroll={handleTrailerScroll}
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+        className="flex snap-x gap-2 overflow-x-auto scroll-smooth pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {items.map((video) => (
+          <motion.button
+            key={`${video.id}-${video.key}`}
+            variants={staggerItem}
+            type="button"
+            onClick={() => setActiveTrailer({ video, mediaKey })}
+            className="group w-[70%] shrink-0 snap-start overflow-hidden rounded-xl bg-brand-bg/80 blueprint-border text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-cyan/35 hover:bg-brand-bg hover:shadow-[0_0_18px_rgba(34,211,238,0.08)] sm:w-[46%] md:w-[31%]"
+          >
+            <div className="relative aspect-video bg-white/5">
+              <img
+                src={`https://img.youtube.com/vi/${video.key}/hqdefault.jpg`}
+                alt=""
+                className="h-full w-full object-cover opacity-90 transition-transform duration-200 group-hover:scale-105"
+                decoding="async"
+                loading="lazy"
+              />
+              <span className="absolute inset-0 flex items-center justify-center bg-black/20 transition-colors group-hover:bg-black/10">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full border border-brand-cyan/40 bg-brand-bg/80 text-brand-cyan backdrop-blur-md transition-colors group-hover:bg-brand-cyan/20 group-hover:text-white">
+                  <Play size={18} fill="currentColor" />
+                </span>
+              </span>
+            </div>
+            <div className="p-2">
+              <p className="truncate text-xs font-black leading-tight text-white">{video.name || 'Trailer'}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-brand-silver">{video.type || 'Video'}</p>
+            </div>
+          </motion.button>
+        ))}
+      </motion.div>
+      {showTrailerRightButton && (
+        <button
+          type="button"
+          onClick={() => scrollTrailers('right')}
+          className={`${railButtonClass} right-0`}
+          aria-label="Scroll trailers right"
+          title="Scroll trailers right"
         >
           <ChevronRight size={18} />
         </button>
@@ -682,6 +790,13 @@ export const DetailsSheet = () => {
                       </div>
                     )}
 
+                    {trailerItems.length > 0 && (
+                      <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
+                        <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-brand-silver">Trailers</h3>
+                        {renderTrailerGrid(trailerItems)}
+                      </div>
+                    )}
+
                 <p className="text-center text-[10px] uppercase tracking-[0.2em] text-brand-silver/60">
                   Data provided by {providerLabel}.
                 </p>
@@ -720,6 +835,46 @@ export const DetailsSheet = () => {
                         className="max-h-[88vh] max-w-full rounded-2xl object-contain blueprint-border shadow-2xl shadow-black/60"
                         decoding="async"
                       />
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence>
+                {activeTrailer?.mediaKey === mediaKey && (
+                  <div className="fixed inset-0 z-[380] flex items-center justify-center p-4" onClick={() => setActiveTrailer(null)}>
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-black/90 backdrop-blur-sm"
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.96 }}
+                      transition={{ duration: 0.16, ease: 'easeOut' }}
+                      className="relative z-10 w-full max-w-5xl"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setActiveTrailer(null)}
+                        className="absolute right-2 top-2 z-20 rounded-lg border border-brand-cyan/25 bg-brand-bg/75 p-3 text-brand-cyan backdrop-blur-md transition-colors hover:bg-brand-cyan/15 hover:text-white"
+                        title="Close trailer"
+                        aria-label="Close trailer"
+                      >
+                        <X size={18} />
+                      </button>
+                      <div className="overflow-hidden rounded-2xl bg-brand-bg blueprint-border shadow-2xl shadow-black/60">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${activeTrailer.video.key}?autoplay=1&rel=0`}
+                          title={activeTrailer.video.name || `${title} trailer`}
+                          className="aspect-video w-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                        />
+                      </div>
                     </motion.div>
                   </div>
                 )}
