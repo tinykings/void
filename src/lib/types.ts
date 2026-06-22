@@ -57,6 +57,13 @@ export interface Media {
   genres?: string[];
   metacritic?: number | null;
   playtime?: number;
+  playtime_main?: number;
+  playtime_extra?: number;
+  playtime_completionist?: number;
+  playtime_all_styles?: number;
+  hltb_id?: number;
+  hltb_url?: string;
+  hltb_checked_at?: number;
   website?: string | null;
   stores?: { name: string; url: string }[];
   screenshots?: string[];

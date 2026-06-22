@@ -160,11 +160,19 @@ export const DetailsSheet = () => {
   useEffect(() => {
     if (!activeDetailsMedia) return;
     if (activeDetailsMedia.media_type !== 'game' && !apiKey) return;
-    if (details?.id === activeDetailsMedia.id && details.media.media_type === activeDetailsMedia.media_type && getMediaSource(details.media) === getMediaSource(activeDetailsMedia)) return;
+
+    const source = getMediaSource(activeDetailsMedia);
+    const hasCurrentDetails = details?.id === activeDetailsMedia.id
+      && details.media.media_type === activeDetailsMedia.media_type
+      && getMediaSource(details.media) === source;
+    const needsHltbRefresh = hasCurrentDetails
+      && activeDetailsMedia.media_type === 'game'
+      && source === 'igdb'
+      && !details.media.hltb_checked_at;
+    if (hasCurrentDetails && !needsHltbRefresh) return;
 
     let cancelled = false;
 
-    const source = getMediaSource(activeDetailsMedia);
     const detailsPromise = activeDetailsMedia.media_type === 'game'
       ? source === 'steam'
         ? Promise.resolve(activeDetailsMedia)
@@ -366,6 +374,13 @@ export const DetailsSheet = () => {
     }).format(releaseDate)}`;
   })();
   const year = (selected.release_date || selected.first_air_date || '').split('-')[0];
+  const gameTimeItems = isGame
+    ? [
+        selected.playtime_main ? { label: 'MAIN', value: selected.playtime_main } : null,
+        selected.playtime_extra ? { label: 'Main+Sides', value: selected.playtime_extra } : null,
+        selected.playtime_completionist ? { label: 'Completionist', value: selected.playtime_completionist } : null,
+      ].filter((item): item is { label: string; value: number } => !!item)
+    : [];
   const providerLabel = source === 'igdb' ? 'IGDB' : source === 'rawg' ? 'RAWG' : source === 'steam' ? 'Steam' : 'TMDB';
   const posterSrc = getImageSrc(selected.poster_path, (tmdbPath) => getImageUrl(tmdbPath, 'w342'));
   const gameScreenshots = isGame ? (selected.screenshots || []).slice(0, 20) : [];
@@ -616,7 +631,6 @@ export const DetailsSheet = () => {
                       <span className={clsx('px-2 py-1 rounded-full backdrop-blur-sm', (selected.vote_average ?? 0) >= 7 ? 'bg-brand-cyan/10 text-brand-cyan' : 'bg-white/10 text-brand-silver')}>★ {selected.vote_average?.toFixed(1) || '0.0'}</span>
                       {!isGame && <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{contentRatingValue || 'N/A'}</span>}
                       {isGame && selected.metacritic ? <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">MC {selected.metacritic}</span> : null}
-                      {isGame && selected.playtime ? <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{selected.playtime}H</span> : null}
 
                     </div>
 
@@ -667,6 +681,17 @@ export const DetailsSheet = () => {
                         >
                           {link.label}
                         </a>
+                      ))}
+                    </div>
+                  )}
+
+                  {gameTimeItems.length > 0 && (
+                    <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-brand-cyan/20 bg-brand-cyan/[0.05]">
+                      {gameTimeItems.map((item) => (
+                        <div key={item.label} className="border-r border-white/10 px-2 py-2 text-center last:border-r-0">
+                          <p className="truncate text-[8px] font-black uppercase tracking-widest text-brand-silver sm:text-[9px]">{item.label}</p>
+                          <p className="mt-1 text-base font-black leading-none text-white sm:text-xl">{item.value}H</p>
+                        </div>
                       ))}
                     </div>
                   )}
