@@ -656,28 +656,25 @@ export const DetailsSheet = () => {
 
               <div className="mt-3 space-y-4">
                   {externalLinks.length > 0 && (
-                    <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {externalLinks.map((link) => (
-                          <a
-                            key={`${link.label}-${link.url}`}
-                            href={link.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="rounded-lg border border-white/15 bg-white/[0.03] px-3 py-2 text-xs font-black uppercase tracking-widest text-brand-silver transition-colors hover:border-brand-cyan/35 hover:bg-brand-cyan/10 hover:text-white"
-                          >
-                            {link.label}
-                          </a>
-                        ))}
-                      </div>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {externalLinks.map((link) => (
+                        <a
+                          key={`${link.label}-${link.url}`}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-lg border border-white/15 bg-white/[0.03] px-3 py-2 text-xs font-black uppercase tracking-widest text-brand-silver transition-colors hover:border-brand-cyan/35 hover:bg-brand-cyan/10 hover:text-white"
+                        >
+                          {link.label}
+                        </a>
+                      ))}
                     </div>
                   )}
 
                   {!isGame && (
                     <>
                     {/* Cast */}
-                    <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
-                      <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-brand-silver">Cast</h3>
+                    <div>
                       {sectionErrors.has('cast') ? (
                         <div className="flex flex-col items-center gap-3 py-10">
                           <p className="text-sm text-red-200">Failed to load cast.</p>
@@ -757,8 +754,7 @@ export const DetailsSheet = () => {
 
                     {/* Images */}
                     {showImageSection && (
-                      <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
-                        <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-brand-silver">Images</h3>
+                      <div>
                         {isGame ? (
                           renderImageGrid(gameScreenshots.map((image, index) => ({
                             src: image,
@@ -791,8 +787,7 @@ export const DetailsSheet = () => {
                     )}
 
                     {trailerItems.length > 0 && (
-                      <div className="rounded-xl bg-brand-bg/80 blueprint-border p-3">
-                        <h3 className="mb-3 text-[11px] font-black uppercase tracking-widest text-brand-silver">Trailers</h3>
+                      <div>
                         {renderTrailerGrid(trailerItems)}
                       </div>
                     )}
