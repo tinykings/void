@@ -103,7 +103,7 @@ export const DetailsSheet = () => {
   const externalIdsValue = selected && externalIds?.id === selected.id ? externalIds.value : null;
   const imdbUrl = externalIdsValue?.imdb_id ? `https://www.imdb.com/title/${externalIdsValue.imdb_id}` : '';
   const currentActionPulse = selected && actionPulse?.id === selected.id ? actionPulse.action : null;
-  const railButtonClass = 'absolute inset-y-0 z-10 flex w-10 items-center justify-center rounded-lg border border-brand-cyan/25 bg-brand-bg/85 text-brand-cyan backdrop-blur-md transition-colors hover:bg-brand-cyan/15 hover:text-white';
+  const railButtonClass = 'absolute inset-y-0 z-10 hidden w-10 items-center justify-center rounded-lg border border-brand-cyan/25 bg-brand-bg/85 text-brand-cyan backdrop-blur-md transition-colors hover:bg-brand-cyan/15 hover:text-white md:flex';
 
   function scrollCast(direction: 'left' | 'right') {
     const scroller = castScrollerRef.current;
