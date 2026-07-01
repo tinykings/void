@@ -7,7 +7,7 @@
 <h3 align="center">A movie, show, and game tracker hosted on GitHub Pages</h3>
 
 <p align="center">
-  <a href="https://void.tinyk.ing/">void.tinyk.ing</a>
+  <a href="https://tinykings.github.io/void/">tinykings.github.io/void</a>
 </p>
 
 ---
@@ -54,7 +54,7 @@ Data lives entirely in your browser (IndexedDB).
 - Twitch/IGDB credentials stored as Cloudflare Worker secrets: `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET`
 
 ### Quick Start
-1. Open the app at [void.tinyk.ing](https://void.tinyk.ing/)
+1. Open the app at [tinykings.github.io/void](https://tinykings.github.io/void/)
 2. Browse and use provider links directly from the details page
 
 ## Tech Stack
@@ -110,7 +110,7 @@ For local game search, copy `worker/.dev.vars.example` to `worker/.dev.vars`, fi
 
 ## Deployment
 
-GitHub Actions builds and deploys to GitHub Pages on every push to `main`. The static export is served from the custom domain root at `https://void.tinyk.ing/`.
+GitHub Actions builds and deploys to GitHub Pages on every push to `main`. The static export is served from the project path at `https://tinykings.github.io/void/`.
 
 ## Settings Reference
 

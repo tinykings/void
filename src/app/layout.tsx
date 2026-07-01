@@ -7,22 +7,29 @@ import { OfflineGuard } from "@/components/OfflineGuard";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 
 const inter = Inter({ subsets: ["latin"] });
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tinykings.github.io/void";
+const normalizeBasePath = (path?: string) => {
+  const trimmedPath = (path || "").trim().replace(/^\/+|\/+$/g, "");
+  return trimmedPath ? `/${trimmedPath}` : "";
+};
+const basePath = normalizeBasePath(process.env.NEXT_PUBLIC_BASE_PATH);
+const withBasePath = (path: string) => `${basePath}${path}`;
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://void.tinyk.ing"),
+  metadataBase: new URL(siteUrl),
   title: "Void - Track your movies, shows, and games",
   description: "Mobile-first media playlist and history tracker",
-  manifest: "/manifest.json",
+  manifest: withBasePath("/manifest.json"),
   alternates: {
-    canonical: "/",
+    canonical: siteUrl,
   },
   icons: {
     icon: [
-      { url: "/favicon.png", sizes: "64x64", type: "image/png" },
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: withBasePath("/favicon.png"), sizes: "64x64", type: "image/png" },
+      { url: withBasePath("/icon-192.png"), sizes: "192x192", type: "image/png" },
+      { url: withBasePath("/icon-512.png"), sizes: "512x512", type: "image/png" },
     ],
-    apple: "/apple-touch-icon.png",
+    apple: withBasePath("/apple-touch-icon.png"),
   },
   appleWebApp: {
     capable: true,

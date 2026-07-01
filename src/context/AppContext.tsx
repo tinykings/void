@@ -11,6 +11,13 @@ import { getMediaKey, getMediaSource } from '@/lib/media';
 import { toast } from 'sonner';
 
 const METADATA_HYDRATION_CONCURRENCY = 1;
+const normalizeBasePath = (path?: string) => {
+  const trimmedPath = (path || '').trim().replace(/^\/+|\/+$/g, '');
+  return trimmedPath ? `/${trimmedPath}` : '';
+};
+const basePath = normalizeBasePath(process.env.NEXT_PUBLIC_BASE_PATH);
+const serviceWorkerUrl = `${basePath}/sw.js`;
+const serviceWorkerScope = `${basePath || ''}/`;
 
 type PendingLibraryView = {
   mode: 'watchlist' | 'watched';
@@ -204,7 +211,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
       const registerServiceWorker = async () => {
         try {
-          await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' });
+          await navigator.serviceWorker.register(serviceWorkerUrl, { scope: serviceWorkerScope, updateViaCache: 'none' });
         } catch (error) {
           console.error('Service worker registration failed:', error);
         }

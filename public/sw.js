@@ -1,6 +1,7 @@
 const CACHE_VERSION = '5.8';
 const APP_SHELL_CACHE = `void-app-shell-${CACHE_VERSION}`;
 const CACHE_PREFIX = 'void-';
+const scopePath = new URL(self.registration.scope).pathname.replace(/\/$/, '');
 
 const isNavigationRequest = (request) => {
   if (request.method !== 'GET') return false;
@@ -26,8 +27,8 @@ const networkFirstNavigation = async (request) => {
   } catch (error) {
     const cachedResponse =
       (await cache.match(request)) ||
-      (await cache.match('/')) ||
-      (await cache.match('/index.html'));
+      (await cache.match(`${scopePath || ''}/`)) ||
+      (await cache.match(`${scopePath || ''}/index.html`));
 
     if (cachedResponse) return cachedResponse;
     throw error;
