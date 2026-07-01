@@ -84,17 +84,17 @@ const HLTB_BASE_URL = 'https://howlongtobeat.com';
 const HLTB_GAME_URL = `${HLTB_BASE_URL}/game`;
 const HLTB_FALLBACK_SEARCH_PATH = '/api/s';
 const HLTB_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
-const DEFAULT_ALLOWED_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000'];
+const DEFAULT_ALLOWED_ORIGINS = ['https://tinykings.github.io', 'http://localhost:3000', 'http://127.0.0.1:3000'];
 const SEARCH_CACHE_SECONDS = 60 * 60;
 const DETAILS_CACHE_SECONDS = 60 * 60 * 24;
-const CACHE_VERSION = 'hltb-v2';
+const CACHE_VERSION = 'hltb-v3';
 
 let tokenCache: TokenCache | null = null;
 let hltbSearchPathCache: string | null = null;
 
 const getAllowedOrigins = (env: Env) => {
   const configured = env.ALLOWED_ORIGINS?.split(',').map((origin) => origin.trim()).filter(Boolean);
-  return configured && configured.length > 0 ? configured : DEFAULT_ALLOWED_ORIGINS;
+  return [...new Set([...(configured || []), ...DEFAULT_ALLOWED_ORIGINS])];
 };
 
 const getCorsOrigin = (request: Request, env: Env) => {
