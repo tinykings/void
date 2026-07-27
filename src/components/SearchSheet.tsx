@@ -12,6 +12,7 @@ import { ArrowRight, Eye, EyeOff, LoaderCircle, Save, Search as SearchIcon, X } 
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 import { FocusTrap } from '@/components/FocusTrap';
 import logoPng from '../../public/logo.png';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 const normalizeSearchText = (value: string) =>
   value
@@ -49,6 +50,7 @@ const rankSearchResults = (results: Media[], query: string) =>
     .map((item) => item.media);
 
 export const SearchSheet = () => {
+  const isOnline = useOnlineStatus();
   const {
     isSearchFocused,
     closeAllSheets,
@@ -77,10 +79,17 @@ export const SearchSheet = () => {
 
   const searchTerm = query.trim();
   const isLibraryEmpty = watchlist.length === 0 && watched.length === 0;
-  const trendingLoading = isSearchFocused && !!apiKey && isLoaded && trending.length === 0 && !hasSubmittedSearch;
-  const displayError = isSearchFocused ? error : null;
+  const trendingLoading = isOnline && isSearchFocused && !!apiKey && isLoaded && trending.length === 0 && !hasSubmittedSearch;
+  const displayError = isSearchFocused
+    ? isOnline ? error : 'Search is unavailable offline. Your saved collection remains available.'
+    : null;
 
   const runSearch = useCallback(async (value: string) => {
+    if (!isOnline) {
+      setError('Search is unavailable offline.');
+      return;
+    }
+
     if (value.trim().length < 2) {
       return;
     }
@@ -121,10 +130,10 @@ export const SearchSheet = () => {
     } finally {
       setIsSearching(false);
     }
-  }, [apiKey]);
+  }, [apiKey, isOnline]);
 
   useEffect(() => {
-    if (!isSearchFocused) return;
+    if (!isOnline || !isSearchFocused) return;
     if (!apiKey || !isLoaded) return;
     if (trending.length > 0) return;
 
@@ -137,7 +146,7 @@ export const SearchSheet = () => {
         setTrending(processed);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load popular titles'))
-  }, [apiKey, isLoaded, isSearchFocused, trending.length]);
+  }, [apiKey, isLoaded, isOnline, isSearchFocused, trending.length]);
 
   useEffect(() => {
     return () => {
@@ -194,10 +203,11 @@ export const SearchSheet = () => {
           type="text"
           value={query}
           autoFocus
+          disabled={!isOnline}
           onChange={(e) => {
             setQuery(e.target.value);
           }}
-          placeholder="Search movies, shows, games..."
+          placeholder={isOnline ? 'Search movies, shows, games...' : 'Search unavailable offline'}
           className="w-full rounded-xl border border-brand-cyan/20 bg-brand-bg/90 py-2.5 pl-10 pr-11 text-sm font-medium text-white outline-none shadow-[0_0_20px_rgba(34,211,238,0.08)] ring-2 ring-brand-cyan/10 placeholder:text-brand-silver/50"
         />
         <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -219,7 +229,7 @@ export const SearchSheet = () => {
       </div>
       <button
         type="submit"
-        disabled={searchTerm.length < 2 || isSearching}
+        disabled={!isOnline || searchTerm.length < 2 || isSearching}
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-brand-cyan/25 bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:border-brand-cyan/40 hover:bg-brand-cyan/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
         title="Search"
         aria-label="Search"
@@ -277,7 +287,7 @@ export const SearchSheet = () => {
               <button
                 type="button"
                 onClick={() => setShowGistPrompt(true)}
-                disabled={isSyncingLibrary}
+                disabled={!isOnline || isSyncingLibrary}
                 className="inline-flex items-center justify-center gap-2 rounded-full border border-brand-cyan/25 bg-brand-cyan/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-brand-cyan transition-colors hover:bg-brand-cyan/15 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSyncingLibrary ? (

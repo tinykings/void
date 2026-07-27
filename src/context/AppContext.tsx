@@ -9,6 +9,7 @@ import { getIgdbGameDetails } from '@/lib/igdb';
 import { mapWithConcurrency } from '@/lib/concurrency';
 import { getMediaKey, getMediaSource } from '@/lib/media';
 import { toast } from 'sonner';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 const METADATA_HYDRATION_CONCURRENCY = 1;
 const normalizeBasePath = (path?: string) => {
@@ -70,6 +71,7 @@ interface AppContextType extends UserState {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const isOnline = useOnlineStatus();
   const store = useStore(useShallow((s) => ({
     apiKey: s.apiKey,
     gistId: s.gistId,
@@ -206,6 +208,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await store.toggleWatched(media, rating);
   }, [store.watched, store.toggleWatched]);
 
+  const syncFromGist = useCallback(async (showIndicator = false) => {
+    if (!isOnline) {
+      toast('Sync unavailable offline', {
+        description: 'Your local collection is still available.',
+      });
+      return;
+    }
+
+    await store.syncFromGist(showIndicator);
+  }, [isOnline, store.syncFromGist]);
+
   // Service worker registration
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
@@ -250,7 +263,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       initialViewApplied.current = true;
     };
 
-    if (!store.gistId || !store.gistToken) {
+    if (!isOnline || !store.gistId || !store.gistToken) {
       applyInitialView();
       return;
     }
@@ -267,6 +280,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   }, [
     store.isLoaded,
+    isOnline,
     store.sort,
     store.gistId,
     store.gistToken,
@@ -278,7 +292,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   ]);
 
   useEffect(() => {
-    if (!store.isLoaded) return;
+    if (!store.isLoaded || !isOnline) return;
 
     const incompleteItems = [...store.watchlist, ...store.watched].filter((item) => !item.poster_path);
     const itemsToHydrate = incompleteItems.filter((item) => {
@@ -316,11 +330,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         hydratingMediaKeys.current.delete(key);
       }
     });
-  }, [store.isLoaded, store.apiKey, store.watchlist, store.watched, store.updateMediaMetadata]);
+  }, [store.isLoaded, isOnline, store.apiKey, store.watchlist, store.watched, store.updateMediaMetadata]);
 
   // TV auto-migration: move watched shows with upcoming episodes to watchlist
   useEffect(() => {
-    if (!store.isLoaded || !store.apiKey) return;
+    if (!store.isLoaded || !isOnline || !store.apiKey) return;
 
     const timeout = setTimeout(async () => {
       try {
@@ -338,7 +352,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, 5000);
 
     return () => clearTimeout(timeout);
-  }, [store.isLoaded, store.apiKey]);
+  }, [store.isLoaded, isOnline, store.apiKey]);
 
   // O(1) lookup Maps for membership checks
   const watchlistIds = useMemo(() => new Set(store.watchlist.map(m => getMediaKey(m))), [store.watchlist]);
@@ -371,7 +385,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     toggleWatchlist,
     toggleWatched,
     setLists: store.setLists,
-    syncFromGist: store.syncFromGist,
+    syncFromGist,
     setFilter: store.setFilter,
     setSort: store.setSort,
     setShowWatched: store.setShowWatched,
@@ -405,6 +419,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     openActor,
     closeActor,
     closeAllSheets,
+    syncFromGist,
   ]);
 
   return (

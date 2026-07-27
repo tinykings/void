@@ -20,6 +20,7 @@ import { clsx } from 'clsx';
 import { toast } from 'sonner';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 import { FocusTrap } from '@/components/FocusTrap';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 type LibraryMode = 'library' | 'watchlist';
 type StreamableMedia = Media & { media_type: 'movie' | 'tv' };
@@ -41,6 +42,7 @@ const getStreamPosterUrl = (media: Media) => {
 };
 
 export const HomeView = () => {
+  const isOnline = useOnlineStatus();
   const {
     isLoaded, 
     apiKey,
@@ -150,7 +152,7 @@ export const HomeView = () => {
   useEffect(() => {
     if (!showStreamView) return;
 
-    if (streamablePlaylist.length === 0 || !apiKey) {
+    if (!isOnline || streamablePlaylist.length === 0 || !apiKey) {
       setStreamGroups([]);
       setStreamFailureCount(0);
       setIsStreamLoading(false);
@@ -230,17 +232,21 @@ export const HomeView = () => {
     return () => {
       cancelled = true;
     };
-  }, [apiKey, showStreamView, streamablePlaylist]);
+  }, [apiKey, isOnline, showStreamView, streamablePlaylist]);
 
   const hasGistSync = !!(gistId && gistToken);
   const emptyTitle = (() => {
-    if (showStreamView) return streamablePlaylist.length === 0 ? 'Your playlist has no streamable titles' : 'No streaming providers found';
+    if (showStreamView) {
+      if (!isOnline) return 'Streaming availability is offline';
+      return streamablePlaylist.length === 0 ? 'Your playlist has no streamable titles' : 'No streaming providers found';
+    }
     if (showFavoritesOnly) return 'No favorites yet';
     if (activeLibraryMode === 'library') return 'Your history is empty';
     return 'Your playlist is empty';
   })();
   const emptyDescription = (() => {
     if (showStreamView) {
+      if (!isOnline) return 'Reconnect to refresh provider information. Your playlist remains available.';
       if (streamablePlaylist.length === 0) return 'Add movies or shows to your playlist to see streaming options.';
       return 'No US free or subscription providers were found for your playlist.';
     }
@@ -268,7 +274,7 @@ export const HomeView = () => {
     setGistId(nextGistId);
     setGistToken(nextGistToken);
 
-    if (nextGistId && nextGistToken) {
+    if (isOnline && nextGistId && nextGistToken) {
       void syncFromGist(true);
     }
 
@@ -940,10 +946,10 @@ export const HomeView = () => {
                      setShowTypeMenu(false);
                      void syncFromGist(true);
                    }}
-                   disabled={!hasGistSync || isSyncingLibrary}
+                   disabled={!isOnline || !hasGistSync || isSyncingLibrary}
                    className={clsx(
                      'w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors blueprint-border',
-                     !hasGistSync || isSyncingLibrary
+                     !isOnline || !hasGistSync || isSyncingLibrary
                        ? 'bg-white/5 text-brand-silver/40 cursor-not-allowed'
                        : 'bg-brand-bg text-white hover:bg-brand-cyan/10'
                    )}

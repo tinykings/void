@@ -8,8 +8,10 @@ import { Media, PersonDetails } from '@/lib/types';
 import { X, User } from 'lucide-react';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 import { FocusTrap } from '@/components/FocusTrap';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 export const ActorSheet = () => {
+  const isOnline = useOnlineStatus();
   const { activeActorMedia, closeActor, closeAllSheets, apiKey, openDetails } = useAppContext();
   const [actorCredits, setActorCredits] = useState<{ actorId: number; credits: Media[] } | null>(null);
   const [personDetails, setPersonDetails] = useState<{ actorId: number; details: PersonDetails } | null>(null);
@@ -23,7 +25,7 @@ export const ActorSheet = () => {
     return actorCredits.credits.slice(0, 20);
   }, [actor, actorCredits]);
 
-  const loading = !!actor && !!apiKey && actorCredits?.actorId !== actor.id;
+  const loading = isOnline && !!actor && !!apiKey && actorCredits?.actorId !== actor.id;
 
   const details = useMemo(() => {
     if (!actor || personDetails?.actorId !== actor.id) return null;
@@ -48,7 +50,7 @@ export const ActorSheet = () => {
   })();
 
   useEffect(() => {
-    if (!actor || !apiKey) {
+    if (!isOnline || !actor || !apiKey) {
       return;
     }
 
@@ -89,10 +91,10 @@ export const ActorSheet = () => {
     return () => {
       cancelled = true;
     };
-  }, [actor, apiKey]);
+  }, [actor, apiKey, isOnline]);
 
   useEffect(() => {
-    if (!actor || !apiKey) {
+    if (!isOnline || !actor || !apiKey) {
       return;
     }
 
@@ -110,7 +112,7 @@ export const ActorSheet = () => {
     return () => {
       cancelled = true;
     };
-  }, [actor, apiKey]);
+  }, [actor, apiKey, isOnline]);
 
   useEffect(() => {
     if (!actor) return;

@@ -11,6 +11,7 @@ import { Bookmark, ChevronDown, ChevronLeft, ChevronRight, Eye, Heart, Play, X }
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { FocusTrap } from '@/components/FocusTrap';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 const staggerContainer = {
   hidden: {},
@@ -23,6 +24,7 @@ const staggerItem = {
 };
 
 export const DetailsSheet = () => {
+  const isOnline = useOnlineStatus();
   const {
     activeDetailsMedia,
     closeDetails,
@@ -160,7 +162,7 @@ export const DetailsSheet = () => {
   }
 
   useEffect(() => {
-    if (!activeDetailsMedia) return;
+    if (!activeDetailsMedia || !isOnline) return;
     if (activeDetailsMedia.media_type !== 'game' && !apiKey) return;
 
     const source = getMediaSource(activeDetailsMedia);
@@ -200,7 +202,7 @@ export const DetailsSheet = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeDetailsMedia, apiKey, details?.key, details?.media, updateMediaMetadata, retryCount]);
+  }, [activeDetailsMedia, apiKey, details?.key, details?.media, isOnline, updateMediaMetadata, retryCount]);
 
   useEffect(() => {
     return () => {
@@ -249,7 +251,7 @@ export const DetailsSheet = () => {
   }, [mediaKey, selected?.videos?.length]);
 
   useEffect(() => {
-    if (!activeDetailsMedia || !apiKey || !details || details.key !== activeMediaKey || activeDetailsMedia.media_type === 'game') return;
+    if (!isOnline || !activeDetailsMedia || !apiKey || !details || details.key !== activeMediaKey || activeDetailsMedia.media_type === 'game') return;
 
     let cancelled = false;
     const tmdbType = activeDetailsMedia.media_type;
@@ -299,10 +301,10 @@ export const DetailsSheet = () => {
     fetchData();
 
     return () => { cancelled = true; };
-  }, [activeDetailsMedia, activeMediaKey, apiKey, details, watchProviders?.key, cast?.key, backdrops?.key, retryCount]);
+  }, [activeDetailsMedia, activeMediaKey, apiKey, details, isOnline, watchProviders?.key, cast?.key, backdrops?.key, retryCount]);
 
   useEffect(() => {
-    if (!activeDetailsMedia || !apiKey || activeDetailsMedia.media_type === 'game') return;
+    if (!isOnline || !activeDetailsMedia || !apiKey || activeDetailsMedia.media_type === 'game') return;
 
     let cancelled = false;
     const tmdbType = activeDetailsMedia.media_type;
@@ -316,10 +318,10 @@ export const DetailsSheet = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeDetailsMedia, activeMediaKey, apiKey]);
+  }, [activeDetailsMedia, activeMediaKey, apiKey, isOnline]);
 
   useEffect(() => {
-    if (!activeDetailsMedia || !apiKey || activeDetailsMedia.media_type === 'game') return;
+    if (!isOnline || !activeDetailsMedia || !apiKey || activeDetailsMedia.media_type === 'game') return;
 
     let cancelled = false;
     const tmdbType = activeDetailsMedia.media_type;
@@ -335,7 +337,7 @@ export const DetailsSheet = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeDetailsMedia, activeMediaKey, apiKey]);
+  }, [activeDetailsMedia, activeMediaKey, apiKey, isOnline]);
 
   useEffect(() => {
     if (!activeDetailsMedia) return;
