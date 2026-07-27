@@ -1,53 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
-import { getTrending, searchMedia } from '@/lib/tmdb';
-import { hasGameApi, searchIgdbGames } from '@/lib/igdb';
-import { Media } from '@/lib/types';
-import { getMediaKey } from '@/lib/media';
-import { MediaCard } from '@/components/MediaCard';
+import { SearchResults } from '@/components/SearchResults';
 import { ArrowRight, LoaderCircle, Search as SearchIcon, X } from 'lucide-react';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 import { FocusTrap } from '@/components/FocusTrap';
 import logoPng from '../../public/logo.png';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-
-const normalizeSearchText = (value: string) =>
-  value
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
-
-const getSearchRank = (media: Media, query: string, index: number) => {
-  const title = normalizeSearchText(media.title || media.name || '');
-  const search = normalizeSearchText(query);
-  const popularity = media.popularity || media.vote_count || 0;
-
-  if (!title || !search) return 10_000 + index;
-  if (title === search) return 0 - popularity / 1_000_000;
-  if (title.startsWith(search)) return 100 + title.length - search.length - popularity / 1_000_000;
-  if (title.includes(search)) return 300 + title.indexOf(search) + title.length / 100 - popularity / 1_000_000;
-
-  const searchWords = search.split(' ').filter(Boolean);
-  const titleWords = title.split(' ').filter(Boolean);
-  const matchingWords = searchWords.filter((word) => titleWords.some((titleWord) => titleWord.startsWith(word))).length;
-
-  if (matchingWords > 0) {
-    return 600 + (searchWords.length - matchingWords) * 50 + title.length / 100 - popularity / 1_000_000;
-  }
-
-  return 1_000 + index - popularity / 1_000_000;
-};
-
-const rankSearchResults = (results: Media[], query: string) =>
-  results
-    .map((media, index) => ({ media, rank: getSearchRank(media, query, index), index }))
-    .sort((a, b) => a.rank - b.rank || b.media.popularity - a.media.popularity || a.index - b.index)
-    .map((item) => item.media);
+import { useMediaSearch } from '@/hooks/useMediaSearch';
 
 export const SearchSheet = () => {
   const isOnline = useOnlineStatus();
@@ -60,89 +22,21 @@ export const SearchSheet = () => {
     watched,
   } = useAppContext();
   const [query, setQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Media[]>([]);
-  const [trending, setTrending] = useState<Media[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
-  const [hasSubmittedSearch, setHasSubmittedSearch] = useState(false);
-  const searchAbortController = useRef<AbortController | null>(null);
+  const {
+    clearSearch,
+    displayedMedia,
+    error,
+    hasSubmittedSearch,
+    isSearching,
+    runSearch,
+    trendingLoading,
+  } = useMediaSearch({ apiKey, enabled: isSearchFocused, isLoaded, isOnline });
 
   const searchTerm = query.trim();
   const isLibraryEmpty = watchlist.length === 0 && watched.length === 0;
-  const trendingLoading = isOnline && isSearchFocused && !!apiKey && isLoaded && trending.length === 0 && !hasSubmittedSearch;
   const displayError = isSearchFocused
     ? isOnline ? error : 'Search is unavailable offline. Your saved collection remains available.'
     : null;
-
-  const runSearch = useCallback(async (value: string) => {
-    if (!isOnline) {
-      setError('Search is unavailable offline.');
-      return;
-    }
-
-    if (value.trim().length < 2) {
-      return;
-    }
-
-    if (searchAbortController.current) searchAbortController.current.abort();
-    searchAbortController.current = new AbortController();
-
-    try {
-      setError(null);
-      setIsSearching(true);
-      setHasSubmittedSearch(true);
-      const signal = searchAbortController.current.signal;
-      const [tmdbResult, gameResult] = await Promise.allSettled([
-        apiKey ? searchMedia(value, apiKey, signal) : Promise.resolve([] as Media[]),
-        hasGameApi() ? searchIgdbGames(value, signal) : Promise.resolve([] as Media[]),
-      ]);
-
-      if (signal.aborted) return;
-
-      const tmdbResults = tmdbResult.status === 'fulfilled' ? tmdbResult.value : [];
-      const gameResults = gameResult.status === 'fulfilled' ? gameResult.value : [];
-      setSearchResults(rankSearchResults([...tmdbResults, ...gameResults], value));
-
-      if (tmdbResult.status === 'rejected') {
-        console.error('TMDB search error:', tmdbResult.reason);
-      }
-
-      if (gameResult.status === 'rejected') {
-        console.error('Game search error:', gameResult.reason);
-        if (tmdbResults.length === 0) {
-          setError(gameResult.reason instanceof Error ? gameResult.reason.message : 'Game search failed');
-        }
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'AbortError') return;
-      console.error('Search error:', err);
-      setError(err instanceof Error ? err.message : 'Search failed');
-    } finally {
-      setIsSearching(false);
-    }
-  }, [apiKey, isOnline]);
-
-  useEffect(() => {
-    if (!isOnline || !isSearchFocused) return;
-    if (!apiKey || !isLoaded) return;
-    if (trending.length > 0) return;
-
-    getTrending(apiKey, 'all')
-      .then((items) => {
-        const processed = items.map((item) => ({
-          ...item,
-          media_type: item.media_type || 'movie',
-        })) as Media[];
-        setTrending(processed);
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load popular titles'))
-  }, [apiKey, isLoaded, isOnline, isSearchFocused, trending.length]);
-
-  useEffect(() => {
-    return () => {
-      if (searchAbortController.current) searchAbortController.current.abort();
-    };
-  }, []);
 
   const closeSheet = () => {
     if (isLibraryEmpty) return;
@@ -153,10 +47,6 @@ export const SearchSheet = () => {
     if (searchTerm.length < 2 || isSearching) return;
     void runSearch(searchTerm);
   };
-  const displayedMedia = useMemo(() => {
-    if (hasSubmittedSearch) return searchResults;
-    return trending;
-  }, [hasSubmittedSearch, searchResults, trending]);
   const searchControls = (
     <form className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" onSubmit={handleSearchSubmit}>
       <img
@@ -183,10 +73,7 @@ export const SearchSheet = () => {
             type="button"
             onClick={() => {
               setQuery('');
-              setSearchResults([]);
-              setHasSubmittedSearch(false);
-              setError(null);
-              if (searchAbortController.current) searchAbortController.current.abort();
+              clearSearch();
             }}
             className="p-2 text-brand-silver transition-colors hover:text-white"
             title="Clear search"
@@ -262,33 +149,11 @@ export const SearchSheet = () => {
               <p className="text-sm text-red-400 mb-4">{displayError}</p>
             )}
 
-            {isSearching ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className="aspect-[2/3] rounded-xl bg-white/10 animate-pulse" />
-                ))}
-              </div>
-            ) : trendingLoading && !hasSubmittedSearch ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className="aspect-[2/3] rounded-xl bg-white/10 animate-pulse" />
-                ))}
-              </div>
-            ) : displayedMedia.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-                {displayedMedia.map((item) => (
-                  <MediaCard
-                    key={getMediaKey(item)}
-                    media={item}
-                    showReleaseBadge={false}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-brand-silver text-center py-16">
-                {hasSubmittedSearch ? 'Try a different search term.' : 'No titles to show.'}
-              </p>
-            )}
+            <SearchResults
+              hasSubmittedSearch={hasSubmittedSearch}
+              isLoading={isSearching || (trendingLoading && !hasSubmittedSearch)}
+              media={displayedMedia}
+            />
 
             {isLibraryEmpty && (
               <div className="pt-10 pb-4 text-center text-xs uppercase tracking-[0.2em] text-brand-silver/60">

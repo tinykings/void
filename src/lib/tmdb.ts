@@ -43,35 +43,36 @@ export const searchMedia = async (query: string, apiKey: string, signal?: AbortS
   return data.results.filter((item: TmdbResult) => item.media_type === 'movie' || item.media_type === 'tv');
 };
 
-export const getTrending = async (apiKey: string, type: 'all' | 'movie' | 'tv' = 'all'): Promise<Media[]> => {
-  const data = await fetchFromTMDB(`/trending/${type}/week`, apiKey);
+export const getTrending = async (apiKey: string, type: 'all' | 'movie' | 'tv' = 'all', signal?: AbortSignal): Promise<Media[]> => {
+  const data = await fetchFromTMDB(`/trending/${type}/week`, apiKey, {}, signal);
   return data.results.filter((item: TmdbResult) => item.media_type === 'movie' || item.media_type === 'tv' || type !== 'all');
 };
 
-export const getContentRating = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<string | null> => {
+export const getContentRating = async (id: number, type: 'movie' | 'tv', apiKey: string, signal?: AbortSignal): Promise<string | null> => {
   try {
     if (type === 'movie') {
-      const data: ReleaseDatesResponse = await fetchFromTMDB(`/movie/${id}/release_dates`, apiKey);
+      const data: ReleaseDatesResponse = await fetchFromTMDB(`/movie/${id}/release_dates`, apiKey, {}, signal);
       const usRelease = data.results?.find((r: ReleaseDatesResult) => r.iso_3166_1 === 'US');
       const cert = usRelease?.release_dates?.find((d: ReleaseDate) => d.certification)?.certification;
       return cert || null;
     } else {
-      const data: ContentRatingsResponse = await fetchFromTMDB(`/tv/${id}/content_ratings`, apiKey);
+      const data: ContentRatingsResponse = await fetchFromTMDB(`/tv/${id}/content_ratings`, apiKey, {}, signal);
       const usRating = data.results?.find((r: ContentRating) => r.iso_3166_1 === 'US');
       return usRating?.rating || null;
     }
-  } catch {
+  } catch (error) {
+    if (signal?.aborted) throw error;
     return null;
   }
 };
 
-export const getMediaDetails = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<Media> => {
-  const data: Media & { videos?: VideosResponse } = await fetchFromTMDB(`/${type}/${id}`, apiKey, { append_to_response: 'videos' });
+export const getMediaDetails = async (id: number, type: 'movie' | 'tv', apiKey: string, signal?: AbortSignal): Promise<Media> => {
+  const data: Media & { videos?: VideosResponse } = await fetchFromTMDB(`/${type}/${id}`, apiKey, { append_to_response: 'videos' }, signal);
   return { ...data, media_type: type, videos: data.videos?.results || [] };
 };
 
-export const getExternalIds = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<ExternalIdsResponse> => {
-  return fetchFromTMDB(`/${type}/${id}/external_ids`, apiKey);
+export const getExternalIds = async (id: number, type: 'movie' | 'tv', apiKey: string, signal?: AbortSignal): Promise<ExternalIdsResponse> => {
+  return fetchFromTMDB(`/${type}/${id}/external_ids`, apiKey, {}, signal);
 };
 
 export const getUSReleaseDate = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<string | null> => {
@@ -90,8 +91,8 @@ export const getUSReleaseDate = async (id: number, type: 'movie' | 'tv', apiKey:
   }
 };
 
-export const getWatchProviders = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<WatchProvidersResponse> => {
-  return fetchFromTMDB(`/${type}/${id}/watch/providers`, apiKey);
+export const getWatchProviders = async (id: number, type: 'movie' | 'tv', apiKey: string, signal?: AbortSignal): Promise<WatchProvidersResponse> => {
+  return fetchFromTMDB(`/${type}/${id}/watch/providers`, apiKey, {}, signal);
 };
 
 const cleanProviderName = (name: string) => name.replace(/\s+/g, ' ').trim();
@@ -149,12 +150,12 @@ export const getUSStreamingProviders = (data: WatchProvidersResponse): WatchProv
   });
 };
 
-export const getMediaImages = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<ImagesResponse> => {
-  return fetchFromTMDB(`/${type}/${id}/images`, apiKey);
+export const getMediaImages = async (id: number, type: 'movie' | 'tv', apiKey: string, signal?: AbortSignal): Promise<ImagesResponse> => {
+  return fetchFromTMDB(`/${type}/${id}/images`, apiKey, {}, signal);
 };
 
-export const getMediaCredits = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<CreditsResponse> => {
-  return fetchFromTMDB(`/${type}/${id}/credits`, apiKey);
+export const getMediaCredits = async (id: number, type: 'movie' | 'tv', apiKey: string, signal?: AbortSignal): Promise<CreditsResponse> => {
+  return fetchFromTMDB(`/${type}/${id}/credits`, apiKey, {}, signal);
 };
 
 export const getPersonCredits = async (personId: number, apiKey: string): Promise<PersonCreditsResponse> => {

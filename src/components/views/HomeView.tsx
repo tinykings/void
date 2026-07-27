@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useMemo, useTransition, useCallback, useRef } from 'react';
-import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { ActorSheet } from '@/components/ActorSheet';
@@ -11,34 +10,18 @@ import { DetailsSheet } from '@/components/DetailsSheet';
 import { SearchSheet } from '@/components/SearchSheet';
 import { sortMedia, sortByAddedDate } from '@/lib/sort';
 
-import { getContentRating, getImageUrl, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
-import { mapWithConcurrency } from '@/lib/concurrency';
 import { AlertCircle, Bookmark, Film, Gamepad2, Github, Heart, History, LayoutGrid, LoaderCircle, LogOut, Radio, Search, Settings, SlidersHorizontal, Tv, X } from 'lucide-react';
-import type { FilterType, Media, WatchProvider } from '@/lib/types';
-import { getImageSrc, getMediaKey } from '@/lib/media';
+import type { FilterType } from '@/lib/types';
+import { getMediaKey } from '@/lib/media';
 import { clsx } from 'clsx';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 import { FocusTrap } from '@/components/FocusTrap';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useStreamProviders } from '@/hooks/useStreamProviders';
+import type { StreamableMedia } from '@/lib/streamProviders';
+import { HomeStreamSection } from '@/components/HomeStreamSection';
 
 type LibraryMode = 'library' | 'watchlist';
-type StreamableMedia = Media & { media_type: 'movie' | 'tv' };
-type StreamProviderItem = {
-  media: Media;
-  contentRating: string | null;
-};
-type StreamProviderGroup = {
-  provider: WatchProvider;
-  items: StreamProviderItem[];
-};
-
-const STREAM_PROVIDER_CONCURRENCY = 2;
-
-const getMediaTitle = (media: Media) => media.title || media.name || 'Unknown title';
-const getStreamPosterUrl = (media: Media) => {
-  const path = media.poster_path || media.backdrop_path;
-  return path ? getImageSrc(path, (tmdbPath) => getImageUrl(tmdbPath, 'w185')) : '';
-};
 
 export const HomeView = () => {
   const isOnline = useOnlineStatus();
@@ -75,9 +58,11 @@ export const HomeView = () => {
   const activeLibraryMode: LibraryMode = showWatched ? 'library' : 'watchlist';
   const streamablePlaylist = useMemo(() => watchlist.filter((item): item is StreamableMedia => item.media_type === 'movie' || item.media_type === 'tv'), [watchlist]);
   const [showStreamView, setShowStreamView] = useState(false);
-  const [streamGroups, setStreamGroups] = useState<StreamProviderGroup[]>([]);
-  const [isStreamLoading, setIsStreamLoading] = useState(false);
-  const [streamFailureCount, setStreamFailureCount] = useState(0);
+  const {
+    failureCount: streamFailureCount,
+    groups: streamGroups,
+    isLoading: isStreamLoading,
+  } = useStreamProviders({ apiKey, enabled: showStreamView, isOnline, playlist: streamablePlaylist });
   const activeModeLabel = showStreamView ? 'Stream' : showFavoritesOnly ? 'Favorites' : activeLibraryMode === 'library' ? 'History' : 'Playlist';
   const activeFilterLabel = activeFilter === 'all' ? 'All' : activeFilter === 'movie' ? 'Movies' : activeFilter === 'tv' ? 'Shows' : 'Games';
 
@@ -140,91 +125,6 @@ export const HomeView = () => {
 
     return showWatched ? sortByAddedDate(filtered) : sortMedia(filtered);
   }, [baseLibraryMedia, showFavoritesOnly, showWatched]);
-
-  useEffect(() => {
-    if (!showStreamView) return;
-
-    if (!isOnline || streamablePlaylist.length === 0 || !apiKey) {
-      setStreamGroups([]);
-      setStreamFailureCount(0);
-      setIsStreamLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setIsStreamLoading(true);
-    setStreamFailureCount(0);
-
-    void mapWithConcurrency(streamablePlaylist, STREAM_PROVIDER_CONCURRENCY, async (item) => {
-      let providers: WatchProvider[] = [];
-      let failed = false;
-      const providerPromise = apiKey
-        ? getWatchProviders(item.id, item.media_type, apiKey)
-            .then((data) => {
-              providers = getUSStreamingProviders(data);
-            })
-            .catch(() => {
-              failed = true;
-            })
-        : Promise.resolve();
-      const contentRatingPromise = apiKey
-        ? getContentRating(item.id, item.media_type, apiKey).catch(() => null)
-        : Promise.resolve(null);
-
-      const [, contentRating] = await Promise.all([
-        providerPromise,
-        contentRatingPromise,
-      ]);
-
-      return {
-        item,
-        providers,
-        contentRating,
-        failed,
-      };
-    })
-      .then((results) => {
-        if (cancelled) return;
-
-        const groupsByProvider = new Map<number, StreamProviderGroup>();
-        results.forEach(({ item, providers, contentRating }) => {
-          providers.forEach((provider) => {
-            const streamItem = { media: item, contentRating };
-            const existing = groupsByProvider.get(provider.provider_id);
-            if (existing) {
-              existing.items.push(streamItem);
-              return;
-            }
-
-            groupsByProvider.set(provider.provider_id, {
-              provider,
-              items: [streamItem],
-            });
-          });
-        });
-
-        const groups = Array.from(groupsByProvider.values())
-          .map((group) => ({
-            ...group,
-            items: [...group.items].sort((a, b) => getMediaTitle(a.media).localeCompare(getMediaTitle(b.media))),
-          }))
-          .sort((a, b) => {
-            const countDiff = b.items.length - a.items.length;
-            if (countDiff !== 0) return countDiff;
-            return a.provider.provider_name.localeCompare(b.provider.provider_name);
-          });
-
-        setStreamGroups(groups);
-        setStreamFailureCount(results.filter((result) => result.failed).length);
-      })
-      .finally(() => {
-        if (!cancelled) setIsStreamLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [apiKey, isOnline, showStreamView, streamablePlaylist]);
 
   const emptyTitle = (() => {
     if (showStreamView) {
@@ -443,104 +343,15 @@ export const HomeView = () => {
       ) : (
         <>
           {showStreamView ? (
-            <div className="mx-auto max-w-3xl space-y-3">
-              <div className="flex items-start justify-between gap-4 px-1">
-                <div className="min-w-0">
-                  <h1 className="text-xl font-black uppercase tracking-[0.18em] text-white">Stream</h1>
-                  <p className="mt-1 text-xs font-medium text-brand-silver">
-                    US free and subscription providers for your playlist. Data provided by JustWatch.
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="rounded-full border border-brand-cyan/20 bg-brand-cyan/10 px-3 py-1 text-xs font-black uppercase tracking-widest text-brand-cyan">
-                      {streamablePlaylist.length}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {isStreamLoading ? (
-                <div className="space-y-2 pt-3">
-                  {[...Array(5)].map((_, index) => (
-                    <div key={index} className="h-14 animate-pulse rounded-xl blueprint-border bg-white/[0.03]" />
-                  ))}
-                </div>
-              ) : streamGroups.length > 0 ? (
-                <div className="space-y-4 pt-2">
-                  {streamFailureCount > 0 && (
-                    <p className="rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-xs font-medium text-amber-100">
-                      {streamFailureCount} {streamFailureCount === 1 ? 'title could' : 'titles could'} not be checked.
-                    </p>
-                  )}
-
-                  {streamGroups.map((group) => (
-                    <section key={group.provider.provider_id} className="overflow-hidden rounded-xl blueprint-border bg-white/[0.03]">
-                      <div className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-3">
-                        <h2 className="min-w-0 truncate text-sm font-black uppercase tracking-[0.16em] text-white">
-                          {group.provider.provider_name}
-                        </h2>
-                        <span className="shrink-0 rounded-full bg-brand-cyan/10 px-2.5 py-1 text-[11px] font-black text-brand-cyan">
-                          {group.items.length}
-                        </span>
-                      </div>
-
-                      <div className="divide-y divide-white/5">
-                        {group.items.map(({ media, contentRating }) => {
-                          const posterUrl = getStreamPosterUrl(media);
-
-                          return (
-                            <button
-                              key={`${group.provider.provider_id}-${getMediaKey(media)}`}
-                              type="button"
-                              onClick={() => openDetails(media)}
-                              className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold text-brand-silver transition-colors hover:bg-brand-cyan/10 hover:text-white"
-                            >
-                              <div className="h-12 w-8 shrink-0 overflow-hidden rounded-md bg-brand-bg/80 ring-1 ring-white/10">
-                                {posterUrl ? (
-                                  <Image
-                                    src={posterUrl}
-                                    alt=""
-                                    width={32}
-                                    height={48}
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="flex h-full w-full items-center justify-center text-brand-silver/40">
-                                    <Film size={14} />
-                                  </div>
-                                )}
-                              </div>
-
-                              <span className="min-w-0 flex-1 truncate">{getMediaTitle(media)}</span>
-                              <span className="shrink-0 rounded-full bg-white/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-brand-silver/70">
-                                {contentRating || 'N/A'}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-20 text-brand-silver">
-                  <div className="flex flex-col items-center gap-4">
-                    <p className="text-lg font-medium text-white">
-                      {emptyTitle}
-                    </p>
-                    <p className="text-sm text-brand-silver max-w-xs mx-auto">
-                      {emptyDescription}
-                    </p>
-                    {streamFailureCount > 0 && (
-                      <p className="text-xs text-brand-silver/60">
-                        {streamFailureCount} {streamFailureCount === 1 ? 'title could' : 'titles could'} not be checked.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            <HomeStreamSection
+              emptyDescription={emptyDescription}
+              emptyTitle={emptyTitle}
+              failureCount={streamFailureCount}
+              groups={streamGroups}
+              isLoading={isStreamLoading}
+              onSelect={openDetails}
+              playlistCount={streamablePlaylist.length}
+            />
           ) : displayMedia.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
               {displayMedia.map((item, index) => (

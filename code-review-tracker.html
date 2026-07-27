@@ -464,12 +464,12 @@
         <div class="item-actions"></div>
       </article>
 
-      <article class="item" data-id="component-size" data-type="maintenance" data-severity="recommendation" data-status="open">
+      <article class="item" data-id="component-size" data-type="maintenance" data-severity="recommendation" data-status="fixed" data-resolution="Extracted focused search, streaming-provider, primary-details, and supplementary-details hooks; split stream and search result presentation; added ranking and provider-grouping tests; verified lint, TypeScript, tests, and production build.">
         <div class="item-number">M-03</div>
         <div class="item-main">
           <div class="item-head"><span class="tag recommendation">Recommendation</span><span class="tag recommendation">Architecture</span></div>
           <h2>Split large view components</h2>
-          <p>HomeView, DetailsSheet, and SearchSheet combine extensive network, state, and presentation logic, increasing regression risk.</p>
+          <p>HomeView, DetailsSheet, and SearchSheet now delegate network/state workflows to focused hooks and large result sections to presentational components.</p>
           <div class="source">src/components/views/HomeView.tsx · src/components/DetailsSheet.tsx · src/components/SearchSheet.tsx</div>
           <details><summary>Completion criteria</summary><ul><li>Extract focused data hooks and presentational sections.</li><li>Keep modal state and network cancellation behavior explicit.</li><li>Cover extracted behavior with tests before restructuring UI.</li></ul></details>
         </div>

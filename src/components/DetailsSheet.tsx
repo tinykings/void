@@ -3,15 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
-import { getImageUrl, getMediaCredits, getContentRating, getExternalIds, getMediaDetails, getMediaImages, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
-import { getIgdbGameDetails } from '@/lib/igdb';
+import { getImageUrl } from '@/lib/tmdb';
 import { getImageSrc, getMediaKey, getMediaSource } from '@/lib/media';
-import { CastMember, ExternalIdsResponse, Media, TmdbImage, Video, WatchProvider } from '@/lib/types';
+import { Video } from '@/lib/types';
 import { Bookmark, ChevronDown, ChevronLeft, ChevronRight, Eye, Heart, Play, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { FocusTrap } from '@/components/FocusTrap';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useMediaDetails } from '@/hooks/useMediaDetails';
+import { useDetailsSupplementaryData } from '@/hooks/useDetailsSupplementaryData';
 
 const staggerContainer = {
   hidden: {},
@@ -40,13 +41,6 @@ export const DetailsSheet = () => {
     updateMediaMetadata,
   } = useAppContext();
 
-  const activeMediaKey = activeDetailsMedia ? getMediaKey(activeDetailsMedia) : '';
-  const [details, setDetails] = useState<{ key: string; media: Media } | null>(null);
-  const [cast, setCast] = useState<{ key: string; items: CastMember[] } | null>(null);
-  const [backdrops, setBackdrops] = useState<{ key: string; items: TmdbImage[] } | null>(null);
-  const [watchProviders, setWatchProviders] = useState<{ key: string; items: WatchProvider[] } | null>(null);
-  const [contentRating, setContentRating] = useState<{ key: string; value: string | null } | null>(null);
-  const [externalIds, setExternalIds] = useState<{ key: string; value: ExternalIdsResponse | null } | null>(null);
   const [activeImage, setActiveImage] = useState<{ src: string; alt: string; mediaKey: string } | null>(null);
   const [activeTrailer, setActiveTrailer] = useState<{ video: Video; mediaKey: string } | null>(null);
   const [actionPulse, setActionPulse] = useState<{ key: string; action: 'watchlist' | 'watched' | 'favorite' } | null>(null);
@@ -76,26 +70,18 @@ export const DetailsSheet = () => {
     confirmText: 'Confirm',
   });
 
-  const [initErrorKey, setInitErrorKey] = useState<string | null>(null);
-  const [sectionErrors, setSectionErrors] = useState<Set<string>>(new Set());
-  const [retryCount, setRetryCount] = useState(0);
+  const {
+    errorKey: initErrorKey,
+    isResolved: hasResolvedDetails,
+    retry: handleRetryInit,
+    selected,
+  } = useMediaDetails({
+    activeMedia: activeDetailsMedia,
+    apiKey,
+    isOnline,
+    updateMediaMetadata,
+  });
 
-  const handleRetryInit = () => {
-    setInitErrorKey(null);
-    setRetryCount(c => c + 1);
-  };
-
-  const handleRetrySection = (section: string) => {
-    setSectionErrors(prev => {
-      const next = new Set(prev);
-      next.delete(`${activeMediaKey}:${section}`);
-      return next;
-    });
-    setRetryCount(c => c + 1);
-  };
-
-
-  const selected = activeDetailsMedia && details?.key === activeMediaKey ? details.media : activeDetailsMedia;
   const mediaKey = useMemo(() => {
     if (!selected) return '';
     return getMediaKey(selected);
@@ -104,11 +90,23 @@ export const DetailsSheet = () => {
   const inWatchlist = mediaKey ? watchlistIds.has(mediaKey) : false;
   const inWatched = mediaKey ? watchedIds.has(mediaKey) : false;
   const isFavorited = inWatched && selected ? watchedMap.get(mediaKey)?.isFavorite ?? false : false;
-  const castItems = selected && cast?.key === mediaKey ? cast.items : [];
-  const backdropItems = selected && backdrops?.key === mediaKey ? backdrops.items : [];
-  const watchProviderItems = selected && watchProviders?.key === mediaKey ? watchProviders.items : [];
-  const contentRatingValue = selected && contentRating?.key === mediaKey ? contentRating.value : null;
-  const externalIdsValue = selected && externalIds?.key === mediaKey ? externalIds.value : null;
+  const {
+    backdropItems,
+    backdropsKey,
+    castItems,
+    castKey,
+    contentRatingValue,
+    externalIdsValue,
+    retrySection: handleRetrySection,
+    sectionErrors,
+    watchProviderItems,
+  } = useDetailsSupplementaryData({
+    activeKey: mediaKey,
+    activeMedia: activeDetailsMedia,
+    apiKey,
+    enabled: hasResolvedDetails,
+    isOnline,
+  });
   const imdbUrl = externalIdsValue?.imdb_id ? `https://www.imdb.com/title/${externalIdsValue.imdb_id}` : '';
   const currentActionPulse = selected && actionPulse?.key === mediaKey ? actionPulse.action : null;
   const railButtonClass = 'absolute inset-y-0 z-10 hidden w-10 items-center justify-center rounded-lg border border-brand-cyan/25 bg-brand-bg/85 text-brand-cyan backdrop-blur-md transition-colors hover:bg-brand-cyan/15 hover:text-white md:flex';
@@ -162,49 +160,6 @@ export const DetailsSheet = () => {
   }
 
   useEffect(() => {
-    if (!activeDetailsMedia || !isOnline) return;
-    if (activeDetailsMedia.media_type !== 'game' && !apiKey) return;
-
-    const source = getMediaSource(activeDetailsMedia);
-    const requestMediaKey = getMediaKey(activeDetailsMedia);
-    const hasCurrentDetails = details?.key === requestMediaKey;
-    const needsHltbRefresh = hasCurrentDetails
-      && activeDetailsMedia.media_type === 'game'
-      && source === 'igdb'
-      && !details.media.hltb_checked_at;
-    if (hasCurrentDetails && !needsHltbRefresh) return;
-
-    let cancelled = false;
-
-    const detailsPromise = activeDetailsMedia.media_type === 'game'
-      ? source === 'steam'
-        ? Promise.resolve(activeDetailsMedia)
-        : getIgdbGameDetails(activeDetailsMedia.id)
-      : getMediaDetails(activeDetailsMedia.id, activeDetailsMedia.media_type, apiKey);
-
-    detailsPromise
-      .then((mediaData) => {
-        if (cancelled) return;
-        return mediaData;
-      })
-      .then((mediaData) => {
-        if (cancelled || !mediaData) return;
-        setDetails({ key: requestMediaKey, media: mediaData });
-        updateMediaMetadata(mediaData.id, mediaData.media_type, {
-          ...mediaData,
-          lastChecked: Date.now(),
-        }, getMediaSource(mediaData));
-      })
-      .catch(() => {
-        if (!cancelled) setInitErrorKey(requestMediaKey);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeDetailsMedia, apiKey, details?.key, details?.media, isOnline, updateMediaMetadata, retryCount]);
-
-  useEffect(() => {
     return () => {
       if (closeActionTimerRef.current) clearTimeout(closeActionTimerRef.current);
     };
@@ -251,95 +206,6 @@ export const DetailsSheet = () => {
   useEffect(() => {
     queueMicrotask(handleTrailerScroll);
   }, [mediaKey, selected?.videos?.length]);
-
-  useEffect(() => {
-    if (!isOnline || !activeDetailsMedia || !apiKey || !details || details.key !== activeMediaKey || activeDetailsMedia.media_type === 'game') return;
-
-    let cancelled = false;
-    const tmdbType = activeDetailsMedia.media_type;
-    const requestMediaKey = activeMediaKey;
-
-    const fetchData = async () => {
-      await Promise.all([
-        (async () => {
-          if (watchProviders?.key === requestMediaKey) return;
-          try {
-            const data = await getWatchProviders(activeDetailsMedia.id, tmdbType, apiKey);
-            if (!cancelled) setWatchProviders({ key: requestMediaKey, items: getUSStreamingProviders(data) });
-          } catch {
-            if (!cancelled) setSectionErrors(prev => new Set(prev).add(`${requestMediaKey}:overview`));
-          }
-        })(),
-        (async () => {
-          if (cast?.key === requestMediaKey) return;
-          try {
-            const data = await getMediaCredits(activeDetailsMedia.id, tmdbType, apiKey);
-            if (!cancelled) setCast({ key: requestMediaKey, items: data.cast.slice(0, 20) });
-          } catch {
-            if (!cancelled) setSectionErrors(prev => new Set(prev).add(`${requestMediaKey}:cast`));
-          }
-        })(),
-        (async () => {
-          if (backdrops?.key === requestMediaKey) return;
-          try {
-            const data = await getMediaImages(activeDetailsMedia.id, tmdbType, apiKey);
-            if (!cancelled) {
-              const selectedBackdrops = [...(data.backdrops || [])]
-                .sort((a, b) => {
-                  const voteCountDiff = b.vote_count - a.vote_count;
-                  if (voteCountDiff !== 0) return voteCountDiff;
-                  return b.vote_average - a.vote_average;
-                })
-                .slice(0, 20);
-              setBackdrops({ key: requestMediaKey, items: selectedBackdrops });
-            }
-          } catch {
-            if (!cancelled) setSectionErrors(prev => new Set(prev).add(`${requestMediaKey}:images`));
-          }
-        })(),
-      ]);
-    };
-
-    fetchData();
-
-    return () => { cancelled = true; };
-  }, [activeDetailsMedia, activeMediaKey, apiKey, details, isOnline, watchProviders?.key, cast?.key, backdrops?.key, retryCount]);
-
-  useEffect(() => {
-    if (!isOnline || !activeDetailsMedia || !apiKey || activeDetailsMedia.media_type === 'game') return;
-
-    let cancelled = false;
-    const tmdbType = activeDetailsMedia.media_type;
-
-    getContentRating(activeDetailsMedia.id, tmdbType, apiKey)
-      .then((rating) => {
-        if (!cancelled) setContentRating({ key: activeMediaKey, value: rating });
-      })
-      .catch(console.error);
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeDetailsMedia, activeMediaKey, apiKey, isOnline]);
-
-  useEffect(() => {
-    if (!isOnline || !activeDetailsMedia || !apiKey || activeDetailsMedia.media_type === 'game') return;
-
-    let cancelled = false;
-    const tmdbType = activeDetailsMedia.media_type;
-
-    getExternalIds(activeDetailsMedia.id, tmdbType, apiKey)
-      .then((ids) => {
-        if (!cancelled) setExternalIds({ key: activeMediaKey, value: ids });
-      })
-      .catch(() => {
-        if (!cancelled) setExternalIds({ key: activeMediaKey, value: null });
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeDetailsMedia, activeMediaKey, apiKey, isOnline]);
 
   useEffect(() => {
     if (!activeDetailsMedia) return;
@@ -408,7 +274,7 @@ export const DetailsSheet = () => {
   const trailerSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${title} trailer`)}`;
   const showImageSection = isGame
     ? gameScreenshots.length > 0
-    : sectionErrors.has(`${mediaKey}:images`) || backdrops?.key !== mediaKey || backdropItems.length > 0;
+    : sectionErrors.has(`${mediaKey}:images`) || backdropsKey !== mediaKey || backdropItems.length > 0;
   const externalLinks = [
     trailerItems.length === 0 ? { label: 'Trailer', url: trailerSearchUrl } : null,
     imdbUrl ? { label: 'IMDb', url: imdbUrl } : null,
@@ -710,7 +576,7 @@ export const DetailsSheet = () => {
                             Retry
                           </button>
                         </div>
-                      ) : cast?.key !== mediaKey ? (
+                      ) : castKey !== mediaKey ? (
                         <div className="flex gap-2 overflow-hidden">
                           {[...Array(5)].map((_, index) => (
                             <div key={index} className="aspect-square w-[31%] shrink-0 rounded-xl skeleton-shimmer animate-shimmer sm:w-[23.5%] md:w-[18.4%]" />
@@ -795,7 +661,7 @@ export const DetailsSheet = () => {
                               Retry
                             </button>
                           </div>
-                        ) : backdrops?.key !== mediaKey ? (
+                        ) : backdropsKey !== mediaKey ? (
                           <div className="flex gap-2 overflow-hidden">
                             {[...Array(3)].map((_, index) => (
                               <div key={index} className="aspect-square w-[31%] shrink-0 rounded-xl skeleton-shimmer animate-shimmer sm:w-[23.5%] md:w-[18.4%]" />
