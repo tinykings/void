@@ -74,7 +74,7 @@ export const CreditsModal = ({
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
+            <div className="custom-scrollbar flex-1 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] sm:p-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]">
               {loading ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-brand-cyan"></div>

@@ -5,6 +5,7 @@ import { AppProvider } from "@/context/AppContext";
 import { Toaster } from "sonner";
 import { OfflineGuard } from "@/components/OfflineGuard";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
+import { MotionPreferences } from "@/components/MotionPreferences";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const utility = IBM_Plex_Mono({
@@ -60,15 +61,23 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} ${utility.variable} bg-brand-bg text-foreground min-h-screen flex flex-col transition-colors duration-300`}>
-        <AppProvider>
-          <KeyboardShortcuts />
-          <OfflineGuard>
-            <main className="w-full min-h-screen flex-1 transition-colors duration-300">
-              {children}
-            </main>
-          </OfflineGuard>
-          <Toaster position="bottom-center" theme="dark" closeButton />
-        </AppProvider>
+        <MotionPreferences>
+          <AppProvider>
+            <KeyboardShortcuts />
+            <OfflineGuard>
+              <main className="w-full min-h-screen flex-1 transition-colors duration-300">
+                {children}
+              </main>
+            </OfflineGuard>
+            <Toaster
+              position="bottom-center"
+              theme="dark"
+              closeButton
+              offset={{ bottom: "max(1rem, env(safe-area-inset-bottom, 0px))" }}
+              mobileOffset={{ bottom: "max(1rem, env(safe-area-inset-bottom, 0px))" }}
+            />
+          </AppProvider>
+        </MotionPreferences>
       </body>
     </html>
   );

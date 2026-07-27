@@ -33,6 +33,7 @@
   --radius-sheet: 24px;
   --sheet-width: 72rem;
   --sheet-height: min(92dvh, 60rem);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --type-display-size: clamp(1.5rem, 4vw, 1.875rem);
   --type-title-size: 1.125rem;
   --type-body-size: 0.875rem;
@@ -55,6 +56,21 @@ body {
   background: var(--background);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   -webkit-tap-highlight-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Blueprint Look */

@@ -152,11 +152,11 @@ Sheets overlay the void with `embossed-edge` border treatment: an inner highligh
 ## 5. Components
 
 ### Buttons
-- **Shape:** Controls and sheet actions use 8px corners. Fully rounded pills are reserved for statuses and segmented controls.
+- **Shape:** Controls and sheet actions use 8px corners. Fully rounded pills are reserved for statuses and segmented controls. Every touch target is at least 44px on each interactive axis.
 - **Primary CTA** (e.g., "Save," "Sync"): Solid cyan fill (`#22D3EE`), dark text (`#0F1115`), Inter bold 700 in sentence case. Hover brightens; active scales down slightly (`scale(95%)`).
 - **Ghost / Icon** (e.g., filter buttons, close buttons): Transparent, silver text at rest. On hover, cyan/10 background tint with cyan text. No border unless it's a grouped control.
 - **Action in Sheets** ("History," "Playlist"): Bordered with background tint. Active state gets a stronger tint, cyan glow, and slight lift (`translateY(-0.5px)`).
-- **Pulse on Confirm:** Action buttons in the details sheet animate a scale pulse on press (1 → 1.06 → 0.98 → 1, 200ms ease-out).
+- **Pulse on Confirm:** Action buttons in the details sheet animate a scale pulse on press (1 → 1.06 → 0.98 → 1, 200ms ease-out). Framer Motion suppresses transforms when user requests reduced motion.
 
 ### Cards (MediaCard)
 - **Corner Style:** 12px rounded-xl. No inner padding — the poster fills the entire card.
@@ -173,14 +173,15 @@ Sheets overlay the void with `embossed-edge` border treatment: an inner highligh
 ### Sheets (Bottom Drawer)
 - **The signature component of Void.** One sheet at a time, slides up from the bottom.
 - **Container:** Every sheet uses shared `sheet-surface`: full-width, `max-width: 72rem`, `height: min(92dvh, 60rem)`, and 24px top corners. Single-purpose sheets with little content may add `sheet-surface-compact` for `height: min(70dvh, 32rem)`. Embossed edge border treatment. Background is `brand-bg/95` — almost opaque, letting only a whisper of content through.
-- **Animation:** Slide up from `y: 100%` to `y: 0` over 120ms, ease-out. Overlay fades in over the same duration.
-- **Drag Handle:** A cyan-bordered bar at the bottom of every sheet. Tapping closes the sheet.
+- **Animation:** Slide up from `y: 100%` to `y: 0` over 120ms, ease-out. Overlay fades in over same duration. No child-content reveals or stagger. Global Framer Motion config follows `prefers-reduced-motion`; CSS also suppresses non-Framer animation and smooth scrolling.
+- **Drag Handle:** A cyan-bordered bar at bottom of every sheet. Tapping closes sheet. Fixed action floors, scroll clearance, and drag handles include `env(safe-area-inset-bottom)`.
 
 ### Navigation (Bottom Bar)
 - **Style:** Fixed bottom, pill-shaped (28px radius), glass background (`bg-brand-bg/70 backdrop-blur-xl`), blueprint border. Deepest shadow in the system.
 - **Layout:** Three zones: filter/menu (left), History/Playlist toggle (center), search (right).
 - **Toggle:** A two-segment control with an animated cyan pill indicator (`300ms ease-out`). The pill slides between History and Playlist positions. Active segment gets cyan text; inactive gets silver.
-- **Context badge:** Floating status pill above the bar showing the current view ("Playlist · All," "History · Movies").
+- **Context badge:** Floating status pill above bar showing current view ("Playlist · All," "History · Movies").
+- **Safe area:** Bar bottom padding and bottom-positioned toast offset include `env(safe-area-inset-bottom)` so installed iOS layouts clear home indicator.
 
 ### Chips / Badges
 - **Style:** `rounded-full` with `bg-white/10` background and the IBM Plex Mono micro-label role. Used for content ratings and short media-type labels; numeric year and vote values use the readout role.

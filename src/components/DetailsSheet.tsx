@@ -14,16 +14,6 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useMediaDetails } from '@/hooks/useMediaDetails';
 import { useDetailsSupplementaryData } from '@/hooks/useDetailsSupplementaryData';
 
-const staggerContainer = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.04, delayChildren: 0.05 } },
-};
-
-const staggerItem = {
-  hidden: { opacity: 0, y: 8 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] as const } },
-};
-
 export const DetailsSheet = () => {
   const isOnline = useOnlineStatus();
   const {
@@ -296,18 +286,14 @@ export const DetailsSheet = () => {
           <ChevronLeft size={18} />
         </button>
       )}
-      <motion.div
+      <div
         ref={imageScrollerRef}
         onScroll={handleImageScroll}
-        variants={staggerContainer}
-        initial="hidden"
-        animate="visible"
         className="flex snap-x gap-2 overflow-x-auto scroll-smooth pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {items.map((image) => (
-          <motion.button
+          <button
             key={image.src}
-            variants={staggerItem}
             type="button"
             onClick={() => setActiveImage({ ...image, mediaKey })}
             className="group w-[31%] shrink-0 snap-start overflow-hidden rounded-xl bg-white/5 blueprint-border transition-colors duration-200 hover:border-brand-cyan/35 sm:w-[23.5%] md:w-[18.4%]"
@@ -319,9 +305,9 @@ export const DetailsSheet = () => {
               decoding="async"
               loading="lazy"
             />
-          </motion.button>
+          </button>
         ))}
-      </motion.div>
+      </div>
       {showImageRightButton && (
         <button
           type="button"
@@ -348,18 +334,14 @@ export const DetailsSheet = () => {
           <ChevronLeft size={18} />
         </button>
       )}
-      <motion.div
+      <div
         ref={trailerScrollerRef}
         onScroll={handleTrailerScroll}
-        variants={staggerContainer}
-        initial="hidden"
-        animate="visible"
         className="flex snap-x gap-2 overflow-x-auto scroll-smooth pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {items.map((video) => (
-          <motion.button
+          <button
             key={`${video.id}-${video.key}`}
-            variants={staggerItem}
             type="button"
             onClick={() => setActiveTrailer({ video, mediaKey })}
             className="group w-[70%] shrink-0 snap-start overflow-hidden rounded-xl bg-brand-bg/80 text-left blueprint-border transition-colors duration-200 hover:border-brand-cyan/35 hover:bg-brand-bg sm:w-[46%] md:w-[31%]"
@@ -382,9 +364,9 @@ export const DetailsSheet = () => {
               <p className="truncate text-xs font-black leading-tight text-white">{video.name || 'Trailer'}</p>
               <p className="type-micro text-brand-silver">{video.type || 'Video'}</p>
             </div>
-          </motion.button>
+          </button>
         ))}
-      </motion.div>
+      </div>
       {showTrailerRightButton && (
         <button
           type="button"
@@ -473,7 +455,7 @@ export const DetailsSheet = () => {
               className="sheet-surface will-change-transform"
             >
               <FocusTrap active={isOpen}>
-              <div className="relative z-10 flex-1 overflow-y-auto px-4 pb-28">
+              <div className="relative z-10 flex-1 overflow-y-auto px-4 pb-[calc(7rem+env(safe-area-inset-bottom,0px))]">
                 <div className="flex gap-4 pb-4 pt-4">
                   {posterSrc && (
                     <img
@@ -508,7 +490,7 @@ export const DetailsSheet = () => {
                           href={link.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="rounded-lg bg-white/10 px-2 py-1 text-brand-silver backdrop-blur-sm transition-colors hover:bg-brand-cyan/10 hover:text-brand-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
+                          className="inline-flex min-h-11 items-center rounded-lg bg-white/10 px-2 py-1 text-brand-silver backdrop-blur-sm transition-colors hover:bg-brand-cyan/10 hover:text-brand-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
                         >
                           {link.label}
                         </a>
@@ -540,7 +522,7 @@ export const DetailsSheet = () => {
                       <button
                         type="button"
                         onClick={handleRetryInit}
-                        className="type-action rounded-lg border border-red-500/40 bg-red-950/40 px-3 py-1 text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
+                        className="type-action min-h-11 rounded-lg border border-red-500/40 bg-red-950/40 px-3 py-1 text-red-200 transition-colors hover:border-red-400/60 hover:bg-red-900/60"
                       >
                         Retry
                       </button>
@@ -571,7 +553,7 @@ export const DetailsSheet = () => {
                           <button
                             type="button"
                             onClick={() => handleRetrySection('cast')}
-                            className="type-action rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-1.5 text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
+                            className="type-action min-h-11 rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-1.5 text-red-200 transition-colors hover:border-red-400/60 hover:bg-red-900/60"
                           >
                             Retry
                           </button>
@@ -595,18 +577,14 @@ export const DetailsSheet = () => {
                               <ChevronLeft size={18} />
                             </button>
                           )}
-                          <motion.div
+                          <div
                             ref={castScrollerRef}
                             onScroll={handleCastScroll}
-                            variants={staggerContainer}
-                            initial="hidden"
-                            animate="visible"
                             className="flex snap-x gap-2 overflow-x-auto scroll-smooth pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                           >
                             {castItems.map((member) => (
-                              <motion.button
+                              <button
                                 key={`${member.id}-${member.character}`}
-                                variants={staggerItem}
                                 type="button"
                                 onClick={() => openActor(member)}
                                 className="group w-[31%] shrink-0 snap-start cursor-pointer overflow-hidden rounded-xl bg-brand-bg/80 text-left blueprint-border transition-colors duration-200 hover:border-brand-cyan/30 hover:bg-brand-bg sm:w-[23.5%] md:w-[18.4%]"
@@ -620,9 +598,9 @@ export const DetailsSheet = () => {
                                   <p className="break-words text-xs font-black leading-tight text-white">{member.name}</p>
                                   <p className="truncate text-[10px] text-brand-silver">{member.character}</p>
                                 </div>
-                              </motion.button>
+                              </button>
                             ))}
-                          </motion.div>
+                          </div>
                           {showCastRightButton && (
                             <button
                               type="button"
@@ -656,7 +634,7 @@ export const DetailsSheet = () => {
                             <button
                               type="button"
                               onClick={() => handleRetrySection('images')}
-                              className="type-action rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-1.5 text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
+                              className="type-action min-h-11 rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-1.5 text-red-200 transition-colors hover:border-red-400/60 hover:bg-red-900/60"
                             >
                               Retry
                             </button>
@@ -783,7 +761,7 @@ export const DetailsSheet = () => {
                 )}
               </AnimatePresence>
 
-              <div className="absolute bottom-0 left-0 right-0 z-20 border-t border-white/[0.04] bg-brand-bg/75 backdrop-blur-xl px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+              <div className="absolute bottom-0 left-0 right-0 z-20 border-t border-white/[0.04] bg-brand-bg/75 backdrop-blur-xl px-4 py-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
                 <div className={clsx('grid items-center gap-2', inWatched ? 'grid-cols-[1fr_56px_56px_1fr]' : 'grid-cols-[1fr_56px_1fr]')}>
                   <motion.button
                     type="button"

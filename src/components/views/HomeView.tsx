@@ -413,7 +413,7 @@ export const HomeView = () => {
 
       {/* Fixed Bottom Bar */}
       {!isSearchFocused && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 pb-3 px-3 pointer-events-none">
+        <div className="fixed bottom-0 left-0 right-0 z-30 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pointer-events-none">
           <div
             aria-live="polite"
             className={clsx(
@@ -446,7 +446,7 @@ export const HomeView = () => {
                           type="button"
                           onClick={() => selectTypeFilter(item.id)}
                           className={clsx(
-                            'type-filter w-full px-3 py-3 text-left flex items-center gap-2 transition-colors',
+                            'type-filter flex min-h-11 w-full items-center gap-2 px-3 py-3 text-left transition-colors',
                             isActive
                               ? 'text-brand-cyan bg-brand-cyan/5'
                               : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
@@ -464,7 +464,7 @@ export const HomeView = () => {
                       type="button"
                       onClick={selectFavoritesFilter}
                       className={clsx(
-                        'type-filter w-full px-3 py-3 text-left flex items-center gap-2 transition-colors',
+                        'type-filter flex min-h-11 w-full items-center gap-2 px-3 py-3 text-left transition-colors',
                         showFavoritesOnly
                           ? 'bg-brand-cyan/12 text-brand-cyan'
                           : 'text-brand-silver hover:bg-brand-bg/50 hover:text-white'
@@ -480,7 +480,7 @@ export const HomeView = () => {
                       type="button"
                       onClick={selectStreamView}
                       className={clsx(
-                        'type-filter w-full px-3 py-3 text-left flex items-center gap-2 transition-colors',
+                        'type-filter flex min-h-11 w-full items-center gap-2 px-3 py-3 text-left transition-colors',
                         showStreamView
                           ? 'text-brand-cyan bg-brand-cyan/5'
                           : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
@@ -498,7 +498,7 @@ export const HomeView = () => {
                         setShowTypeMenu(false);
                         setShowSyncModal(true);
                       }}
-                      className="type-action w-full px-3 py-3 text-left flex items-center gap-2 text-brand-silver hover:text-white hover:bg-brand-bg/50 transition-colors"
+                      className="type-action flex min-h-11 w-full items-center gap-2 px-3 py-3 text-left text-brand-silver transition-colors hover:bg-brand-bg/50 hover:text-white"
                     >
                       <Settings size={15} />
                       Settings
@@ -555,7 +555,7 @@ export const HomeView = () => {
                   type="button"
                   onClick={() => selectLibraryMode('library')}
                   className={clsx(
-                    'relative z-10 flex h-10 items-center justify-center rounded-full transition-colors',
+                    'relative z-10 flex h-11 items-center justify-center rounded-full transition-colors',
                     activeLibraryMode === 'library' && !showFavoritesOnly && !showStreamView ? 'text-brand-cyan' : 'text-brand-silver hover:text-white'
                   )}
                   aria-label="History"
@@ -568,7 +568,7 @@ export const HomeView = () => {
                   type="button"
                   onClick={() => selectLibraryMode('watchlist')}
                   className={clsx(
-                    'relative z-10 flex h-10 items-center justify-center rounded-full transition-colors',
+                    'relative z-10 flex h-11 items-center justify-center rounded-full transition-colors',
                     activeLibraryMode === 'watchlist' && !showFavoritesOnly && !showStreamView ? 'text-brand-cyan' : 'text-brand-silver hover:text-white'
                   )}
                   aria-label="Playlist"
@@ -629,7 +629,7 @@ export const HomeView = () => {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-5 pb-24 space-y-4">
+              <div className="flex-1 overflow-y-auto p-5 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] space-y-4">
               <div className="rounded-xl bg-white/[0.03] blueprint-border p-4 space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-cyan/10 text-brand-cyan">
@@ -646,7 +646,7 @@ export const HomeView = () => {
                   onClick={() => void syncFromGist(true)}
                   disabled={!isOnline || isSyncingLibrary}
                   className={clsx(
-                    'type-action w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 transition-colors blueprint-border',
+                    'type-action flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 py-3 transition-colors blueprint-border',
                     !isOnline || isSyncingLibrary
                       ? 'bg-white/5 text-brand-silver/40 cursor-not-allowed'
                       : 'bg-brand-bg text-white hover:bg-brand-cyan/10'
@@ -662,7 +662,7 @@ export const HomeView = () => {
                     setShowSyncModal(false);
                     disconnectGithub();
                   }}
-                  className="type-action flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-red-200 transition-colors hover:bg-red-500/10"
+                  className="type-action flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-red-200 transition-colors hover:bg-red-500/10"
                 >
                   <LogOut size={16} />
                   Disconnect GitHub

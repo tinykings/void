@@ -66,7 +66,7 @@ export const SearchSheet = () => {
             setQuery(e.target.value);
           }}
           placeholder={isOnline ? 'Search movies, shows, games...' : 'Search unavailable offline'}
-          className="w-full rounded-lg border border-white/10 bg-brand-bg/90 py-2.5 pl-10 pr-11 text-sm font-medium text-white outline-none ring-1 ring-transparent placeholder:text-brand-silver/50 focus:border-brand-cyan/25 focus:ring-brand-cyan/30"
+          className="h-11 w-full rounded-lg border border-white/10 bg-brand-bg/90 py-2.5 pl-10 pr-12 text-sm font-medium text-white outline-none ring-1 ring-transparent placeholder:text-brand-silver/50 focus:border-brand-cyan/25 focus:ring-brand-cyan/30"
         />
         <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
           <button
@@ -75,7 +75,7 @@ export const SearchSheet = () => {
               setQuery('');
               clearSearch();
             }}
-            className="p-2 text-brand-silver transition-colors hover:text-white"
+            className="flex h-11 w-11 items-center justify-center text-brand-silver transition-colors hover:text-white"
             title="Clear search"
           >
             <X size={16} />
@@ -85,7 +85,7 @@ export const SearchSheet = () => {
       <button
         type="submit"
         disabled={!isOnline || searchTerm.length < 2 || isSearching}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-brand-cyan/10 text-brand-cyan transition-colors hover:border-brand-cyan/40 hover:bg-brand-cyan/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-brand-cyan/10 text-brand-cyan transition-colors hover:border-brand-cyan/40 hover:bg-brand-cyan/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
         title="Search"
         aria-label="Search"
       >
@@ -140,7 +140,7 @@ export const SearchSheet = () => {
             </p>
           )}
 
-          <div className="px-4 pb-24 overflow-y-auto flex-1">
+          <div className="flex-1 overflow-y-auto px-4 pb-[calc(6rem+env(safe-area-inset-bottom,0px))]">
 
             {displayError && (
               <p className="text-sm text-red-400 mb-4">{displayError}</p>

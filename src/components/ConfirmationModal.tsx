@@ -104,7 +104,7 @@ export const ConfirmationModal = ({
 
             <button
               onClick={onClose}
-              className="absolute top-3 right-3 p-3 text-brand-silver hover:text-white transition-colors"
+              className="absolute right-3 top-3 flex min-h-11 min-w-11 items-center justify-center text-brand-silver transition-colors hover:text-white"
             >
               <X size={18} />
             </button>

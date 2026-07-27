@@ -8,7 +8,7 @@ type SheetDragHandleProps = {
 
 export const SheetDragHandle = ({ onClose }: SheetDragHandleProps) => {
   return (
-    <div className="absolute bottom-0 left-0 right-0 z-20 border-t border-white/[0.04] bg-brand-bg/40 backdrop-blur-xl px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+    <div className="absolute bottom-0 left-0 right-0 z-20 border-t border-white/[0.04] bg-brand-bg/40 backdrop-blur-xl px-4 py-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
       <button
         type="button"
         onClick={onClose}

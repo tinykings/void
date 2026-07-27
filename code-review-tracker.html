@@ -563,14 +563,14 @@
         <div class="item-actions"></div>
       </article>
 
-      <article class="item" data-id="motion-safe-area" data-type="design" data-severity="recommendation" data-status="open">
+      <article class="item" data-id="motion-safe-area" data-type="design" data-severity="recommendation" data-status="fixed" data-resolution="Completed: details rails render without stagger, Framer Motion and CSS honor reduced-motion preference, fixed bottom surfaces clear device safe areas, and primary mobile controls meet 44px touch targets. TypeScript, 32 unit tests, lint, and production build verified; browser E2E is blocked by missing host libnspr4.so.">
         <div class="item-number">D-07</div>
         <div class="item-main">
           <div class="item-head"><span class="tag recommendation">Recommendation</span><span class="tag recommendation">Mobile polish</span></div>
           <h2>Make motion and fixed controls respect device preferences</h2>
-          <p>Details content staggers into view and several controls lift or scale, while fixed bottom chrome uses hard-coded padding instead of safe-area insets. CSS reduced-motion rules may not cover Framer Motion variants.</p>
-          <div class="source">src/components/DetailsSheet.tsx:17–24, 302–365 · src/components/views/HomeView.tsx:416–419 · src/app/globals.css</div>
-          <details><summary>Design recommendation</summary><ul><li>Remove staggered content reveals; keep one short sheet transition and action feedback.</li><li>Use Framer Motion reduced-motion support in addition to the CSS media query.</li><li>Pad the bottom bar, sheets, toasts, and drag handles with <code>env(safe-area-inset-bottom)</code>.</li><li>Verify 44px minimum touch targets and no home-indicator overlap on installed iOS PWA layouts.</li></ul></details>
+          <p>Motion now stays focused on short sheet transitions and action feedback, while fixed mobile chrome accounts for device safe areas.</p>
+          <div class="source">src/components/MotionPreferences.tsx · src/components/DetailsSheet.tsx · src/components/views/HomeView.tsx · src/components/SheetDragHandle.tsx · src/app/globals.css · src/app/layout.tsx · DESIGN.md: Components</div>
+          <details><summary>Resolution</summary><ul><li>Removed staggered Framer Motion variants from details cast, image, and trailer rails.</li><li>Added global Framer Motion <code>reducedMotion="user"</code> handling plus CSS suppression for animation, transitions, smooth scrolling, and shimmer when reduced motion is requested.</li><li>Applied <code>env(safe-area-inset-bottom)</code> clearance to bottom navigation, sheet scroll regions and action floors, drag handles, settings, credits, and Sonner toast offsets.</li><li>Raised primary navigation, filter, search, sheet action, retry, and modal controls to a 44px minimum touch target.</li><li>TypeScript, 32 unit tests, lint, and production build passed. Playwright could not launch because host library <code>libnspr4.so</code> is unavailable.</li></ul></details>
         </div>
         <div class="item-actions"></div>
       </article>
