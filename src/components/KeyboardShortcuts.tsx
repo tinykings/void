@@ -2,14 +2,15 @@
 
 import { useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
+import { getDetailsKeyboardAction, triggerDetailsAction } from '@/lib/keyboard';
 
 export function KeyboardShortcuts() {
-  const { closeAllSheets, setIsSearchFocused, activeDetailsMedia, activeActorMedia, isSearchFocused, toggleWatchlist, toggleWatched } = useAppContext();
+  const { closeAllSheets, setIsSearchFocused, activeDetailsMedia, activeActorMedia, isSearchFocused } = useAppContext();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+      const isInteractive = !!target.closest('input, textarea, select, button, [contenteditable="true"]');
 
       if (e.key === 'Escape' && (activeDetailsMedia || activeActorMedia || isSearchFocused)) {
         e.preventDefault();
@@ -24,23 +25,17 @@ export function KeyboardShortcuts() {
         return;
       }
 
-      if (!isInput && activeDetailsMedia) {
-        if (e.key === 'w' || e.key === 'W') {
+      if (!isInteractive && activeDetailsMedia && !document.querySelector('[data-block-details-shortcuts="true"]')) {
+        const action = getDetailsKeyboardAction(e.key);
+        if (action && triggerDetailsAction(action)) {
           e.preventDefault();
-          toggleWatchlist(activeDetailsMedia);
-          return;
-        }
-        if (e.key === 'e' || e.key === 'E') {
-          e.preventDefault();
-          toggleWatched(activeDetailsMedia);
-          return;
         }
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [closeAllSheets, setIsSearchFocused, activeDetailsMedia, activeActorMedia, isSearchFocused, toggleWatchlist, toggleWatched]);
+  }, [closeAllSheets, setIsSearchFocused, activeDetailsMedia, activeActorMedia, isSearchFocused]);
 
   return null;
 }

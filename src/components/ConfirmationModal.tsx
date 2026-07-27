@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, X } from 'lucide-react';
+import { FocusTrap } from '@/components/FocusTrap';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -25,10 +26,33 @@ export const ConfirmationModal = ({
   cancelText = 'Cancel',
   type = 'info'
 }: ConfirmationModalProps) => {
+  React.useEffect(() => {
+    if (!isOpen) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      onClose();
+    };
+
+    document.addEventListener('keydown', handleEscape, true);
+    return () => document.removeEventListener('keydown', handleEscape, true);
+  }, [isOpen, onClose]);
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+        <FocusTrap active>
+        <div
+          className="fixed inset-0 z-[300] flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirmation-modal-title"
+          aria-describedby="confirmation-modal-message"
+          data-block-details-shortcuts="true"
+        >
           {/* Overlay */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -52,8 +76,8 @@ export const ConfirmationModal = ({
                 <AlertCircle size={32} />
               </div>
               
-              <h2 className="text-xl font-black text-white uppercase italic tracking-tighter mb-2">{title}</h2>
-              <p className="text-brand-silver text-sm leading-relaxed mb-8">{message}</p>
+              <h2 id="confirmation-modal-title" className="text-xl font-black text-white uppercase italic tracking-tighter mb-2">{title}</h2>
+              <p id="confirmation-modal-message" className="text-brand-silver text-sm leading-relaxed mb-8">{message}</p>
 
               <div className="flex flex-col w-full gap-3">
                 <button
@@ -86,6 +110,7 @@ export const ConfirmationModal = ({
             </button>
           </motion.div>
         </div>
+        </FocusTrap>
       )}
     </AnimatePresence>
   );

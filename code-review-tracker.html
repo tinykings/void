@@ -271,10 +271,10 @@
 
     <section class="dashboard" aria-label="Repair summary">
       <div class="metric"><strong id="total-count">15</strong><span>Total items</span></div>
-      <div class="metric"><strong id="open-count">14</strong><span>Still open</span></div>
+      <div class="metric"><strong id="open-count">7</strong><span>Still open</span></div>
       <div class="metric"><strong id="progress-count">0</strong><span>In progress</span></div>
-      <div class="metric"><strong id="fixed-count">1</strong><span>Fixed / complete</span></div>
-      <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progress-bar" style="width: 6.67%"></div></div>
+      <div class="metric"><strong id="fixed-count">8</strong><span>Fixed / complete</span></div>
+      <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progress-bar" style="width: 53.33%"></div></div>
     </section>
 
     <section class="controls" aria-label="Tracker controls">
@@ -377,26 +377,26 @@
         <div class="item-actions"></div>
       </article>
 
-      <article class="item" data-id="escape-modal" data-type="bug" data-severity="low" data-status="open">
+      <article class="item" data-id="escape-modal" data-type="bug" data-severity="low" data-status="fixed" data-resolution="Fixed and verified: Escape is captured by the topmost modal, and nested focus traps keep keyboard focus in the active overlay.">
         <div class="item-number">B-07</div>
         <div class="item-main">
           <div class="item-head"><span class="tag low">Low</span><span class="tag recommendation">Interaction</span></div>
           <h2>Escape can close the lightbox and details sheet</h2>
           <p>The lightbox and global shortcut handlers both receive Escape, so the topmost modal and its parent sheet may close together.</p>
           <div class="source">src/components/DetailsSheet.tsx:210–222 · src/components/KeyboardShortcuts.tsx:14–17</div>
-          <details><summary>Fix and acceptance criteria</summary><ul><li>Centralize topmost-modal Escape handling.</li><li>First Escape closes only the image or trailer; second closes details.</li><li>Keep keyboard focus inside the currently visible modal.</li></ul></details>
+          <details><summary>Resolution</summary><ul><li>Image, trailer, and confirmation overlays capture Escape before the global sheet shortcut.</li><li>First Escape closes only the topmost overlay; a subsequent Escape closes details.</li><li>Nested focus traps keep keyboard focus inside the active overlay.</li><li>Modal roles and accessible labels identify each overlay.</li></ul></details>
         </div>
         <div class="item-actions"></div>
       </article>
 
-      <article class="item" data-id="shortcut-confirmation" data-type="bug" data-severity="low" data-status="open">
+      <article class="item" data-id="shortcut-confirmation" data-type="bug" data-severity="low" data-status="fixed" data-resolution="Fixed and verified: W/E now activate the same detail controls as pointer input, preserving confirmation and disabled states.">
         <div class="item-number">B-08</div>
         <div class="item-main">
           <div class="item-head"><span class="tag low">Low</span><span class="tag recommendation">Interaction</span></div>
           <h2>Keyboard shortcuts bypass removal confirmation</h2>
           <p>W and E directly toggle list membership, while the visible controls ask for confirmation before removing an existing item.</p>
           <div class="source">src/components/KeyboardShortcuts.tsx:27–36</div>
-          <details><summary>Fix and acceptance criteria</summary><ul><li>Route keyboard removal through the same confirmation flow.</li><li>Alternatively, limit shortcuts to additions and document that behavior.</li><li>Verify shortcuts do nothing while typing in any form control.</li></ul></details>
+          <details><summary>Resolution</summary><ul><li>W and E route through the rendered Playlist and History controls.</li><li>Removal therefore uses the existing confirmation flow instead of mutating state directly.</li><li>Disabled controls and active modal overlays block the shortcuts.</li><li>Inputs, textareas, and editable content continue to ignore these shortcuts.</li><li>Shortcut routing is covered by automated tests.</li></ul></details>
         </div>
         <div class="item-actions"></div>
       </article>

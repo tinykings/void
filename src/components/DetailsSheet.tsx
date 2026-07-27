@@ -214,14 +214,16 @@ export const DetailsSheet = () => {
     if (!activeImage && !activeTrailer) return;
 
     const handler = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setActiveImage(null);
-        setActiveTrailer(null);
-      }
+      if (event.key !== 'Escape') return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setActiveImage(null);
+      setActiveTrailer(null);
     };
 
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+    document.addEventListener('keydown', handler, true);
+    return () => document.removeEventListener('keydown', handler, true);
   }, [activeImage, activeTrailer]);
 
   useEffect(() => {
@@ -822,7 +824,15 @@ export const DetailsSheet = () => {
 
               <AnimatePresence>
                 {activeImage?.mediaKey === mediaKey && (
-                  <div className="fixed inset-0 z-[380] flex items-center justify-center p-4" onClick={() => setActiveImage(null)}>
+                  <FocusTrap active>
+                  <div
+                    className="fixed inset-0 z-[380] flex items-center justify-center p-4"
+                    onClick={() => setActiveImage(null)}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Image preview"
+                    data-block-details-shortcuts="true"
+                  >
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -854,12 +864,21 @@ export const DetailsSheet = () => {
                       />
                     </motion.div>
                   </div>
+                  </FocusTrap>
                 )}
               </AnimatePresence>
 
               <AnimatePresence>
                 {activeTrailer?.mediaKey === mediaKey && (
-                  <div className="fixed inset-0 z-[380] flex items-center justify-center p-4" onClick={() => setActiveTrailer(null)}>
+                  <FocusTrap active>
+                  <div
+                    className="fixed inset-0 z-[380] flex items-center justify-center p-4"
+                    onClick={() => setActiveTrailer(null)}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Trailer player"
+                    data-block-details-shortcuts="true"
+                  >
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -894,6 +913,7 @@ export const DetailsSheet = () => {
                       </div>
                     </motion.div>
                   </div>
+                  </FocusTrap>
                 )}
               </AnimatePresence>
 
@@ -901,6 +921,7 @@ export const DetailsSheet = () => {
                 <div className={clsx('grid items-center gap-2', inWatched ? 'grid-cols-[1fr_56px_56px_1fr]' : 'grid-cols-[1fr_56px_1fr]')}>
                   <motion.button
                     type="button"
+                    data-details-action="watched"
                     onClick={handleWatchedToggle}
                     title={inWatched ? 'In History' : 'Add to History'}
                     aria-label={inWatched ? 'In History' : 'Add to History'}
@@ -950,6 +971,7 @@ export const DetailsSheet = () => {
 
                   <motion.button
                     type="button"
+                    data-details-action="watchlist"
                     onClick={handleWatchlistToggle}
                     title={inWatchlist ? 'In Playlist' : 'Add to Playlist'}
                     aria-label={inWatchlist ? 'In Playlist' : 'Add to Playlist'}
