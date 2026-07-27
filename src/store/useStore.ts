@@ -227,12 +227,31 @@ export const useStore = create<StoreState>()(
           const mediaKey = getMediaKey(media);
           const inWatched = watched.some((m) => getMediaKey(m) === mediaKey);
 
-          if (inWatched && !rating) {
+          if (inWatched && rating === undefined) {
             set({ watched: watched.filter((m) => getMediaKey(m) !== mediaKey) });
+          } else if (inWatched) {
+            let updated = false;
+            const nextWatched = watched.flatMap((item) => {
+              if (getMediaKey(item) !== mediaKey) return [item];
+              if (updated) return [];
+
+              updated = true;
+              return [{ ...item, rating }];
+            });
+
+            set({
+              watched: nextWatched,
+              watchlist: watchlist.filter((m) => getMediaKey(m) !== mediaKey),
+            });
           } else {
             set({
-              watched: [...watched, { ...media, date_added: new Date().toISOString(), lastChecked: Date.now() }],
-              watchlist: watchlist.filter((m) => getMediaKey(m) !== mediaKey)
+              watched: [...watched, {
+                ...media,
+                ...(rating === undefined ? {} : { rating }),
+                date_added: new Date().toISOString(),
+                lastChecked: Date.now(),
+              }],
+              watchlist: watchlist.filter((m) => getMediaKey(m) !== mediaKey),
             });
           }
 

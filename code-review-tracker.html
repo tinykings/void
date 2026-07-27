@@ -317,14 +317,14 @@
         <div class="item-actions"></div>
       </article>
 
-      <article class="item" data-id="rating-duplicates" data-type="bug" data-severity="high" data-status="open">
+      <article class="item" data-id="rating-duplicates" data-type="bug" data-severity="high" data-status="fixed" data-resolution="Updated existing ratings in place, removes legacy duplicates, and verified with lint and production build.">
         <div class="item-number">B-02</div>
         <div class="item-main">
           <div class="item-head"><span class="tag high">High</span><span class="tag recommendation">State</span></div>
           <h2>Rating updates duplicate history entries</h2>
           <p><code>toggleWatched(media, rating)</code> never stores the rating. A truthy rating on an existing item appends another copy instead of updating it.</p>
           <div class="source">src/store/useStore.ts:217–229</div>
-          <details><summary>Fix and acceptance criteria</summary><ul><li>Update the existing item by media key and persist <code>rating</code>.</li><li>Never permit duplicate media keys in either list.</li><li>Add tests for add, remove, rate, re-rate, and favorite preservation.</li><li>Either implement the documented star/TMDB sync feature or correct the README.</li></ul></details>
+          <details><summary>Resolution</summary><ul><li>Existing history entries are updated by media key and retain their metadata and favorite state.</li><li>Any duplicate entries for the same media key are removed during a rating update.</li><li>New history entries store a supplied rating without changing normal toggle behavior.</li><li>The unsupported star/TMDB synchronization claim was removed from the README.</li><li>Lint and production build completed successfully.</li></ul></details>
         </div>
         <div class="item-actions"></div>
       </article>

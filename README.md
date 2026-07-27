@@ -30,7 +30,6 @@ Data lives entirely in your browser (IndexedDB).
 ### Core Tracking
 - **Playlist & History** — Add movies, shows, and games to your playlist or move them to history. Items are mutually exclusive between the two lists.
 - **TV Show Auto-Migration** — Shows in your history automatically move back to the playlist when a new episode airs within 7 days. Ended or canceled shows are excluded.
-- **Ratings** — Rate history content 1–5 stars, synced bidirectionally with TMDB where supported.
 
 ### Discovery
 - **Search** — Real-time search across TMDB movies and TV shows, plus IGDB games.
