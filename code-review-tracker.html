@@ -403,14 +403,14 @@
 
       <div class="section-label" data-section="security">Security / Operations</div>
 
-      <article class="item" data-id="dependencies" data-type="security" data-severity="high" data-status="open">
+      <article class="item" data-id="dependencies" data-type="security" data-severity="high" data-status="fixed" data-resolution="Completed with documented risk acceptance: dependencies were upgraded, the critical advisory was removed, and the remaining findings affect build/server tooling that is not deployed to GitHub Pages.">
         <div class="item-number">S-01</div>
         <div class="item-main">
           <div class="item-head"><span class="tag high">High</span><span class="tag recommendation">Dependency</span></div>
           <h2>Upgrade vulnerable dependencies</h2>
-          <p>The production audit reported one critical and five high advisories, including the installed Next.js release and transitive packages.</p>
+          <p>Next.js and Capacitor were upgraded, the Capacitor CLI was moved to development dependencies, and safe audit updates were applied. The app still builds successfully.</p>
           <div class="source">package.json · package-lock.json</div>
-          <details><summary>Completion criteria</summary><ul><li>Upgrade Next.js to a patched compatible release and refresh the lockfile.</li><li>Update or override affected transitive packages.</li><li>Rerun audit, lint, and production build.</li><li>Document any accepted advisories and why they are not exploitable.</li></ul></details>
+          <details><summary>Resolution and accepted risk</summary><ul><li>Next.js and eslint-config-next upgraded to 16.2.12; Capacitor packages upgraded to 8.4.2.</li><li>The critical <code>tar</code> advisory and the <code>xmldom</code> finding were removed by updating tooling and classifying the CLI as development-only.</li><li>The remaining production-classified findings are Next.js, its build-time PostCSS copy, and Sharp. The project deploys only the static <code>out/</code> directory to GitHub Pages—not the Next.js server or <code>node_modules</code>.</li><li>Remaining full-audit findings are in lint/build tooling and process only trusted repository input. Do not use <code>npm audit fix --force</code>; it proposes incompatible Next.js 9 and ESLint 10 downgrades/upgrades.</li><li>Reopen this issue if the app moves to a Next.js server deployment, build inputs become untrusted, or patched upstream releases become available.</li></ul></details>
         </div>
         <div class="item-actions"></div>
       </article>
