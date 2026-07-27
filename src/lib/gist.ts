@@ -1,4 +1,4 @@
-import { Media } from './types';
+import type { Media } from './types';
 import { getMediaSource } from './media';
 
 export type GistLibraryItem = {
@@ -56,27 +56,71 @@ export const buildGistPayload = (watchlist: Media[], watched: Media[]): GistLibr
   favorites: watched.filter((item) => item.isFavorite).map(toGistItem),
 });
 
-export const isEmptyGistPayload = (payload: GistLibraryData | null | undefined) => {
-  if (!payload) return true;
-  return payload.watchlist.length === 0 && payload.watched.length === 0 && payload.favorites.length === 0;
+export const isEmptyGistPayload = (payload: GistLibraryData) =>
+  payload.watchlist.length === 0 && payload.watched.length === 0 && payload.favorites.length === 0;
+
+type GistFile = {
+  content?: unknown;
 };
 
-export const getGistContent = async (gistId: string): Promise<GistLibraryData | null> => {
+type GistApiResponse = {
+  files?: Record<string, GistFile | null>;
+};
+
+export type GistContentResult =
+  | { status: 'loaded'; data: GistLibraryData }
+  | { status: 'empty' }
+  | { status: 'missing' }
+  | { status: 'invalid'; reason: string };
+
+const isGistLibraryData = (value: unknown): value is GistLibraryData => {
+  if (!value || typeof value !== 'object') return false;
+
+  const payload = value as Partial<GistLibraryData>;
+  return (payload.version === 1 || payload.version === 2)
+    && Array.isArray(payload.watchlist)
+    && Array.isArray(payload.watched)
+    && Array.isArray(payload.favorites);
+};
+
+export const getGistContent = async (gistId: string, token?: string): Promise<GistContentResult> => {
   const response = await fetch(`https://api.github.com/gists/${gistId}`, {
-    headers: { Accept: 'application/vnd.github+json' },
+    headers: {
+      Accept: 'application/vnd.github+json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
 
-  if (!response.ok) return null;
-
-  const data = await response.json();
-  const file = data.files?.[GIST_FILENAME] || Object.values(data.files || {})[0];
-  if (!file?.content) return null;
-
-  try {
-    return JSON.parse(file.content) as GistLibraryData;
-  } catch {
-    return null;
+  if (!response.ok) {
+    throw new Error(`Failed to read gist: ${response.status}`);
   }
+
+  let data: GistApiResponse;
+  try {
+    data = await response.json() as GistApiResponse;
+  } catch {
+    throw new Error('Failed to read gist: GitHub returned invalid JSON');
+  }
+
+  const file = data.files?.[GIST_FILENAME];
+  if (!file) return { status: 'missing' };
+  if (typeof file.content !== 'string') {
+    return { status: 'invalid', reason: `${GIST_FILENAME} has no readable content` };
+  }
+  if (!file.content.trim()) return { status: 'empty' };
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(file.content);
+  } catch {
+    return { status: 'invalid', reason: `${GIST_FILENAME} contains invalid JSON` };
+  }
+
+  if (!isGistLibraryData(parsed)) {
+    return { status: 'invalid', reason: `${GIST_FILENAME} does not match a supported library schema` };
+  }
+
+  return { status: 'loaded', data: parsed };
 };
 
 export const updateGist = async (gistId: string, token: string, content: GistLibraryData): Promise<void> => {

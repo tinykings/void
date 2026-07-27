@@ -139,14 +139,22 @@ export const useStore = create<StoreState>()(
           await enqueueGistOperation(async () => {
             if (showIndicator) set({ isSyncingLibrary: true });
             try {
-              const gist = await getGistContent(gistId);
+              const gistResult = await getGistContent(gistId, gistToken);
 
-              if (isEmptyGistPayload(gist)) {
+              if (gistResult.status === 'invalid') {
+                throw new Error(`Gist sync stopped: ${gistResult.reason}`);
+              }
+
+              if (gistResult.status === 'missing' || gistResult.status === 'empty') {
                 await updateGist(gistId, gistToken, buildGistPayload(watchlist, watched));
                 return;
               }
 
-              if (!gist) return;
+              const gist = gistResult.data;
+              if (isEmptyGistPayload(gist)) {
+                await updateGist(gistId, gistToken, buildGistPayload(watchlist, watched));
+                return;
+              }
 
               const favoriteKeys = new Set(gist.favorites.map((item) => getMediaKey(fromGistItem(item))));
               const localWatchlist = gist.watchlist.map((item) => fromGistItem(item));
