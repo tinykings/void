@@ -62,7 +62,7 @@ interface StoreState extends UserState {
   toggleFavorite: (media: Media) => Promise<void>;
   setShowFavoritesOnly: (show: boolean) => void;
   
-  setLists: (watchlist: Media[], watched: Media[]) => void;
+  setLists: (watchlist: Media[], watched: Media[], playedEpisodes?: Record<string, boolean>) => void;
   syncFromGist: (showIndicator?: boolean) => Promise<void>;
   syncToGist: () => Promise<void>;
 
@@ -120,21 +120,31 @@ export const useStore = create<StoreState>()(
           };
         }),
 
-        markEpisodePlayed: (tmdbId, seasonNum, episodeNum) => set((state) => ({
-          playedEpisodes: { ...state.playedEpisodes, [`${tmdbId}-${seasonNum}-${episodeNum}`]: true }
+        markEpisodePlayed: (tmdbId, seasonNum, episodeNum) => {
+          set((state) => ({
+            playedEpisodes: { ...state.playedEpisodes, [`${tmdbId}-${seasonNum}-${episodeNum}`]: true },
+          }));
+          void get().syncToGist();
+        },
+
+        unmarkEpisodePlayed: (tmdbId, seasonNum, episodeNum) => {
+          set((state) => {
+            const key = `${tmdbId}-${seasonNum}-${episodeNum}`;
+            const newPlayedEpisodes = { ...state.playedEpisodes };
+            delete newPlayedEpisodes[key];
+            return { playedEpisodes: newPlayedEpisodes };
+          });
+          void get().syncToGist();
+        },
+
+        setLists: (watchlist, watched, playedEpisodes) => set((state) => ({
+          watchlist,
+          watched,
+          playedEpisodes: playedEpisodes ?? state.playedEpisodes,
         })),
 
-        unmarkEpisodePlayed: (tmdbId, seasonNum, episodeNum) => set((state) => {
-          const key = `${tmdbId}-${seasonNum}-${episodeNum}`;
-          const newPlayedEpisodes = { ...state.playedEpisodes };
-          delete newPlayedEpisodes[key];
-          return { playedEpisodes: newPlayedEpisodes };
-        }),
-
-        setLists: (watchlist, watched) => set({ watchlist, watched }),
-
         syncFromGist: async (showIndicator = false) => {
-          const { apiKey, gistId, gistToken, watchlist, watched } = get();
+          const { apiKey, gistId, gistToken, watchlist, watched, playedEpisodes } = get();
           if (!gistId || !gistToken) return;
 
           await enqueueGistOperation(async () => {
@@ -147,13 +157,13 @@ export const useStore = create<StoreState>()(
               }
 
               if (gistResult.status === 'missing' || gistResult.status === 'empty') {
-                await updateGist(gistId, gistToken, buildGistPayload(watchlist, watched));
+                await updateGist(gistId, gistToken, buildGistPayload(watchlist, watched, playedEpisodes));
                 return;
               }
 
               const gist = gistResult.data;
               if (isEmptyGistPayload(gist)) {
-                await updateGist(gistId, gistToken, buildGistPayload(watchlist, watched));
+                await updateGist(gistId, gistToken, buildGistPayload(watchlist, watched, playedEpisodes));
                 return;
               }
 
@@ -177,6 +187,7 @@ export const useStore = create<StoreState>()(
                       ...details,
                       date_added: item.date_added,
                       isFavorite: item.isFavorite,
+                      rating: item.rating,
                     } as Media;
                   } catch {
                     return item;
@@ -190,7 +201,20 @@ export const useStore = create<StoreState>()(
                 hydrateList(localWatched),
               ]);
 
-              set({ watchlist: hydratedWatchlist, watched: hydratedWatched });
+              const restoredPlayedEpisodes = gist.version === 3 ? gist.playedEpisodes ?? {} : playedEpisodes;
+              set({
+                watchlist: hydratedWatchlist,
+                watched: hydratedWatched,
+                playedEpisodes: restoredPlayedEpisodes,
+              });
+
+              if (gist.version < 3) {
+                await updateGist(
+                  gistId,
+                  gistToken,
+                  buildGistPayload(hydratedWatchlist, hydratedWatched, restoredPlayedEpisodes),
+                );
+              }
             } finally {
               if (showIndicator) set({ isSyncingLibrary: false });
             }
@@ -198,11 +222,11 @@ export const useStore = create<StoreState>()(
         },
 
         syncToGist: async () => {
-          const { gistId, gistToken, watchlist, watched } = get();
+          const { gistId, gistToken, watchlist, watched, playedEpisodes } = get();
           if (!gistId || !gistToken) return;
 
           await enqueueGistOperation(async () => {
-            await updateGist(gistId, gistToken, buildGistPayload(watchlist, watched));
+            await updateGist(gistId, gistToken, buildGistPayload(watchlist, watched, playedEpisodes));
           });
         },
 
@@ -424,7 +448,11 @@ export const useStore = create<StoreState>()(
                   if (parsed.state.apiKey) rehydratedState.setApiKey(parsed.state.apiKey);
                   if (parsed.state.gistId) rehydratedState.setGistId(parsed.state.gistId);
                   if (parsed.state.gistToken) rehydratedState.setGistToken(parsed.state.gistToken);
-                  rehydratedState.setLists(parsed.state.watchlist || [], parsed.state.watched || []);
+                  rehydratedState.setLists(
+                    parsed.state.watchlist || [],
+                    parsed.state.watched || [],
+                    parsed.state.playedEpisodes || {},
+                  );
                   console.log('Successfully migrated data from localStorage to IndexedDB');
                 }
               } catch (e) {

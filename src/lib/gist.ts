@@ -10,13 +10,15 @@ export type GistLibraryItem = {
   release_date?: string;
   image?: string | null;
   poster_source?: Media['poster_source'];
+  rating?: number;
 };
 
 export interface GistLibraryData {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   watchlist: GistLibraryItem[];
   watched: GistLibraryItem[];
   favorites: GistLibraryItem[];
+  playedEpisodes?: Record<string, boolean>;
 }
 
 const GIST_FILENAME = 'void-library.json';
@@ -30,6 +32,7 @@ export const toGistItem = (item: Media): GistLibraryItem => ({
   release_date: item.release_date,
   image: item.poster_path || item.backdrop_path,
   poster_source: item.poster_source,
+  rating: item.rating,
 });
 
 export const fromGistItem = (item: GistLibraryItem, isFavorite = false): Media => ({
@@ -46,18 +49,27 @@ export const fromGistItem = (item: GistLibraryItem, isFavorite = false): Media =
   date_added: item.date_added,
   release_date: item.release_date,
   poster_source: item.poster_source,
+  rating: item.rating,
   isFavorite,
 });
 
-export const buildGistPayload = (watchlist: Media[], watched: Media[]): GistLibraryData => ({
-  version: 2,
+export const buildGistPayload = (
+  watchlist: Media[],
+  watched: Media[],
+  playedEpisodes: Record<string, boolean> = {},
+): GistLibraryData => ({
+  version: 3,
   watchlist: watchlist.map(toGistItem),
   watched: watched.map(toGistItem),
   favorites: watched.filter((item) => item.isFavorite).map(toGistItem),
+  playedEpisodes,
 });
 
 export const isEmptyGistPayload = (payload: GistLibraryData) =>
-  payload.watchlist.length === 0 && payload.watched.length === 0 && payload.favorites.length === 0;
+  payload.watchlist.length === 0
+  && payload.watched.length === 0
+  && payload.favorites.length === 0
+  && Object.keys(payload.playedEpisodes ?? {}).length === 0;
 
 type GistFile = {
   content?: unknown;
@@ -73,14 +85,22 @@ export type GistContentResult =
   | { status: 'missing' }
   | { status: 'invalid'; reason: string };
 
+export const isPlayedEpisodesData = (value: unknown): value is Record<string, boolean> => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return Object.entries(value).every(([key, played]) => /^\d+-\d+-\d+$/.test(key) && played === true);
+};
+
 const isGistLibraryData = (value: unknown): value is GistLibraryData => {
   if (!value || typeof value !== 'object') return false;
 
   const payload = value as Partial<GistLibraryData>;
-  return (payload.version === 1 || payload.version === 2)
-    && Array.isArray(payload.watchlist)
+  const hasSupportedVersion = payload.version === 1 || payload.version === 2 || payload.version === 3;
+  const hasLists = Array.isArray(payload.watchlist)
     && Array.isArray(payload.watched)
     && Array.isArray(payload.favorites);
+  const hasValidEpisodeData = payload.version !== 3 || isPlayedEpisodesData(payload.playedEpisodes);
+
+  return hasSupportedVersion && hasLists && hasValidEpisodeData;
 };
 
 export const getGistContent = async (gistId: string, token?: string): Promise<GistContentResult> => {

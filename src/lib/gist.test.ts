@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getGistContent, isEmptyGistPayload, type GistLibraryData } from './gist';
+import { buildGistPayload, fromGistItem, getGistContent, isEmptyGistPayload, type GistLibraryData } from './gist';
+import type { Media } from './types';
 
 const originalFetch = globalThis.fetch;
 
@@ -85,6 +86,51 @@ test('getGistContent distinguishes safe initialization from read failures', asyn
     await getGistContent('gist-id', 'secret-token');
     assert.equal(authorization, 'Bearer secret-token');
   });
+});
+
+test('version 3 payload preserves ratings and played episodes', () => {
+  const watched: Media = {
+    id: 42,
+    title: 'Rated movie',
+    poster_path: '/poster.jpg',
+    backdrop_path: null,
+    overview: '',
+    vote_average: 8,
+    popularity: 10,
+    media_type: 'movie',
+    source: 'tmdb',
+    date_added: '2026-01-01T00:00:00.000Z',
+    rating: 4,
+    isFavorite: true,
+  };
+  const playedEpisodes = { '99-2-3': true };
+
+  const payload = buildGistPayload([], [watched], playedEpisodes);
+
+  assert.equal(payload.version, 3);
+  assert.equal(payload.watched[0].rating, 4);
+  assert.deepEqual(payload.playedEpisodes, playedEpisodes);
+  assert.equal(isEmptyGistPayload(payload), false);
+  assert.equal(fromGistItem(payload.watched[0], true).rating, 4);
+});
+
+test('version 3 Gist content requires valid played episode data', async () => {
+  globalThis.fetch = async () => gistResponse(JSON.stringify({
+    version: 3,
+    watchlist: [],
+    watched: [],
+    favorites: [],
+  }));
+  assert.equal((await getGistContent('gist-id')).status, 'invalid');
+
+  globalThis.fetch = async () => gistResponse(JSON.stringify({
+    version: 3,
+    watchlist: [],
+    watched: [],
+    favorites: [],
+    playedEpisodes: { '99-2-3': true },
+  }));
+  assert.equal((await getGistContent('gist-id')).status, 'loaded');
 });
 
 test.after(() => {

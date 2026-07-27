@@ -36,7 +36,7 @@ interface AppContextType extends UserState {
   setGistToken: (token: string) => void;
   toggleWatchlist: (media: Media) => void;
   toggleWatched: (media: Media, rating?: number) => void;
-  setLists: (watchlist: Media[], watched: Media[]) => void;
+  setLists: (watchlist: Media[], watched: Media[], playedEpisodes?: Record<string, boolean>) => void;
   isLoaded: boolean;
 
   setFilter: (filter: FilterType) => void;

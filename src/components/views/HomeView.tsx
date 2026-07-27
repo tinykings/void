@@ -10,7 +10,7 @@ import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
 import { DetailsSheet } from '@/components/DetailsSheet';
 import { SearchSheet } from '@/components/SearchSheet';
 import { sortMedia, sortByAddedDate } from '@/lib/sort';
-import { fromGistItem, type GistLibraryData } from '@/lib/gist';
+import { buildGistPayload, fromGistItem, isPlayedEpisodesData, type GistLibraryData } from '@/lib/gist';
 import { getContentRating, getImageUrl, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
 import { mapWithConcurrency } from '@/lib/concurrency';
 import { AlertCircle, Bookmark, Clapperboard, Download, Eye, EyeOff, Film, Gamepad2, Heart, History, LoaderCircle, Radio, Save, Search, Settings, SlidersHorizontal, Tv, Upload, X } from 'lucide-react';
@@ -48,6 +48,7 @@ export const HomeView = () => {
     apiKey,
     watchlist, 
     watched,
+    playedEpisodes,
     filter,
     setFilter,
     sort,
@@ -285,23 +286,7 @@ export const HomeView = () => {
   const handleExportBackup = () => {
     if (hasGistSync) return;
 
-    const toBackupItem = (item: (typeof watchlist)[number]) => ({
-      id: item.id,
-      title: item.title || item.name || 'Unknown',
-      media_type: item.media_type,
-      source: item.source || (item.media_type === 'game' ? 'igdb' as const : 'tmdb' as const),
-      date_added: item.date_added || new Date().toISOString(),
-      release_date: item.release_date,
-      image: item.poster_path || item.backdrop_path,
-      poster_source: item.poster_source,
-    });
-
-    const backup: GistLibraryData = {
-      version: 2,
-      watchlist: watchlist.map(toBackupItem),
-      watched: watched.map(toBackupItem),
-      favorites: watched.filter((item) => item.isFavorite).map(toBackupItem),
-    };
+    const backup = buildGistPayload(watchlist, watched, playedEpisodes);
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -327,18 +312,28 @@ export const HomeView = () => {
       const text = await file.text();
       const parsed = JSON.parse(text) as Partial<GistLibraryData>;
 
-      if ((parsed.version !== 1 && parsed.version !== 2) || !Array.isArray(parsed.watchlist) || !Array.isArray(parsed.watched) || !Array.isArray(parsed.favorites)) {
+      const hasSupportedVersion = parsed.version === 1 || parsed.version === 2 || parsed.version === 3;
+      const hasValidLists = Array.isArray(parsed.watchlist)
+        && Array.isArray(parsed.watched)
+        && Array.isArray(parsed.favorites);
+      const hasValidEpisodeData = parsed.version !== 3 || isPlayedEpisodesData(parsed.playedEpisodes);
+      if (!hasSupportedVersion || !hasValidLists || !hasValidEpisodeData) {
         throw new Error('Invalid backup file');
       }
 
-      const favoriteKeys = new Set(parsed.favorites.map((item) => getMediaKey(fromGistItem(item))));
-      const nextWatchlist = parsed.watchlist.map((item) => fromGistItem(item));
-      const nextWatched = parsed.watched.map((item) => {
+      const backup = parsed as GistLibraryData;
+      const favoriteKeys = new Set(backup.favorites.map((item) => getMediaKey(fromGistItem(item))));
+      const nextWatchlist = backup.watchlist.map((item) => fromGistItem(item));
+      const nextWatched = backup.watched.map((item) => {
         const media = fromGistItem(item);
         return fromGistItem(item, favoriteKeys.has(getMediaKey(media)));
       });
 
-      setLists(nextWatchlist, nextWatched);
+      setLists(
+        nextWatchlist,
+        nextWatched,
+        backup.version === 3 ? backup.playedEpisodes! : {},
+      );
       toast.success('Backup restored');
     } catch {
       toast.error('Could not import backup');
