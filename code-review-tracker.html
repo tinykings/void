@@ -270,11 +270,11 @@
     </header>
 
     <section class="dashboard" aria-label="Repair summary">
-      <div class="metric"><strong id="total-count">15</strong><span>Total items</span></div>
-      <div class="metric"><strong id="open-count">7</strong><span>Still open</span></div>
+      <div class="metric"><strong id="total-count">22</strong><span>Total items</span></div>
+      <div class="metric"><strong id="open-count">9</strong><span>Still open</span></div>
       <div class="metric"><strong id="progress-count">1</strong><span>In progress</span></div>
-      <div class="metric"><strong id="fixed-count">8</strong><span>Fixed / complete</span></div>
-      <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progress-bar" style="width: 53.33%"></div></div>
+      <div class="metric"><strong id="fixed-count">13</strong><span>Fixed / complete</span></div>
+      <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progress-bar" style="width: 59.09%"></div></div>
     </section>
 
     <section class="controls" aria-label="Tracker controls">
@@ -291,6 +291,7 @@
         <option value="bug">Bugs</option>
         <option value="security">Security</option>
         <option value="maintenance">Maintenance</option>
+        <option value="design">Design / UX</option>
       </select>
       <select id="severity-filter" aria-label="Filter by severity">
         <option value="all">All priorities</option>
@@ -484,6 +485,92 @@
           <p>The viewport configuration disables user scaling, preventing users with low vision from zooming the interface.</p>
           <div class="source">src/app/layout.tsx:41–46</div>
           <details><summary>Completion criteria</summary><ul><li>Remove <code>maximumScale: 1</code> and <code>userScalable: false</code>.</li><li>Test layout at 200% browser zoom and increased mobile text size.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <div class="section-label" data-section="design">Design / Experience</div>
+
+      <article class="item" data-id="connect-gate-context" data-type="design" data-severity="high" data-status="fixed" data-resolution="Completed: the GitHub gate now explains Void's local-first model, private Gist sync, requested permission, and browser storage before OAuth begins.">
+        <div class="item-number">D-01</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag high">High</span><span class="tag recommendation">Onboarding</span></div>
+          <h2>Explain the GitHub connection before asking for it</h2>
+          <p>The entry screen now frames Void as a local-first tracker and explains the role of GitHub sync before asking the user to connect.</p>
+          <div class="source">src/components/GithubConnectGate.tsx · PRODUCT.md: Users, Product Purpose</div>
+          <details><summary>Resolution</summary><ul><li>Added a plain-language value statement covering movies, shows, games, and the absence of a Void account or social profile.</li><li>Shows the data path from the browser to a private GitHub Gist backup with cross-device sync.</li><li>Discloses requested Gist read/write access before OAuth.</li><li>Added expandable privacy details covering the sync filename, stored credentials, and data Void does not collect or publish.</li><li>Kept one clear primary action in a spare, responsive layout.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <article class="item" data-id="navigation-legibility" data-type="design" data-severity="high" data-status="open">
+        <div class="item-number">D-02</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag high">High</span><span class="tag recommendation">Navigation</span></div>
+          <h2>Make primary modes legible without icon recall</h2>
+          <p>History, Playlist, search, filters, Stream, Favorites, and Settings rely heavily on unlabeled icons or a hidden popover. Tooltips do not help touch users, and the floating context badge is visually detached from the controls it describes.</p>
+          <div class="source">src/components/views/HomeView.tsx:415–608</div>
+          <details><summary>Design recommendation</summary><ul><li>Label the two persistent modes “History” and “Playlist” inside the segmented control; keep icons secondary.</li><li>Give Search a visible label on wider layouts and preserve the icon-only compact form on narrow phones.</li><li>Attach current filter/count to the collection header or nav control instead of a floating status pill.</li><li>Close the filter popover on outside click and show active filter text in its trigger.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <article class="item" data-id="card-identification" data-type="design" data-severity="medium" data-status="open">
+        <div class="item-number">D-03</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag medium">Medium</span><span class="tag recommendation">Content clarity</span></div>
+          <h2>Let users identify titles without reading poster art</h2>
+          <p>Library cards contain only artwork. Similar editions, localized posters, unreadable thumbnails, missing images, and changed artwork make scanning less reliable than the compact utility should be.</p>
+          <div class="source">src/components/MediaCard.tsx:160–211 · src/components/views/HomeView.tsx:342–363</div>
+          <details><summary>Design recommendation</summary><ul><li>Add a restrained caption rail below each poster with title plus year or next-release context.</li><li>Clamp titles to two lines and keep metadata in the silver utility style so artwork remains dominant.</li><li>On pointer devices, richer metadata may appear on hover; do not make hover the only path.</li><li>Use the same caption footprint for missing-image cards to prevent layout shifts.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <article class="item" data-id="accent-semantics" data-type="design" data-severity="medium" data-status="open">
+        <div class="item-number">D-04</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag medium">Medium</span><span class="tag recommendation">Color system</span></div>
+          <h2>Restore one clear meaning for cyan and red</h2>
+          <p>The design system says cyan marks interaction and red marks destructive actions, but active Favorites is red and some active states use stronger glows than primary actions. This weakens state recognition.</p>
+          <div class="source">src/components/views/HomeView.tsx:491–509, 532–558 · src/components/DetailsSheet.tsx:798–852 · DESIGN.md: Colors</div>
+          <details><summary>Design recommendation</summary><ul><li>Use cyan for selected Favorites and other non-destructive active states.</li><li>Reserve red for remove, disconnect, and destructive confirmations; keep green for completed/history confirmation only.</li><li>Limit glow to focus, active selection, and one primary action per surface.</li><li>Test text and icon contrast in every tinted state, not only the base colors.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <article class="item" data-id="surface-discipline" data-type="design" data-severity="recommendation" data-status="open">
+        <div class="item-number">D-05</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag recommendation">Recommendation</span><span class="tag recommendation">Visual system</span></div>
+          <h2>Reduce surface and corner-style drift</h2>
+          <p>Sheets, cards, controls, badges, image rails, and modal actions mix many radii, border treatments, shadows, opacity levels, and cyan glows. Repeated emphasis makes the “surveillance room” frame feel softer and busier than intended.</p>
+          <div class="source">src/app/globals.css · src/components/DetailsSheet.tsx · src/components/SearchSheet.tsx · src/components/views/HomeView.tsx · DESIGN.md: Elevation, Components</div>
+          <details><summary>Design recommendation</summary><ul><li>Codify three radius roles: 8px controls, 12px content cards, 24px sheet tops; reserve pills for statuses and segmented controls.</li><li>Use blueprint borders on resting surfaces and embossed treatment only on the active sheet.</li><li>Remove resting poster shadows and decorative hover glows; let imagery provide depth.</li><li>Align sheet widths and heights to one responsive rule instead of mixing full-screen, <code>max-w-6xl</code>, 86vh, and 92vh variants.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <article class="item" data-id="typographic-identity" data-type="design" data-severity="recommendation" data-status="open">
+        <div class="item-number">D-06</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag recommendation">Recommendation</span><span class="tag recommendation">Typography</span></div>
+          <h2>Give utility chrome a distinct typographic voice</h2>
+          <p>Inter carries display, body, labels, and controls, while uppercase treatment is applied inconsistently. The result is clean but generic and does not fully express the technical instrument concept.</p>
+          <div class="source">src/app/layout.tsx · src/app/globals.css · src/components/**/*.tsx · DESIGN.md: Typography</div>
+          <details><summary>Design recommendation</summary><ul><li>Keep Inter or another neutral grotesk for titles and reading text.</li><li>Add a narrow technical or monospaced face for filters, source labels, timestamps, ratings, and status readouts.</li><li>Use uppercase only for short utility labels; keep actions and explanatory copy in sentence case for readability.</li><li>Define reusable type utilities instead of repeated arbitrary sizes and tracking values.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <article class="item" data-id="motion-safe-area" data-type="design" data-severity="recommendation" data-status="open">
+        <div class="item-number">D-07</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag recommendation">Recommendation</span><span class="tag recommendation">Mobile polish</span></div>
+          <h2>Make motion and fixed controls respect device preferences</h2>
+          <p>Details content staggers into view and several controls lift or scale, while fixed bottom chrome uses hard-coded padding instead of safe-area insets. CSS reduced-motion rules may not cover Framer Motion variants.</p>
+          <div class="source">src/components/DetailsSheet.tsx:17–24, 302–365 · src/components/views/HomeView.tsx:416–419 · src/app/globals.css</div>
+          <details><summary>Design recommendation</summary><ul><li>Remove staggered content reveals; keep one short sheet transition and action feedback.</li><li>Use Framer Motion reduced-motion support in addition to the CSS media query.</li><li>Pad the bottom bar, sheets, toasts, and drag handles with <code>env(safe-area-inset-bottom)</code>.</li><li>Verify 44px minimum touch targets and no home-indicator overlap on installed iOS PWA layouts.</li></ul></details>
         </div>
         <div class="item-actions"></div>
       </article>
