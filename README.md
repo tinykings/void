@@ -107,7 +107,16 @@ npm run build    # Production static export to out/
 npm run lint     # Run ESLint
 ```
 
-For local game search, copy `worker/.dev.vars.example` to `worker/.dev.vars`, fill in the Twitch/IGDB credentials, and set `NEXT_PUBLIC_GAME_API_BASE_URL=http://localhost:8787` in `.env.local`. Set `GIST_AUTH_URL` in `.env.local` to use GitHub connection locally.
+For local game search, copy `worker/.dev.vars.example` to `worker/.dev.vars`, fill in the Twitch/IGDB credentials, and set `NEXT_PUBLIC_GAME_API_BASE_URL=http://localhost:8787` in `.env.local`.
+
+GitHub connection is bypassed by default under `npm run dev`; local changes remain in IndexedDB and Gist writes are skipped. To test OAuth locally, set both values in `.env.local`:
+
+```env
+GIST_AUTH_URL=https://your-shared-oauth-worker.example
+NEXT_PUBLIC_REQUIRE_GITHUB_IN_DEV=true
+```
+
+OAuth testing also requires `http://localhost:3000` in the shared Worker's origin allowlist.
 
 ## Deployment
 

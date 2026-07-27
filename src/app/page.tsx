@@ -7,6 +7,8 @@ import { useAppContext } from '@/context/AppContext';
 
 function MainContent() {
   const { isLoaded, isGithubConnected } = useAppContext();
+  const requiresGithubConnection = process.env.NODE_ENV !== 'development'
+    || process.env.NEXT_PUBLIC_REQUIRE_GITHUB_IN_DEV === 'true';
 
   if (!isLoaded) {
     return (
@@ -16,7 +18,7 @@ function MainContent() {
     );
   }
 
-  if (!isGithubConnected) return <GithubConnectGate />;
+  if (requiresGithubConnection && !isGithubConnected) return <GithubConnectGate />;
 
   return <HomeView />;
 }

@@ -13,7 +13,7 @@ import { sortMedia, sortByAddedDate } from '@/lib/sort';
 
 import { getContentRating, getImageUrl, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
 import { mapWithConcurrency } from '@/lib/concurrency';
-import { AlertCircle, Bookmark, Clapperboard, Film, Gamepad2, Github, Heart, History, LoaderCircle, LogOut, Radio, Search, Settings, SlidersHorizontal, Tv, X } from 'lucide-react';
+import { AlertCircle, Bookmark, Film, Gamepad2, Github, Heart, History, LayoutGrid, LoaderCircle, LogOut, Radio, Search, Settings, SlidersHorizontal, Tv, X } from 'lucide-react';
 import type { FilterType, Media, WatchProvider } from '@/lib/types';
 import { getImageSrc, getMediaKey } from '@/lib/media';
 import { clsx } from 'clsx';
@@ -621,7 +621,7 @@ export const HomeView = () => {
                 {showTypeMenu && (
                   <div className="absolute bottom-full left-0 mb-3 w-44 rounded-2xl bg-brand-bg blueprint-border shadow-xl overflow-hidden">
                     {[
-                      { id: 'all' as const, label: 'All', icon: Clapperboard },
+                      { id: 'all' as const, label: 'All', icon: LayoutGrid },
                       { id: 'movie' as const, label: 'Movies', icon: Film },
                       { id: 'tv' as const, label: 'Shows', icon: Tv },
                       { id: 'game' as const, label: 'Games', icon: Gamepad2 },
@@ -718,7 +718,19 @@ export const HomeView = () => {
                   aria-expanded={showStreamView || showFavoritesOnly ? undefined : showTypeMenu}
                   title={showStreamView ? 'Clear Stream view' : showFavoritesOnly ? 'Clear Favorites view' : `Filter: ${activeFilterLabel}`}
                 >
-                  {showStreamView || showFavoritesOnly ? <X size={20} /> : <SlidersHorizontal size={19} />}
+                  {showStreamView ? (
+                    <Radio size={19} />
+                  ) : showFavoritesOnly ? (
+                    <Heart size={19} className="fill-current" />
+                  ) : activeFilter === 'movie' ? (
+                    <Film size={19} />
+                  ) : activeFilter === 'tv' ? (
+                    <Tv size={19} />
+                  ) : activeFilter === 'game' ? (
+                    <Gamepad2 size={19} />
+                  ) : (
+                    <SlidersHorizontal size={19} />
+                  )}
                 </button>
               </div>
 
