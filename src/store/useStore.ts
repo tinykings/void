@@ -46,6 +46,8 @@ interface StoreState extends UserState {
   setApiKey: (apiKey: string) => void;
   setGistId: (gistId: string) => void;
   setGistToken: (gistToken: string) => void;
+  setGithubConnection: (gistId: string, gistToken: string, githubLogin: string) => void;
+  disconnectGithub: () => void;
   setFilter: (filter: FilterType) => void;
   setSort: (sort: SortOption) => void;
   setShowWatched: (show: boolean) => void;
@@ -78,6 +80,7 @@ export const useStore = create<StoreState>()(
         watched: [],
         gistId: '',
         gistToken: '',
+        githubLogin: '',
         filter: 'all',
         sort: 'added',
         showWatched: false,
@@ -96,6 +99,10 @@ export const useStore = create<StoreState>()(
         setGistId: (gistId) => set({ gistId }),
 
         setGistToken: (gistToken) => set({ gistToken }),
+
+        setGithubConnection: (gistId, gistToken, githubLogin) => set({ gistId, gistToken, githubLogin }),
+
+        disconnectGithub: () => set({ gistId: '', gistToken: '', githubLogin: '' }),
         
         setFilter: (filter) => set({ filter }),
         
@@ -144,8 +151,8 @@ export const useStore = create<StoreState>()(
         })),
 
         syncFromGist: async (showIndicator = false) => {
-          const { apiKey, gistId, gistToken, watchlist, watched, playedEpisodes } = get();
-          if (!gistId || !gistToken) return;
+          const { apiKey, gistId, gistToken, githubLogin, watchlist, watched, playedEpisodes } = get();
+          if (!gistId || !gistToken || !githubLogin) return;
 
           await enqueueGistOperation(async () => {
             if (showIndicator) set({ isSyncingLibrary: true });
@@ -222,8 +229,8 @@ export const useStore = create<StoreState>()(
         },
 
         syncToGist: async () => {
-          const { gistId, gistToken, watchlist, watched, playedEpisodes } = get();
-          if (!gistId || !gistToken) return;
+          const { gistId, gistToken, githubLogin, watchlist, watched, playedEpisodes } = get();
+          if (!gistId || !gistToken || !githubLogin) return;
 
           await enqueueGistOperation(async () => {
             await updateGist(gistId, gistToken, buildGistPayload(watchlist, watched, playedEpisodes));
@@ -398,7 +405,7 @@ export const useStore = create<StoreState>()(
     {
       name: 'void_user_state',
       storage: createJSONStorage(() => storage),
-      version: 4,
+      version: 5,
       migrate: (persistedState, version) => {
         const state = persistedState as Partial<StoreState> | undefined;
         if (!state) return state;
@@ -425,6 +432,10 @@ export const useStore = create<StoreState>()(
 
           state.watchlist = withIgdbDefaults(state.watchlist);
           state.watched = withIgdbDefaults(state.watched);
+        }
+
+        if (version < 5) {
+          state.githubLogin = '';
         }
 
         return state;

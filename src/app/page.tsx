@@ -2,10 +2,11 @@
 
 import { Suspense } from 'react';
 import { HomeView } from '@/components/views/HomeView';
+import { GithubConnectGate } from '@/components/GithubConnectGate';
 import { useAppContext } from '@/context/AppContext';
 
 function MainContent() {
-  const { isLoaded } = useAppContext();
+  const { isLoaded, isGithubConnected } = useAppContext();
 
   if (!isLoaded) {
     return (
@@ -15,9 +16,9 @@ function MainContent() {
     );
   }
 
-  return (
-    <HomeView />
-  );
+  if (!isGithubConnected) return <GithubConnectGate />;
+
+  return <HomeView />;
 }
 
 export default function RootPage() {

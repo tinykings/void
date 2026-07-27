@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useTransition, useCallback, useRef, type ChangeEvent } from 'react';
+import { useEffect, useState, useMemo, useTransition, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
@@ -10,14 +10,13 @@ import { MediaCardSkeleton } from '@/components/MediaCardSkeleton';
 import { DetailsSheet } from '@/components/DetailsSheet';
 import { SearchSheet } from '@/components/SearchSheet';
 import { sortMedia, sortByAddedDate } from '@/lib/sort';
-import { buildGistPayload, fromGistItem, isPlayedEpisodesData, type GistLibraryData } from '@/lib/gist';
+
 import { getContentRating, getImageUrl, getUSStreamingProviders, getWatchProviders } from '@/lib/tmdb';
 import { mapWithConcurrency } from '@/lib/concurrency';
-import { AlertCircle, Bookmark, Clapperboard, Download, Eye, EyeOff, Film, Gamepad2, Heart, History, LoaderCircle, Radio, Save, Search, Settings, SlidersHorizontal, Tv, Upload, X } from 'lucide-react';
+import { AlertCircle, Bookmark, Clapperboard, Film, Gamepad2, Github, Heart, History, LoaderCircle, LogOut, Radio, Search, Settings, SlidersHorizontal, Tv, X } from 'lucide-react';
 import type { FilterType, Media, WatchProvider } from '@/lib/types';
 import { getImageSrc, getMediaKey } from '@/lib/media';
 import { clsx } from 'clsx';
-import { toast } from 'sonner';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 import { FocusTrap } from '@/components/FocusTrap';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
@@ -48,7 +47,6 @@ export const HomeView = () => {
     apiKey,
     watchlist, 
     watched,
-    playedEpisodes,
     filter,
     setFilter,
     sort,
@@ -56,16 +54,13 @@ export const HomeView = () => {
     setShowWatched,
     showFavoritesOnly,
     setShowFavoritesOnly,
-    gistId,
-    gistToken,
-    setGistId,
-    setGistToken,
+    githubLogin,
+    disconnectGithub,
     syncFromGist,
     isSyncingLibrary,
     isSearchFocused,
     setIsSearchFocused,
     closeAllSheets,
-    setLists,
     openDetails,
   } = useAppContext();
   
@@ -117,10 +112,6 @@ export const HomeView = () => {
   // Footer popover state
   const [showTypeMenu, setShowTypeMenu] = useState(false);
   const [showSyncModal, setShowSyncModal] = useState(false);
-  const [tempGistId, setTempGistId] = useState(gistId || '');
-  const [tempGistToken, setTempGistToken] = useState(gistToken || '');
-  const [showSyncToken, setShowSyncToken] = useState(false);
-  const importInputRef = useRef<HTMLInputElement | null>(null);
   
   // Pagination for library
   const [visibleItemsCount, setVisibleItemsCount] = useState(() => {
@@ -235,7 +226,6 @@ export const HomeView = () => {
     };
   }, [apiKey, isOnline, showStreamView, streamablePlaylist]);
 
-  const hasGistSync = !!(gistId && gistToken);
   const emptyTitle = (() => {
     if (showStreamView) {
       if (!isOnline) return 'Streaming availability is offline';
@@ -260,85 +250,6 @@ export const HomeView = () => {
     if (activeLibraryMode === 'library') return 'Move movies, shows, and games to history after finishing them.';
     return 'Search for movies, shows, and games to add them to your playlist.';
   })();
-
-  useEffect(() => {
-    if (!showSyncModal) return;
-    setTempGistId(gistId || '');
-    setTempGistToken(gistToken || '');
-    setShowSyncToken(false);
-  }, [showSyncModal, gistId, gistToken]);
-
-  const handleSaveSync = () => {
-    const nextGistId = tempGistId.trim();
-    const nextGistToken = tempGistToken.trim();
-
-    setGistId(nextGistId);
-    setGistToken(nextGistToken);
-
-    if (isOnline && nextGistId && nextGistToken) {
-      void syncFromGist(true);
-    }
-
-    setShowSyncModal(false);
-    setShowTypeMenu(false);
-  };
-
-  const handleExportBackup = () => {
-    if (hasGistSync) return;
-
-    const backup = buildGistPayload(watchlist, watched, playedEpisodes);
-
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'void-library-backup.json';
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 0);
-    toast.success('Backup downloaded');
-  };
-
-  const handleImportBackup = async (event: ChangeEvent<HTMLInputElement>) => {
-    if (hasGistSync) return;
-
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-
-    try {
-      const text = await file.text();
-      const parsed = JSON.parse(text) as Partial<GistLibraryData>;
-
-      const hasSupportedVersion = parsed.version === 1 || parsed.version === 2 || parsed.version === 3;
-      const hasValidLists = Array.isArray(parsed.watchlist)
-        && Array.isArray(parsed.watched)
-        && Array.isArray(parsed.favorites);
-      const hasValidEpisodeData = parsed.version !== 3 || isPlayedEpisodesData(parsed.playedEpisodes);
-      if (!hasSupportedVersion || !hasValidLists || !hasValidEpisodeData) {
-        throw new Error('Invalid backup file');
-      }
-
-      const backup = parsed as GistLibraryData;
-      const favoriteKeys = new Set(backup.favorites.map((item) => getMediaKey(fromGistItem(item))));
-      const nextWatchlist = backup.watchlist.map((item) => fromGistItem(item));
-      const nextWatched = backup.watched.map((item) => {
-        const media = fromGistItem(item);
-        return fromGistItem(item, favoriteKeys.has(getMediaKey(media)));
-      });
-
-      setLists(
-        nextWatchlist,
-        nextWatched,
-        backup.version === 3 ? backup.playedEpisodes! : {},
-      );
-      toast.success('Backup restored');
-    } catch {
-      toast.error('Could not import backup');
-    }
-  };
 
   const selectTypeFilter = (nextFilter: FilterType) => {
     startTransition(() => {
@@ -898,119 +809,44 @@ export const HomeView = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-5 pb-24 space-y-4">
-              <div className="rounded-xl bg-white/[0.03] blueprint-border p-4 space-y-3">
-                 <div>
-                   <h3 className="text-sm font-semibold text-white">Gist Sync</h3>
-                 </div>
-
-                 <div>
-                   <label className="block text-xs font-medium text-brand-silver mb-2">Gist ID</label>
-                   <input
-                     type="text"
-                     value={tempGistId}
-                     onChange={(e) => setTempGistId(e.target.value)}
-                     placeholder="e.g. 8f7a9b2c3d4e5f6a7b8c9d0e"
-                     className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-2 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
-                   />
-                 </div>
-
-                 <div>
-                   <label className="block text-xs font-medium text-brand-silver mb-2">GitHub Token</label>
-                   <div className="relative">
-                     <input
-                       type={showSyncToken ? 'text' : 'password'}
-                       value={tempGistToken}
-                       onChange={(e) => setTempGistToken(e.target.value)}
-                       placeholder="ghp_xxxxxxxxxxxx"
-                       className="w-full p-3 pr-12 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-2 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
-                     />
-                     <button
-                       type="button"
-                       onClick={() => setShowSyncToken((value) => !value)}
-                       className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-silver hover:text-white"
-                     >
-                       {showSyncToken ? <EyeOff size={16} /> : <Eye size={16} />}
-                     </button>
-                   </div>
-                 </div>
-
-                 <button
-                   type="button"
-                   onClick={() => {
-                     setShowSyncModal(false);
-                     setShowTypeMenu(false);
-                     void syncFromGist(true);
-                   }}
-                   disabled={!isOnline || !hasGistSync || isSyncingLibrary}
-                   className={clsx(
-                     'w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors blueprint-border',
-                     !isOnline || !hasGistSync || isSyncingLibrary
-                       ? 'bg-white/5 text-brand-silver/40 cursor-not-allowed'
-                       : 'bg-brand-bg text-white hover:bg-brand-cyan/10'
-                   )}
-                 >
-                   <LoaderCircle size={16} className={isSyncingLibrary ? 'animate-spin' : undefined} />
-                   {isSyncingLibrary ? 'Syncing' : 'Sync collection now'}
-                 </button>
-               </div>
-
-              <div className="rounded-xl bg-white/[0.03] blueprint-border p-4 space-y-3">
-                <div>
-                  <h3 className="text-sm font-semibold text-white">Backup</h3>
+              <div className="rounded-xl bg-white/[0.03] blueprint-border p-4 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-cyan/10 text-brand-cyan">
+                    <Github size={19} />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold text-white">Connected to GitHub</h3>
+                    <p className="truncate text-xs text-brand-silver">@{githubLogin}</p>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={handleExportBackup}
-                    disabled={hasGistSync}
-                    className={clsx(
-                      'flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors blueprint-border',
-                      hasGistSync
-                        ? 'bg-white/5 text-brand-silver/40 cursor-not-allowed'
-                        : 'bg-brand-bg text-white hover:bg-brand-cyan/10'
-                    )}
-                  >
-                    <Download size={16} />
-                    Export
-                  </button>
+                <button
+                  type="button"
+                  onClick={() => void syncFromGist(true)}
+                  disabled={!isOnline || isSyncingLibrary}
+                  className={clsx(
+                    'w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors blueprint-border',
+                    !isOnline || isSyncingLibrary
+                      ? 'bg-white/5 text-brand-silver/40 cursor-not-allowed'
+                      : 'bg-brand-bg text-white hover:bg-brand-cyan/10'
+                  )}
+                >
+                  <LoaderCircle size={16} className={isSyncingLibrary ? 'animate-spin' : undefined} />
+                  {isSyncingLibrary ? 'Syncing' : 'Sync collection now'}
+                </button>
 
-                  <button
-                    type="button"
-                    onClick={() => importInputRef.current?.click()}
-                    disabled={hasGistSync}
-                    className={clsx(
-                      'flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors blueprint-border',
-                      hasGistSync
-                        ? 'bg-white/5 text-brand-silver/40 cursor-not-allowed'
-                        : 'bg-brand-bg text-white hover:bg-brand-cyan/10'
-                    )}
-                  >
-                    <Upload size={16} />
-                    Import
-                  </button>
-                </div>
-
-                <p className={clsx('text-[11px]', hasGistSync ? 'text-brand-silver/50' : 'text-brand-silver/70')}>
-                  {hasGistSync ? 'Disable Gist sync to use local backup.' : 'Imports replace your current collection.'}
-                </p>
-
-                <input
-                  ref={importInputRef}
-                  type="file"
-                  accept="application/json,.json"
-                  className="hidden"
-                  onChange={handleImportBackup}
-                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSyncModal(false);
+                    disconnectGithub();
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-red-200 transition-colors hover:bg-red-500/10"
+                >
+                  <LogOut size={16} />
+                  Disconnect GitHub
+                </button>
               </div>
-
-              <button
-                onClick={handleSaveSync}
-                className="w-full bg-brand-cyan text-brand-bg font-black py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-brand-cyan/90 active:scale-95 transition-all uppercase tracking-widest"
-              >
-                <Save size={18} />
-                Save
-              </button>
 
               <div className="pt-2 text-center space-y-1">
                 <p className="text-xs text-brand-silver/50">Data provided by TMDB and IGDB.</p>

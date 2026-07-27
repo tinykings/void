@@ -8,7 +8,7 @@ import { hasGameApi, searchIgdbGames } from '@/lib/igdb';
 import { Media } from '@/lib/types';
 import { getMediaKey } from '@/lib/media';
 import { MediaCard } from '@/components/MediaCard';
-import { ArrowRight, Eye, EyeOff, LoaderCircle, Save, Search as SearchIcon, X } from 'lucide-react';
+import { ArrowRight, LoaderCircle, Search as SearchIcon, X } from 'lucide-react';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 import { FocusTrap } from '@/components/FocusTrap';
 import logoPng from '../../public/logo.png';
@@ -58,12 +58,6 @@ export const SearchSheet = () => {
     isLoaded,
     watchlist,
     watched,
-    gistId,
-    gistToken,
-    setGistId,
-    setGistToken,
-    syncFromGist,
-    isSyncingLibrary,
   } = useAppContext();
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Media[]>([]);
@@ -71,10 +65,6 @@ export const SearchSheet = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSubmittedSearch, setHasSubmittedSearch] = useState(false);
-  const [showGistPrompt, setShowGistPrompt] = useState(false);
-  const [tempGistId, setTempGistId] = useState(gistId || '');
-  const [tempGistToken, setTempGistToken] = useState(gistToken || '');
-  const [showToken, setShowToken] = useState(false);
   const searchAbortController = useRef<AbortController | null>(null);
 
   const searchTerm = query.trim();
@@ -154,31 +144,9 @@ export const SearchSheet = () => {
     };
   }, []);
 
-  useEffect(() => {
-    if (!showGistPrompt) return;
-    queueMicrotask(() => {
-      setTempGistId(gistId || '');
-      setTempGistToken(gistToken || '');
-      setShowToken(false);
-    });
-  }, [showGistPrompt, gistId, gistToken]);
-
   const closeSheet = () => {
     if (isLibraryEmpty) return;
     closeAllSheets();
-  };
-  const handleSyncFromPrompt = () => {
-    const nextGistId = tempGistId.trim();
-    const nextGistToken = tempGistToken.trim();
-
-    if (!nextGistId || !nextGistToken) {
-      return;
-    }
-
-    setGistId(nextGistId);
-    setGistToken(nextGistToken);
-    setShowGistPrompt(false);
-    void syncFromGist(true);
   };
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -283,26 +251,9 @@ export const SearchSheet = () => {
           </div>
 
           {isLibraryEmpty && (
-            <div className="px-4 pt-3 pb-2 flex flex-col items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setShowGistPrompt(true)}
-                disabled={!isOnline || isSyncingLibrary}
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-brand-cyan/25 bg-brand-cyan/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-brand-cyan transition-colors hover:bg-brand-cyan/15 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isSyncingLibrary ? (
-                  <LoaderCircle size={14} className="animate-spin" />
-                ) : null}
-                Sync collection from Gist
-              </button>
-
-              <p className="text-xs uppercase tracking-[0.2em] text-brand-silver/60 text-center">
-                Search and add titles to your collection
-              </p>
-              <p className="text-[11px] text-brand-silver/40 text-center">
-                Enter your Gist ID and token to sync an existing collection.
-              </p>
-            </div>
+            <p className="px-4 pb-2 pt-4 text-center text-xs uppercase tracking-[0.2em] text-brand-silver/60">
+              Search and add titles to your collection
+            </p>
           )}
 
           <div className="px-4 pb-24 overflow-y-auto flex-1">
@@ -350,82 +301,6 @@ export const SearchSheet = () => {
           </FocusTrap>
         </motion.div>
 
-        <AnimatePresence>
-          {showGistPrompt && (
-            <div className="fixed inset-0 z-[360] flex items-end justify-center" onClick={(e) => e.stopPropagation()}>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowGistPrompt(false)}
-                className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-              />
-
-              <motion.div
-                initial={{ y: '100%' }}
-                animate={{ y: 0 }}
-                exit={{ y: '100%' }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-                onClick={(e) => e.stopPropagation()}
-                className="relative w-full max-w-2xl bg-brand-bg/95 blueprint-border rounded-t-3xl shadow-2xl overflow-hidden flex flex-col"
-              >
-                <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-brand-bg/80">
-                  <h2 className="text-lg font-semibold text-white">Sync from Gist</h2>
-                  <button
-                    type="button"
-                    onClick={() => setShowGistPrompt(false)}
-                    className="p-3 rounded-lg bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/25 transition-all hover:bg-brand-cyan/20 hover:text-white hover:border-brand-cyan/40"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-
-                <div className="p-5 space-y-4">
-                  <div>
-                    <label className="block text-xs font-medium text-brand-silver mb-2">Gist ID</label>
-                    <input
-                      type="text"
-                      value={tempGistId}
-                      onChange={(e) => setTempGistId(e.target.value)}
-                      placeholder="e.g. 8f7a9b2c3d4e5f6a7b8c9d0e"
-                      className="w-full p-3 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-2 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-brand-silver mb-2">GitHub Token</label>
-                    <div className="relative">
-                      <input
-                        type={showToken ? 'text' : 'password'}
-                        value={tempGistToken}
-                        onChange={(e) => setTempGistToken(e.target.value)}
-                        placeholder="ghp_xxxxxxxxxxxx"
-                        className="w-full p-3 pr-12 rounded-lg bg-brand-bg blueprint-border text-white focus:ring-2 focus:ring-brand-cyan outline-none transition-all placeholder:text-brand-silver/50"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowToken((value) => !value)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-brand-silver hover:text-white"
-                      >
-                        {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleSyncFromPrompt}
-                    disabled={!tempGistId.trim() || !tempGistToken.trim() || isSyncingLibrary}
-                    className="w-full bg-brand-cyan text-brand-bg font-black py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-brand-cyan/90 active:scale-95 transition-all uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isSyncingLibrary ? <LoaderCircle size={18} className="animate-spin" /> : <Save size={18} />}
-                    {isSyncingLibrary ? 'Syncing' : 'Save and sync'}
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
       </div>
     </AnimatePresence>
   );

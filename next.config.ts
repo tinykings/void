@@ -9,6 +9,9 @@ const basePath = normalizeBasePath(process.env.NEXT_PUBLIC_BASE_PATH);
 
 const nextConfig: NextConfig = {
   output: 'export',
+  env: {
+    GIST_AUTH_URL: process.env.GIST_AUTH_URL,
+  },
   ...(basePath ? { basePath } : {}),
   images: {
     unoptimized: true,

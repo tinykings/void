@@ -21,7 +21,8 @@ export interface GistLibraryData {
   playedEpisodes?: Record<string, boolean>;
 }
 
-const GIST_FILENAME = 'void-library.json';
+const GIST_FILENAME = 'void-data.json';
+const LEGACY_GIST_FILENAME = 'void-library.json';
 
 export const toGistItem = (item: Media): GistLibraryItem => ({
   id: item.id,
@@ -122,10 +123,11 @@ export const getGistContent = async (gistId: string, token?: string): Promise<Gi
     throw new Error('Failed to read gist: GitHub returned invalid JSON');
   }
 
-  const file = data.files?.[GIST_FILENAME];
+  const filename = data.files?.[GIST_FILENAME] ? GIST_FILENAME : LEGACY_GIST_FILENAME;
+  const file = data.files?.[filename];
   if (!file) return { status: 'missing' };
   if (typeof file.content !== 'string') {
-    return { status: 'invalid', reason: `${GIST_FILENAME} has no readable content` };
+    return { status: 'invalid', reason: `${filename} has no readable content` };
   }
   if (!file.content.trim()) return { status: 'empty' };
 
@@ -133,11 +135,11 @@ export const getGistContent = async (gistId: string, token?: string): Promise<Gi
   try {
     parsed = JSON.parse(file.content);
   } catch {
-    return { status: 'invalid', reason: `${GIST_FILENAME} contains invalid JSON` };
+    return { status: 'invalid', reason: `${filename} contains invalid JSON` };
   }
 
   if (!isGistLibraryData(parsed)) {
-    return { status: 'invalid', reason: `${GIST_FILENAME} does not match a supported library schema` };
+    return { status: 'invalid', reason: `${filename} does not match a supported library schema` };
   }
 
   return { status: 'loaded', data: parsed };

@@ -5,7 +5,7 @@ import type { Media } from './types';
 
 const originalFetch = globalThis.fetch;
 
-const gistResponse = (content: unknown, filename = 'void-library.json') =>
+const gistResponse = (content: unknown, filename = 'void-data.json') =>
   new Response(JSON.stringify({ files: { [filename]: { content } } }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
@@ -36,6 +36,11 @@ test('getGistContent distinguishes safe initialization from read failures', asyn
     assert.deepEqual(await getGistContent('gist-id'), { status: 'missing' });
   });
 
+  await t.test('reads legacy Void filename during OAuth migration', async () => {
+    globalThis.fetch = async () => gistResponse(JSON.stringify(emptyLibrary), 'void-library.json');
+    assert.equal((await getGistContent('gist-id')).status, 'loaded');
+  });
+
   await t.test('reports a blank named file as empty', async () => {
     globalThis.fetch = async () => gistResponse('  \n ');
     assert.deepEqual(await getGistContent('gist-id'), { status: 'empty' });
@@ -45,7 +50,7 @@ test('getGistContent distinguishes safe initialization from read failures', asyn
     globalThis.fetch = async () => gistResponse('{broken');
     assert.deepEqual(await getGistContent('gist-id'), {
       status: 'invalid',
-      reason: 'void-library.json contains invalid JSON',
+      reason: 'void-data.json contains invalid JSON',
     });
   });
 

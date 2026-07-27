@@ -34,6 +34,9 @@ interface AppContextType extends UserState {
   setApiKey: (key: string) => void;
   setGistId: (id: string) => void;
   setGistToken: (token: string) => void;
+  setGithubConnection: (gistId: string, token: string, login: string) => void;
+  disconnectGithub: () => void;
+  isGithubConnected: boolean;
   toggleWatchlist: (media: Media) => void;
   toggleWatched: (media: Media, rating?: number) => void;
   setLists: (watchlist: Media[], watched: Media[], playedEpisodes?: Record<string, boolean>) => void;
@@ -76,6 +79,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     apiKey: s.apiKey,
     gistId: s.gistId,
     gistToken: s.gistToken,
+    githubLogin: s.githubLogin,
     watchlist: s.watchlist,
     watched: s.watched,
     filter: s.filter,
@@ -89,6 +93,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setApiKey: s.setApiKey,
     setGistId: s.setGistId,
     setGistToken: s.setGistToken,
+    setGithubConnection: s.setGithubConnection,
+    disconnectGithub: s.disconnectGithub,
     setLists: s.setLists,
     syncFromGist: s.syncFromGist,
     setFilter: s.setFilter,
@@ -263,7 +269,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       initialViewApplied.current = true;
     };
 
-    if (!isOnline || !store.gistId || !store.gistToken) {
+    if (!isOnline || !store.gistId || !store.gistToken || !store.githubLogin) {
       applyInitialView();
       return;
     }
@@ -284,6 +290,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     store.sort,
     store.gistId,
     store.gistToken,
+    store.githubLogin,
     store.watchlist.length,
     store.watched.length,
     store.showWatched,
@@ -368,6 +375,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     apiKey: store.apiKey,
     gistId: store.gistId,
     gistToken: store.gistToken,
+    githubLogin: store.githubLogin,
     watchlist: store.watchlist,
     watched: store.watched,
     filter: store.filter,
@@ -382,6 +390,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setApiKey: store.setApiKey,
     setGistId: store.setGistId,
     setGistToken: store.setGistToken,
+    setGithubConnection: store.setGithubConnection,
+    disconnectGithub: store.disconnectGithub,
+    isGithubConnected: Boolean(store.gistId && store.gistToken && store.githubLogin),
     toggleWatchlist,
     toggleWatched,
     setLists: store.setLists,

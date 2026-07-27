@@ -220,6 +220,7 @@ export interface UserState {
   watched: Media[];
   gistId?: string;
   gistToken?: string;
+  githubLogin?: string;
   filter?: FilterType;
   sort?: SortOption;
   showWatched?: boolean;

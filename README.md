@@ -50,11 +50,13 @@ Data lives entirely in your browser (IndexedDB).
 ### Requirements
 - A TMDB Read Access Token set in `NEXT_PUBLIC_TMDB_READ_ACCESS_TOKEN`
 - A Cloudflare Worker URL set in `NEXT_PUBLIC_GAME_API_BASE_URL` for game lookup
+- Shared OAuth Worker URL set in repository variable `GIST_AUTH_URL`
 - Twitch/IGDB credentials stored as Cloudflare Worker secrets: `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET`
 
 ### Quick Start
 1. Open the app at [tinykings.github.io/void](https://tinykings.github.io/void/)
-2. Browse and use provider links directly from the details page
+2. Connect GitHub and authorize Gist access
+3. Browse and use provider links directly from the details page
 
 ## Tech Stack
 
@@ -93,7 +95,7 @@ src/
     └── src/index.ts       # Cloudflare Worker proxy for IGDB
 ```
 
-**Data flow:** Components → `useAppContext()` → Zustand store → persisted to IndexedDB (`void_user_state`). TMDB is called directly for movies/shows; games are fetched through the IGDB Worker.
+**Data flow:** Components → `useAppContext()` → Zustand store → persisted to IndexedDB (`void_user_state`) and synced through `void-data.json` in GitHub Gists. TMDB is called directly for movies/shows; games are fetched through the IGDB Worker.
 
 ## Development
 
@@ -105,7 +107,7 @@ npm run build    # Production static export to out/
 npm run lint     # Run ESLint
 ```
 
-For local game search, copy `worker/.dev.vars.example` to `worker/.dev.vars`, fill in the Twitch/IGDB credentials, and set `NEXT_PUBLIC_GAME_API_BASE_URL=http://localhost:8787` in `.env.local`.
+For local game search, copy `worker/.dev.vars.example` to `worker/.dev.vars`, fill in the Twitch/IGDB credentials, and set `NEXT_PUBLIC_GAME_API_BASE_URL=http://localhost:8787` in `.env.local`. Set `GIST_AUTH_URL` in `.env.local` to use GitHub connection locally.
 
 ## Deployment
 
@@ -115,7 +117,8 @@ GitHub Actions builds and deploys to GitHub Pages on every push to `main`. The s
 
 | Setting | Description |
 |---|---|
-| Local Collection | Playlist, history, and favorites stored in IndexedDB |
+| GitHub Connection | Required Gist OAuth connection for app access and sync |
+| Local Cache | Playlist, history, and favorites cached in IndexedDB |
 | Watch Providers | Open JustWatch search from provider icons |
 
 ## License
