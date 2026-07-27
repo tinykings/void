@@ -398,7 +398,7 @@ export const HomeView = () => {
             className="fixed inset-0 z-[360] flex items-center justify-center pointer-events-none px-4"
             aria-live="polite"
           >
-            <div className="flex flex-col items-center gap-3 rounded-2xl border border-brand-cyan/20 bg-brand-bg/90 px-5 py-4 text-center shadow-2xl shadow-black/40 backdrop-blur-md">
+            <div className="flex flex-col items-center gap-3 rounded-xl bg-brand-bg/90 px-5 py-4 text-center backdrop-blur-md embossed-edge">
               <LoaderCircle size={22} className="animate-spin text-brand-cyan" />
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-white">Syncing collection</p>
@@ -430,7 +430,7 @@ export const HomeView = () => {
             <div className="grid grid-cols-[56px_1fr_auto] items-center gap-2 rounded-[28px] bg-brand-bg/70 backdrop-blur-xl blueprint-border p-2 shadow-2xl shadow-black/35">
               <div className="relative">
                 {showTypeMenu && (
-                  <div className="absolute bottom-full left-0 mb-3 w-44 rounded-2xl bg-brand-bg blueprint-border shadow-xl overflow-hidden">
+                  <div className="absolute bottom-full left-0 mb-3 w-44 rounded-xl bg-brand-bg blueprint-border overflow-hidden">
                     {[
                       { id: 'all' as const, label: 'All', icon: LayoutGrid },
                       { id: 'movie' as const, label: 'Movies', icon: Film },
@@ -517,7 +517,7 @@ export const HomeView = () => {
                     setShowTypeMenu((current) => !current);
                   }}
                   className={clsx(
-                    'flex h-12 w-12 items-center justify-center rounded-full transition-all',
+                    'flex h-12 w-12 items-center justify-center rounded-lg transition-all',
                     showStreamView || showFavoritesOnly || showTypeMenu || activeFilter !== 'all'
                       ? 'bg-brand-cyan/12 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.16)] hover:bg-brand-cyan/20 hover:text-white'
                       : 'text-brand-silver hover:bg-brand-cyan/10 hover:text-white'
@@ -587,7 +587,7 @@ export const HomeView = () => {
                   });
                   setShowTypeMenu(false);
                 }}
-                className="flex h-12 w-12 items-center justify-center rounded-full text-brand-silver hover:bg-brand-cyan/10 hover:text-white transition-all"
+                className="flex h-12 w-12 items-center justify-center rounded-lg text-brand-silver hover:bg-brand-cyan/10 hover:text-white transition-all"
                 aria-label="Search"
                 title="Search"
               >
@@ -614,7 +614,7 @@ export const HomeView = () => {
               exit={{ y: '100%' }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-6xl h-[92vh] max-h-[96vh] bg-brand-bg/95 embossed-edge rounded-t-3xl overflow-hidden flex flex-col will-change-transform"
+              className="sheet-surface will-change-transform"
             >
               <FocusTrap active={showSyncModal}>
               <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-brand-bg/80">

@@ -271,10 +271,10 @@
 
     <section class="dashboard" aria-label="Repair summary">
       <div class="metric"><strong id="total-count">22</strong><span>Total items</span></div>
-      <div class="metric"><strong id="open-count">8</strong><span>Still open</span></div>
+      <div class="metric"><strong id="open-count">7</strong><span>Still open</span></div>
       <div class="metric"><strong id="progress-count">1</strong><span>In progress</span></div>
-      <div class="metric"><strong id="fixed-count">14</strong><span>Fixed / complete</span></div>
-      <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progress-bar" style="width: 63.64%"></div></div>
+      <div class="metric"><strong id="fixed-count">15</strong><span>Fixed / complete</span></div>
+      <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progress-bar" style="width: 68.18%"></div></div>
     </section>
 
     <section class="controls" aria-label="Tracker controls">
@@ -539,14 +539,14 @@
         <div class="item-actions"></div>
       </article>
 
-      <article class="item" data-id="surface-discipline" data-type="design" data-severity="recommendation" data-status="open">
+      <article class="item" data-id="surface-discipline" data-type="design" data-severity="recommendation" data-status="fixed" data-resolution="Completed: three radius roles and one responsive sheet surface now govern core overlays; resting cards use blueprint edges without decorative shadow or glow. Lint, TypeScript, 32 unit tests, and production build verified.">
         <div class="item-number">D-05</div>
         <div class="item-main">
           <div class="item-head"><span class="tag recommendation">Recommendation</span><span class="tag recommendation">Visual system</span></div>
           <h2>Reduce surface and corner-style drift</h2>
-          <p>Sheets, cards, controls, badges, image rails, and modal actions mix many radii, border treatments, shadows, opacity levels, and cyan glows. Repeated emphasis makes the “surveillance room” frame feel softer and busier than intended.</p>
-          <div class="source">src/app/globals.css · src/components/DetailsSheet.tsx · src/components/SearchSheet.tsx · src/components/views/HomeView.tsx · DESIGN.md: Elevation, Components</div>
-          <details><summary>Design recommendation</summary><ul><li>Codify three radius roles: 8px controls, 12px content cards, 24px sheet tops; reserve pills for statuses and segmented controls.</li><li>Use blueprint borders on resting surfaces and embossed treatment only on the active sheet.</li><li>Remove resting poster shadows and decorative hover glows; let imagery provide depth.</li><li>Align sheet widths and heights to one responsive rule instead of mixing full-screen, <code>max-w-6xl</code>, 86vh, and 92vh variants.</li></ul></details>
+          <p>Core sheets, cards, controls, badges, image rails, and modal actions now share a restrained surface vocabulary suited to the “surveillance room” frame.</p>
+          <div class="source">src/app/globals.css · src/components/DetailsSheet.tsx · src/components/SearchSheet.tsx · src/components/ActorSheet.tsx · src/components/views/HomeView.tsx · DESIGN.md: Elevation, Components</div>
+          <details><summary>Resolution</summary><ul><li>Codified three radius roles: 8px controls, 12px content cards, and 24px sheet tops; pills remain reserved for statuses and segmented controls.</li><li>Added one shared <code>sheet-surface</code> rule for 72rem maximum width and <code>min(92dvh, 60rem)</code> height across details, search, actor, credits, and settings sheets.</li><li>Kept blueprint borders on resting rails, cards, badges, and search controls; embossed treatment is limited to active sheets and dialogs.</li><li>Removed resting poster badge shadows, search-control glows, preview shadows, and redundant modal action shadows while preserving state-driven focus and selection signals.</li><li>Lint completed with existing warnings only; TypeScript, 32 unit tests, and production build passed.</li></ul></details>
         </div>
         <div class="item-actions"></div>
       </article>

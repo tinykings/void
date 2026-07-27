@@ -109,7 +109,7 @@ export const DetailsSheet = () => {
   });
   const imdbUrl = externalIdsValue?.imdb_id ? `https://www.imdb.com/title/${externalIdsValue.imdb_id}` : '';
   const currentActionPulse = selected && actionPulse?.key === mediaKey ? actionPulse.action : null;
-  const railButtonClass = 'absolute inset-y-0 z-10 hidden w-10 items-center justify-center rounded-lg border border-brand-cyan/25 bg-brand-bg/85 text-brand-cyan backdrop-blur-md transition-colors hover:bg-brand-cyan/15 hover:text-white md:flex';
+  const railButtonClass = 'absolute inset-y-0 z-10 hidden w-10 items-center justify-center rounded-lg border border-white/10 bg-brand-bg/85 text-brand-cyan backdrop-blur-md transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/15 hover:text-white md:flex';
 
   function scrollCast(direction: 'left' | 'right') {
     const scroller = castScrollerRef.current;
@@ -373,7 +373,7 @@ export const DetailsSheet = () => {
                 loading="lazy"
               />
               <span className="absolute inset-0 flex items-center justify-center bg-black/20 transition-colors group-hover:bg-black/10">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full border border-brand-cyan/40 bg-brand-bg/80 text-brand-cyan backdrop-blur-md transition-colors group-hover:bg-brand-cyan/20 group-hover:text-white">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-brand-bg/80 text-brand-cyan backdrop-blur-md transition-colors group-hover:border-brand-cyan/40 group-hover:bg-brand-cyan/20 group-hover:text-white">
                   <Play size={18} fill="currentColor" />
                 </span>
               </span>
@@ -470,7 +470,7 @@ export const DetailsSheet = () => {
               exit={{ y: '100%' }}
               transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-6xl h-[92vh] max-h-[96vh] bg-brand-bg/95 embossed-edge rounded-t-3xl overflow-hidden flex flex-col will-change-transform"
+              className="sheet-surface will-change-transform"
             >
               <FocusTrap active={isOpen}>
               <div className="relative z-10 flex-1 overflow-y-auto px-4 pb-28">
@@ -508,7 +508,7 @@ export const DetailsSheet = () => {
                           href={link.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="rounded-full bg-white/10 px-2 py-1 text-brand-silver backdrop-blur-sm transition-colors hover:bg-brand-cyan/10 hover:text-brand-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
+                          className="rounded-lg bg-white/10 px-2 py-1 text-brand-silver backdrop-blur-sm transition-colors hover:bg-brand-cyan/10 hover:text-brand-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
                         >
                           {link.label}
                         </a>
@@ -725,7 +725,7 @@ export const DetailsSheet = () => {
                       <img
                         src={activeImage.src}
                         alt={activeImage.alt}
-                        className="max-h-[88vh] max-w-full rounded-2xl object-contain blueprint-border shadow-2xl shadow-black/60"
+                        className="max-h-[88vh] max-w-full rounded-xl object-contain blueprint-border"
                         decoding="async"
                       />
                     </motion.div>
@@ -768,7 +768,7 @@ export const DetailsSheet = () => {
                       >
                         <X size={18} />
                       </button>
-                      <div className="overflow-hidden rounded-2xl bg-brand-bg blueprint-border shadow-2xl shadow-black/60">
+                      <div className="overflow-hidden rounded-xl bg-brand-bg blueprint-border">
                         <iframe
                           src={`https://www.youtube.com/embed/${activeTrailer.video.key}?autoplay=1&rel=0`}
                           title={activeTrailer.video.name || `${title} trailer`}

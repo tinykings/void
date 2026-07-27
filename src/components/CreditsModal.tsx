@@ -25,7 +25,7 @@ export const CreditsModal = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[400] flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="fixed inset-0 z-[400] flex items-end justify-center">
           {/* Overlay */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -40,7 +40,7 @@ export const CreditsModal = ({
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
-            className="relative w-full max-w-6xl h-[92vh] bg-brand-bg/95 blueprint-border rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+            className="sheet-surface"
           >
             {/* Header */}
             <div className="p-6 border-b border-white/10 flex items-center justify-between bg-brand-bg/50 backdrop-blur-md sticky top-0 z-10">

@@ -174,7 +174,7 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, onClick }
 
           {shouldShowReleaseBadge && daysUntilRelease !== null && (
             <div className="absolute top-2 left-2 z-10">
-              <div className="bg-brand-bg/90 backdrop-blur-md text-brand-cyan text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded shadow-lg border border-brand-cyan/40">
+              <div className="rounded-full border border-white/10 bg-brand-bg/90 px-2 py-0.5 text-[10px] font-black uppercase tracking-tighter text-brand-cyan backdrop-blur-md">
                 {daysUntilRelease === 'now' ? 'now' : `${daysUntilRelease} ${daysUntilRelease === 1 ? 'day' : 'days'}`}
               </div>
             </div>
@@ -183,19 +183,19 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, onClick }
           {isSearchFocused && (isGame || inWatched || inWatchlist) ? (
             <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1.5">
               {isGame && (
-                <div className="flex items-center justify-center w-6 h-6 bg-brand-bg/80 backdrop-blur-md text-brand-cyan rounded-full shadow-lg border border-brand-cyan/55">
+                <div className="flex items-center justify-center w-6 h-6 bg-brand-bg/80 backdrop-blur-md text-brand-cyan rounded-full border border-white/10">
                   <Gamepad2 size={13} strokeWidth={2.5} />
                 </div>
               )}
 
               {isSearchFocused && inWatchlist && !inWatched && (
-                <div className="flex items-center justify-center w-6 h-6 bg-brand-cyan/65 backdrop-blur-md text-brand-bg rounded-full shadow-lg border border-brand-cyan/55">
+                <div className="flex items-center justify-center w-6 h-6 bg-brand-cyan/65 backdrop-blur-md text-brand-bg rounded-full border border-white/10">
                   <Bookmark size={12} className="fill-current" />
                 </div>
               )}
 
               {isSearchFocused && inWatched && (
-                <div className="flex items-center justify-center w-6 h-6 bg-green-500/65 backdrop-blur-md text-brand-bg rounded-full shadow-lg border border-green-300/55">
+                <div className="flex items-center justify-center w-6 h-6 bg-green-500/65 backdrop-blur-md text-brand-bg rounded-full border border-white/10">
                   <Check size={12} strokeWidth={3} />
                 </div>
               )}

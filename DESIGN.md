@@ -35,11 +35,10 @@ typography:
     letterSpacing: "0.18em"
     textTransform: "uppercase"
 rounded:
-  sm: "8px"
-  md: "12px"
-  lg: "16px"
-  xl: "24px"
-  pill: "28px"
+  control: "8px"
+  content: "12px"
+  sheet: "24px 24px 0 0"
+  pill: "9999px"
 spacing:
   xs: "4px"
   sm: "8px"
@@ -49,7 +48,7 @@ components:
   button-primary:
     backgroundColor: "#22D3EE"
     textColor: "#0F1115"
-    rounded: "{rounded.md}"
+    rounded: "{rounded.control}"
     padding: "12px 16px"
     fontWeight: 900
     textTransform: "uppercase"
@@ -57,17 +56,17 @@ components:
   button-ghost:
     backgroundColor: "transparent"
     textColor: "{colors.brand-silver}"
-    rounded: "{rounded.sm}"
+    rounded: "{rounded.control}"
     padding: "8px"
   input:
     backgroundColor: "{colors.brand-bg}"
     textColor: "{colors.foreground}"
-    rounded: "{rounded.sm}"
+    rounded: "{rounded.control}"
     padding: "12px"
     borderColor: "{colors.blueprint-border}"
   card:
     backgroundColor: "{colors.brand-bg}"
-    rounded: "{rounded.md}"
+    rounded: "{rounded.content}"
     borderColor: "{colors.blueprint-border}"
 ---
 
@@ -106,7 +105,9 @@ One accent, one neutral, one ground. The palette is deliberately narrow: cyan sa
 ### Named Rules
 **The Single Voice Rule.** Cyan is the only interaction color. Green for history confirmations and red for "remove" danger are semantic exceptions, not aesthetic choices. If it's interactive, it gets cyan or nothing.
 
-**The Blueprint Edge Rule.** Every surface boundary is `1px solid rgba(255,255,255,0.1)`. Not 2px, not colored. A thicker border is a mistake; a colored side-stripe is forbidden.
+**The Blueprint Edge Rule.** Every resting surface boundary is `1px solid rgba(255,255,255,0.1)`. Not 2px, not colored. Interaction colors may appear on focus, hover, selection, and semantic error states. A colored side-stripe is forbidden.
+
+**The Three-Radius Rule.** Controls use 8px, content cards use 12px, and sheet top corners use 24px. Pills are reserved for statuses and segmented controls. No intermediate corner role exists.
 
 ## 3. Typography
 
@@ -142,7 +143,7 @@ Sheets overlay the void with `embossed-edge` border treatment: an inner highligh
 ## 5. Components
 
 ### Buttons
-- **Shape:** Gently rounded corners (12px rounded-xl) for primary and sheet actions. Fully rounded (28px pill or 9999px full) for icon-only and bottom-bar buttons.
+- **Shape:** Controls and sheet actions use 8px corners. Fully rounded pills are reserved for statuses and segmented controls.
 - **Primary CTA** (e.g., "Save," "Sync"): Solid cyan fill (`#22D3EE`), dark text (`#0F1115`), black 900 weight, uppercase, wide tracking. Hover brightens; active scales down slightly (`scale(95%)`).
 - **Ghost / Icon** (e.g., filter buttons, close buttons): Transparent, silver text at rest. On hover, cyan/10 background tint with cyan text. No border unless it's a grouped control.
 - **Action in Sheets** ("History," "Playlist"): Bordered with background tint. Active state gets a stronger tint, cyan glow, and slight lift (`translateY(-0.5px)`).
@@ -162,7 +163,7 @@ Sheets overlay the void with `embossed-edge` border treatment: an inner highligh
 
 ### Sheets (Bottom Drawer)
 - **The signature component of Void.** One sheet at a time, slides up from the bottom.
-- **Container:** Full-width, `max-w-4xl`, `86vh` height, `rounded-t-3xl` (24px) top corners. Embossed edge border treatment. Background is `brand-bg/95` — almost opaque, letting only a whisper of content through.
+- **Container:** Every sheet uses shared `sheet-surface`: full-width, `max-width: 72rem`, `height: min(92dvh, 60rem)`, and 24px top corners. Embossed edge border treatment. Background is `brand-bg/95` — almost opaque, letting only a whisper of content through.
 - **Animation:** Slide up from `y: 100%` to `y: 0` over 120ms, ease-out. Overlay fades in over the same duration.
 - **Drag Handle:** A cyan-bordered bar at the bottom of every sheet. Tapping closes the sheet.
 
@@ -177,8 +178,8 @@ Sheets overlay the void with `embossed-edge` border treatment: an inner highligh
 - **Release Badge:** Same shape but darker (`bg-brand-bg/90 backdrop-blur-md`) with cyan text, blueprint border. Appears on cards when a release is upcoming.
 
 ### Modals (Confirmation)
-- **Style:** Glass-effect surface (`rounded-3xl`, `bg-brand-bg/60`, `backdrop-filter: blur(20px)`, blueprint border), centered. Scale-up entrance animation (0.9 → 1, 20px upward slide).
-- **Icon container:** 64px square, `rounded-2xl`, blueprint border. Cyan tint for info actions, red tint for destructive.
+- **Style:** Active embossed surface (12px content radius, `bg-brand-bg/95`, blueprint border), centered. Scale-up entrance animation (0.9 → 1, 20px upward slide).
+- **Icon container:** 64px square, 12px content radius, blueprint border. Cyan tint for info actions, red tint for destructive.
 - **Actions:** Full-width primary button + ghost cancel link below.
 
 ## 6. Do's and Don'ts

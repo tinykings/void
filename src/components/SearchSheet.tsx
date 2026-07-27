@@ -52,7 +52,7 @@ export const SearchSheet = () => {
       <img
         src={logoPng.src}
         alt="Void"
-        className="h-10 w-10 rounded-xl object-cover blueprint-border bg-brand-bg shrink-0"
+        className="h-10 w-10 rounded-lg object-cover blueprint-border bg-brand-bg shrink-0"
         decoding="async"
       />
       <div className="relative min-w-0 flex-1">
@@ -66,7 +66,7 @@ export const SearchSheet = () => {
             setQuery(e.target.value);
           }}
           placeholder={isOnline ? 'Search movies, shows, games...' : 'Search unavailable offline'}
-          className="w-full rounded-xl border border-brand-cyan/20 bg-brand-bg/90 py-2.5 pl-10 pr-11 text-sm font-medium text-white outline-none shadow-[0_0_20px_rgba(34,211,238,0.08)] ring-2 ring-brand-cyan/10 placeholder:text-brand-silver/50"
+          className="w-full rounded-lg border border-white/10 bg-brand-bg/90 py-2.5 pl-10 pr-11 text-sm font-medium text-white outline-none ring-1 ring-transparent placeholder:text-brand-silver/50 focus:border-brand-cyan/25 focus:ring-brand-cyan/30"
         />
         <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
           <button
@@ -85,7 +85,7 @@ export const SearchSheet = () => {
       <button
         type="submit"
         disabled={!isOnline || searchTerm.length < 2 || isSearching}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-brand-cyan/25 bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:border-brand-cyan/40 hover:bg-brand-cyan/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-brand-cyan/10 text-brand-cyan transition-colors hover:border-brand-cyan/40 hover:bg-brand-cyan/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
         title="Search"
         aria-label="Search"
       >
@@ -102,7 +102,7 @@ export const SearchSheet = () => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[340] flex items-end justify-center" onClick={closeAllSheets}>
+      <div className="fixed inset-0 z-[340] flex items-end justify-center" onClick={closeSheet}>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -116,10 +116,7 @@ export const SearchSheet = () => {
           exit={{ y: '100%' }}
           transition={{ duration: 0.12, ease: 'easeOut' }}
           onClick={(e) => e.stopPropagation()}
-          className={isLibraryEmpty
-            ? "relative w-full h-full bg-brand-bg/95 shadow-2xl overflow-hidden flex flex-col will-change-transform"
-            : "relative w-full max-w-6xl h-[92vh] max-h-[96vh] bg-brand-bg/95 blueprint-border rounded-t-3xl shadow-2xl overflow-hidden flex flex-col will-change-transform"
-          }
+          className="sheet-surface will-change-transform"
         >
           <FocusTrap active={isSearchFocused}>
           <div className={topBarClassName}>

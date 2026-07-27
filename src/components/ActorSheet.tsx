@@ -143,7 +143,7 @@ export const ActorSheet = () => {
           exit={{ y: '100%' }}
           transition={{ duration: 0.12, ease: 'easeOut' }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-6xl h-[92vh] max-h-[96vh] bg-brand-bg/95 embossed-edge rounded-t-3xl overflow-hidden flex flex-col will-change-transform"
+          className="sheet-surface will-change-transform"
         >
           <FocusTrap active={!!actor}>
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-brand-bg/80">
@@ -163,7 +163,7 @@ export const ActorSheet = () => {
 
           <div className="flex-1 overflow-y-auto px-4 pb-24">
             <div className="pt-4 space-y-4">
-              <div className="rounded-2xl blueprint-border bg-white/5 overflow-hidden">
+              <div className="rounded-xl blueprint-border bg-white/5 overflow-hidden">
                 <div className="p-4 sm:p-5 space-y-5">
                   <div className="grid grid-cols-[minmax(0,1fr)_6rem] sm:grid-cols-[minmax(0,1fr)_8rem] md:grid-cols-[minmax(0,1fr)_10rem] gap-4 sm:gap-5 items-start">
                     <div className="min-w-0 grid gap-3 text-sm">

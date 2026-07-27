@@ -67,10 +67,10 @@ export const ConfirmationModal = ({
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-sm glass-effect rounded-3xl p-6 shadow-2xl overflow-hidden"
+            className="relative w-full max-w-sm overflow-hidden rounded-xl bg-brand-bg/95 p-6 embossed-edge"
           >
             <div className="flex flex-col items-center text-center">
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-6 blueprint-border ${
+              <div className={`w-16 h-16 rounded-xl flex items-center justify-center mb-6 blueprint-border ${
                 type === 'danger' ? 'bg-red-500/20 text-red-400' : 'bg-brand-cyan/20 text-brand-cyan'
               }`}>
                 <AlertCircle size={32} />
@@ -87,8 +87,8 @@ export const ConfirmationModal = ({
                   }}
                   className={`w-full py-4 rounded-xl font-black uppercase tracking-widest transition-all active:scale-95 ${
                     type === 'danger' 
-                      ? 'bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/20' 
-                      : 'bg-brand-cyan text-brand-bg shadow-lg shadow-brand-cyan/20'
+                      ? 'bg-red-600 hover:bg-red-500 text-white'
+                      : 'bg-brand-cyan text-brand-bg'
                   }`}
                 >
                   {confirmText}
