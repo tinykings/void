@@ -10,6 +10,7 @@ import { getMediaKey, getMediaSource } from '@/lib/media';
 
 const DEFAULT_TMDB_ACCESS_TOKEN = process.env.NEXT_PUBLIC_TMDB_READ_ACCESS_TOKEN || '';
 const METADATA_HYDRATION_CONCURRENCY = 1;
+const TV_MIGRATION_WINDOW_DAYS = 7;
 
 let gistQueue: Promise<void> = Promise.resolve();
 
@@ -316,7 +317,7 @@ export const useStore = create<StoreState>()(
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
                     const cutoff = new Date(today);
-                    cutoff.setDate(today.getDate() + 30);
+                    cutoff.setDate(today.getDate() + TV_MIGRATION_WINDOW_DAYS);
                     cutoff.setHours(23, 59, 59, 999);
 
                     if (airDate.getTime() >= today.getTime() && airDate.getTime() <= cutoff.getTime()) {

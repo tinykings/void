@@ -353,14 +353,14 @@
         <div class="item-actions"></div>
       </article>
 
-      <article class="item" data-id="migration-window" data-type="bug" data-severity="medium" data-status="open">
+      <article class="item" data-id="migration-window" data-type="bug" data-severity="medium" data-status="fixed" data-resolution="Changed the migration window to 7 days, including today; ended and canceled shows remain excluded.">
         <div class="item-number">B-05</div>
         <div class="item-main">
           <div class="item-head"><span class="tag medium">Medium</span><span class="tag recommendation">Requirement</span></div>
           <h2>TV migration uses 30 days instead of 7</h2>
-          <p>The README says history items return to the playlist when an episode airs within seven days; the implementation uses a 30-day cutoff.</p>
-          <div class="source">README.md:32 · src/store/useStore.ts:291–296</div>
-          <details><summary>Fix and acceptance criteria</summary><ul><li>Choose the intended product behavior and align code and documentation.</li><li>Move the window into a named constant.</li><li>Add boundary tests for today, day 7, day 8, ended, and canceled shows.</li></ul></details>
+          <p>The migration window now matches the documented behavior: watched shows return to the playlist when the next episode airs between today and seven days from today.</p>
+          <div class="source">README.md:32 · src/store/useStore.ts:11–13, 292–297</div>
+          <details><summary>Resolution details</summary><ul><li>Uses the named constant <code>TV_MIGRATION_WINDOW_DAYS</code> set to 7.</li><li>Includes episodes airing today and up to seven days ahead.</li><li>Ended and canceled shows remain excluded.</li></ul></details>
         </div>
         <div class="item-actions"></div>
       </article>
