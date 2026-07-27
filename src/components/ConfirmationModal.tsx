@@ -76,7 +76,7 @@ export const ConfirmationModal = ({
                 <AlertCircle size={32} />
               </div>
               
-              <h2 id="confirmation-modal-title" className="text-xl font-black text-white uppercase italic tracking-tighter mb-2">{title}</h2>
+              <h2 id="confirmation-modal-title" className="type-title mb-2 text-white">{title}</h2>
               <p id="confirmation-modal-message" className="text-brand-silver text-sm leading-relaxed mb-8">{message}</p>
 
               <div className="flex flex-col w-full gap-3">
@@ -85,7 +85,7 @@ export const ConfirmationModal = ({
                     onConfirm();
                     onClose();
                   }}
-                  className={`w-full py-4 rounded-xl font-black uppercase tracking-widest transition-all active:scale-95 ${
+                  className={`type-action w-full rounded-xl py-4 transition-all active:scale-95 ${
                     type === 'danger' 
                       ? 'bg-red-600 hover:bg-red-500 text-white'
                       : 'bg-brand-cyan text-brand-bg'
@@ -95,7 +95,7 @@ export const ConfirmationModal = ({
                 </button>
                 <button
                   onClick={onClose}
-                  className="w-full py-4 text-xs font-bold text-brand-silver hover:text-white uppercase tracking-[0.2em] transition-colors"
+                  className="type-action w-full py-4 text-brand-silver transition-colors hover:text-white"
                 >
                   {cancelText}
                 </button>

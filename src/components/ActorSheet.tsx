@@ -148,7 +148,7 @@ export const ActorSheet = () => {
           <FocusTrap active={!!actor}>
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-brand-bg/80">
             <div className="min-w-0">
-              <h2 className="min-w-0 text-lg font-black text-white uppercase tracking-tight leading-tight truncate">
+              <h2 className="type-title min-w-0 truncate text-white">
                 {actorName}
               </h2>
             </div>
@@ -164,37 +164,33 @@ export const ActorSheet = () => {
           <div className="flex-1 overflow-y-auto px-4 pb-24">
             <div className="pt-4 space-y-4">
               <div className="rounded-xl blueprint-border bg-white/5 overflow-hidden">
-                <div className="p-4 sm:p-5 space-y-5">
-                  <div className="grid grid-cols-[minmax(0,1fr)_6rem] sm:grid-cols-[minmax(0,1fr)_8rem] md:grid-cols-[minmax(0,1fr)_10rem] gap-4 sm:gap-5 items-start">
-                    <div className="min-w-0 grid gap-3 text-sm">
-                      <div>
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-brand-silver/60">Born</p>
-                        <p className="mt-1 text-white font-medium">{bornLabel}</p>
+                <div className="flow-root p-4 sm:p-5">
+                  <div className="float-right mb-3 ml-4 aspect-square w-24 overflow-hidden rounded-xl bg-brand-bg/60 blueprint-border sm:mb-4 sm:ml-5 sm:w-32 md:w-40">
+                    {actor.profile_path ? (
+                      <img
+                        src={getImageUrl(actor.profile_path, 'w342')}
+                        alt={actorName}
+                        className="h-full w-full object-cover"
+                        decoding="async"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-brand-bg text-brand-silver">
+                        <User size={32} />
                       </div>
-                      <div>
-                        <p className="mt-1 text-white font-medium">{details?.place_of_birth || 'Unknown'}</p>
-                      </div>
-                    </div>
-
-                    <div className="aspect-square w-24 sm:w-32 md:w-40 justify-self-end rounded-xl blueprint-border bg-brand-bg/60 overflow-hidden">
-                      {actor.profile_path ? (
-                        <img
-                          src={getImageUrl(actor.profile_path, 'w342')}
-                          alt={actorName}
-                          className="w-full h-full object-cover"
-                          decoding="async"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-brand-silver bg-brand-bg">
-                          <User size={32} />
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
 
-                  <div>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-brand-silver/60">Biography</p>
+                  <div className="grid gap-3 text-sm">
+                    <div>
+                      <p className="type-label text-brand-silver/60">Born</p>
+                      <p className="mt-1 font-medium text-white">{bornLabel}</p>
+                    </div>
+                    <p className="font-medium text-white">{details?.place_of_birth || 'Unknown'}</p>
+                  </div>
+
+                  <div className="mt-5">
+                    <p className="type-label text-brand-silver/60">Biography</p>
                     <p className="mt-2 text-sm leading-relaxed text-brand-silver">
                       {biography || 'No biography available.'}
                     </p>

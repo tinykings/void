@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { IBM_Plex_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import { Toaster } from "sonner";
 import { OfflineGuard } from "@/components/OfflineGuard";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const utility = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-utility",
+});
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tinykings.github.io/void";
 const normalizeBasePath = (path?: string) => {
   const trimmedPath = (path || "").trim().replace(/^\/+|\/+$/g, "");
@@ -54,7 +59,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} bg-brand-bg text-foreground min-h-screen flex flex-col transition-colors duration-300`}>
+      <body className={`${inter.variable} ${utility.variable} bg-brand-bg text-foreground min-h-screen flex flex-col transition-colors duration-300`}>
         <AppProvider>
           <KeyboardShortcuts />
           <OfflineGuard>

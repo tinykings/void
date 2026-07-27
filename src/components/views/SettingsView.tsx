@@ -36,7 +36,7 @@ export const SettingsView = () => {
         >
           <ArrowLeft size={24} />
         </button>
-        <h1 className="text-2xl font-bold text-white uppercase italic tracking-tighter">Settings</h1>
+        <h1 className="type-display text-white">Settings</h1>
       </div>
 
       <div className="space-y-6">
@@ -44,7 +44,7 @@ export const SettingsView = () => {
           <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">
             <div className="flex items-center gap-2 mb-4">
               <Download className="text-brand-cyan" size={20} />
-              <h2 className="text-lg font-semibold text-white">Backup Collection</h2>
+              <h2 className="type-title text-white">Backup collection</h2>
             </div>
 
             <p className="text-sm text-brand-silver mb-4">
@@ -53,16 +53,16 @@ export const SettingsView = () => {
 
             <button
               onClick={handleBackupJson}
-              className="w-full py-3 bg-brand-bg blueprint-border rounded-xl font-bold text-white hover:bg-brand-cyan/10 transition-colors flex items-center justify-center gap-2"
+              className="type-action flex w-full items-center justify-center gap-2 rounded-xl bg-brand-bg py-3 text-white blueprint-border transition-colors hover:bg-brand-cyan/10"
             >
               <Download size={16} />
-              Download JSON Backup
+              Download JSON backup
             </button>
           </section>
         )}
 
         <section className="text-center pt-4">
-          <p className="text-xs text-brand-silver/50">Data provided by TMDB and IGDB.</p>
+          <p className="type-readout text-brand-silver/50">Data provided by TMDB and IGDB.</p>
         </section>
       </div>
     </div>

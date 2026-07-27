@@ -60,8 +60,8 @@ export const CreditsModal = ({
                   )}
                 </div>
                 <div>
-                  <h2 className="text-xl font-black text-white uppercase italic tracking-tighter leading-none">{actor?.name}</h2>
-                  <p className="text-brand-silver text-xs font-bold uppercase tracking-widest mt-1">Known For</p>
+                  <h2 className="type-title text-white">{actor?.name}</h2>
+                  <p className="type-label mt-1 text-brand-silver">Known for</p>
                 </div>
               </div>
               

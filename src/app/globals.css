@@ -33,6 +33,11 @@
   --radius-sheet: 24px;
   --sheet-width: 72rem;
   --sheet-height: min(92dvh, 60rem);
+  --type-display-size: clamp(1.5rem, 4vw, 1.875rem);
+  --type-title-size: 1.125rem;
+  --type-body-size: 0.875rem;
+  --type-label-size: 0.6875rem;
+  --type-micro-size: 0.625rem;
 }
 
 .dark {
@@ -48,7 +53,7 @@ html, body {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -83,6 +88,10 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 1px 3px rgba(0, 0, 0, 0.5),
     0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.sheet-surface-compact {
+  height: min(70dvh, 32rem);
 }
 
 /* Embossed edge — active raised surfaces only. */
@@ -120,6 +129,70 @@ body {
 }
 
 @layer utilities {
+  /* Type roles: neutral content voice plus instrument-like utility readouts. */
+  .type-display {
+    font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+    font-size: var(--type-display-size);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+  }
+  .type-title {
+    font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+    font-size: var(--type-title-size);
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+  .type-body {
+    font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+    font-size: var(--type-body-size);
+    font-weight: 500;
+    line-height: 1.5;
+  }
+  .type-action {
+    font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+    font-size: var(--type-body-size);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .type-label,
+  .type-micro,
+  .type-readout,
+  .type-filter {
+    font-family: var(--font-utility), "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  .type-label {
+    font-size: var(--type-label-size);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .type-micro {
+    font-size: var(--type-micro-size);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .type-readout {
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: 0.035em;
+  }
+  .type-filter {
+    font-size: var(--type-body-size);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    text-transform: none;
+  }
+
   .text-balance {
     text-wrap: balance;
   }

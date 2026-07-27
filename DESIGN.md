@@ -16,7 +16,7 @@ typography:
     fontSize: "clamp(1.5rem, 4vw, 1.875rem)"
     fontWeight: 900
     lineHeight: 1.1
-    letterSpacing: "normal"
+    letterSpacing: "-0.025em"
   title:
     fontFamily: "Inter, Arial, Helvetica, sans-serif"
     fontSize: "1.125rem"
@@ -28,12 +28,18 @@ typography:
     fontWeight: 500
     lineHeight: 1.5
   label:
-    fontFamily: "Inter, Arial, Helvetica, sans-serif"
+    fontFamily: "IBM Plex Mono, monospace"
     fontSize: "0.6875rem"
-    fontWeight: 900
+    fontWeight: 700
     lineHeight: 1.2
-    letterSpacing: "0.18em"
+    letterSpacing: "0.12em"
     textTransform: "uppercase"
+  readout:
+    fontFamily: "IBM Plex Mono, monospace"
+    fontSize: "0.75rem"
+    fontWeight: 600
+    lineHeight: 1.25
+    letterSpacing: "0.035em"
 rounded:
   control: "8px"
   content: "12px"
@@ -50,9 +56,9 @@ components:
     textColor: "#0F1115"
     rounded: "{rounded.control}"
     padding: "12px 16px"
-    fontWeight: 900
-    textTransform: "uppercase"
-    letterSpacing: "0.1em"
+    fontWeight: 700
+    textTransform: "none"
+    letterSpacing: "0"
   button-ghost:
     backgroundColor: "transparent"
     textColor: "{colors.brand-silver}"
@@ -111,20 +117,23 @@ One accent, one neutral, one ground. The palette is deliberately narrow: cyan sa
 
 ## 3. Typography
 
-**Display Font:** Inter (system sans-serif fallback: Arial, Helvetica)
-**Body Font:** Inter (same stack)
+**Display and body font:** Inter (system sans-serif fallback: Arial, Helvetica)
+**Utility font:** IBM Plex Mono (monospace fallback)
 
-**Character:** Inter at small sizes with high weight contrast. The system is almost entirely set in regular (500), semibold (600), or black (900). No intermediate weights. The jump from metadata silver (500) to title white (900) creates the hierarchy — no size tricks needed.
+**Character:** Inter keeps titles, actions, and reading text direct and neutral. IBM Plex Mono gives compact operational data the voice of equipment labels and monitor readouts. Contrast comes from role, not arbitrary size and tracking changes.
 
 ### Hierarchy
-- **Display** (Black 900, `clamp(1.5rem, 4vw, 1.875rem)`, 1.1): Main sheet titles. Only the media title gets this scale. Uppercase italic variant for section headers like "Settings" and "Stream."
-- **Headline** (Semibold 600, `1.125rem`, 1.3): Sheet section headers ("Overview," "Cast"), settings group titles. Rare.
-- **Body** (Medium 500, `0.875rem`, 1.5): Overview text, descriptions, sync status. Max line length 65ch inside sheet content.
-- **Label Caps** (Black 900, `0.6875rem`, 1.2, `0.18em` tracking, uppercase): Filters, tabs, badges, metadata chips, button labels. The workhorse of the UI. Compact density is the point: labels this small and this bold read as confident, not small.
-- **Micro Label** (Black 900, `0.625rem`, 1.2, `0.2em` tracking, uppercase): Content rating badges, release count tags, smallest chrome.
+- **Display / `.type-display`** (Inter Black 900, `clamp(1.5rem, 4vw, 1.875rem)`, 1.1): Media and primary view titles. Sentence case; content names are never forced uppercase.
+- **Title / `.type-title`** (Inter Semibold 600, `1.125rem`, 1.3): Sheet headers and settings group titles.
+- **Body / `.type-body`** (Inter Medium 500, `0.875rem`, 1.5): Overview text, descriptions, sync status. Max line length 65ch inside sheet content.
+- **Action / `.type-action`** (Inter Bold 700, `0.875rem`, 1.2): Buttons and navigation actions. Sentence case with normal tracking.
+- **Filter / `.type-filter`** (IBM Plex Mono Semibold 600, `0.875rem`, 1.2): Filter choices. Sentence case with compact tracking.
+- **Utility Label / `.type-label`** (IBM Plex Mono Bold 700, `0.6875rem`, 1.2, `0.12em` tracking): Short labels such as “Born,” “Known for,” and provider sections. Uppercase.
+- **Micro Label / `.type-micro`** (IBM Plex Mono Bold 700, `0.625rem`, 1.2, `0.14em` tracking): Content ratings, release badges, and smallest chrome. Uppercase.
+- **Readout / `.type-readout`** (IBM Plex Mono Semibold 600, `0.75rem`, 1.25): Counts, ratings, dates, source lines, timestamps, and status values. Uses tabular numerals and preserves value casing.
 
 ### Named Rules
-**The Caps-Only UI Rule.** All navigation, filter, badge, and button text is uppercase with wide tracking. The only lowercase text in the interface is content — titles, descriptions, metadata values. This draws a hard line between the frame (UI) and the picture (content).
+**The Instrument Readout Rule.** Monospace identifies operational data, not every control. Use it for labels and values a user scans rather than reads. Uppercase is reserved for short utility labels and micro badges. Actions and explanatory copy remain sentence case in Inter.
 
 ## 4. Elevation
 
@@ -144,7 +153,7 @@ Sheets overlay the void with `embossed-edge` border treatment: an inner highligh
 
 ### Buttons
 - **Shape:** Controls and sheet actions use 8px corners. Fully rounded pills are reserved for statuses and segmented controls.
-- **Primary CTA** (e.g., "Save," "Sync"): Solid cyan fill (`#22D3EE`), dark text (`#0F1115`), black 900 weight, uppercase, wide tracking. Hover brightens; active scales down slightly (`scale(95%)`).
+- **Primary CTA** (e.g., "Save," "Sync"): Solid cyan fill (`#22D3EE`), dark text (`#0F1115`), Inter bold 700 in sentence case. Hover brightens; active scales down slightly (`scale(95%)`).
 - **Ghost / Icon** (e.g., filter buttons, close buttons): Transparent, silver text at rest. On hover, cyan/10 background tint with cyan text. No border unless it's a grouped control.
 - **Action in Sheets** ("History," "Playlist"): Bordered with background tint. Active state gets a stronger tint, cyan glow, and slight lift (`translateY(-0.5px)`).
 - **Pulse on Confirm:** Action buttons in the details sheet animate a scale pulse on press (1 → 1.06 → 0.98 → 1, 200ms ease-out).
@@ -163,7 +172,7 @@ Sheets overlay the void with `embossed-edge` border treatment: an inner highligh
 
 ### Sheets (Bottom Drawer)
 - **The signature component of Void.** One sheet at a time, slides up from the bottom.
-- **Container:** Every sheet uses shared `sheet-surface`: full-width, `max-width: 72rem`, `height: min(92dvh, 60rem)`, and 24px top corners. Embossed edge border treatment. Background is `brand-bg/95` — almost opaque, letting only a whisper of content through.
+- **Container:** Every sheet uses shared `sheet-surface`: full-width, `max-width: 72rem`, `height: min(92dvh, 60rem)`, and 24px top corners. Single-purpose sheets with little content may add `sheet-surface-compact` for `height: min(70dvh, 32rem)`. Embossed edge border treatment. Background is `brand-bg/95` — almost opaque, letting only a whisper of content through.
 - **Animation:** Slide up from `y: 100%` to `y: 0` over 120ms, ease-out. Overlay fades in over the same duration.
 - **Drag Handle:** A cyan-bordered bar at the bottom of every sheet. Tapping closes the sheet.
 
@@ -174,7 +183,7 @@ Sheets overlay the void with `embossed-edge` border treatment: an inner highligh
 - **Context badge:** Floating status pill above the bar showing the current view ("Playlist · All," "History · Movies").
 
 ### Chips / Badges
-- **Style:** `rounded-full` with `bg-white/10` background, 10px black 900 uppercase label, wide tracking. Used for content ratings, media type labels (movie/TV), year, vote average.
+- **Style:** `rounded-full` with `bg-white/10` background and the IBM Plex Mono micro-label role. Used for content ratings and short media-type labels; numeric year and vote values use the readout role.
 - **Release Badge:** Same shape but darker (`bg-brand-bg/90 backdrop-blur-md`) with cyan text, blueprint border. Appears on cards when a release is upcoming.
 
 ### Modals (Confirmation)
@@ -186,7 +195,7 @@ Sheets overlay the void with `embossed-edge` border treatment: an inner highligh
 
 ### Do:
 - **Do** use cyan as the single interaction color. If it's tappable and active, it gets cyan.
-- **Do** use the Caps-Only UI convention for all navigation, labels, and buttons. Lowercase is reserved for content.
+- **Do** use IBM Plex Mono for compact labels, ratings, dates, counts, sources, timestamps, and status readouts. Keep actions and explanatory copy in sentence case.
 - **Do** let poster art and backdrops provide the color. The interface is the frame.
 - **Do** use blueprint borders (1px `rgba(255,255,255,0.1)`) for every surface boundary.
 - **Do** use glass layering (translucency + backdrop-blur) to create depth. Sheets at 95%, bottom bar at 70%, overlays at 60-80% opacity.

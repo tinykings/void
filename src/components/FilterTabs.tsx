@@ -28,7 +28,7 @@ export const FilterTabs: React.FC<FilterTabsProps> = ({ currentFilter, onFilterC
             key={tab.id}
             onClick={() => onFilterChange(tab.id)}
             className={clsx(
-              "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-bold transition-all",
+              "type-filter flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all",
               isActive 
                 ? "bg-brand-cyan/10 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)]" 
                 : "text-brand-silver hover:text-white"

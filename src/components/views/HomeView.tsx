@@ -402,7 +402,7 @@ export const HomeView = () => {
               <LoaderCircle size={22} className="animate-spin text-brand-cyan" />
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-white">Syncing collection</p>
-                <p className="text-[11px] uppercase tracking-[0.18em] text-brand-silver/60">
+                <p className="type-readout text-brand-silver/60">
                   Updating from your Gist
                 </p>
               </div>
@@ -417,7 +417,7 @@ export const HomeView = () => {
           <div
             aria-live="polite"
             className={clsx(
-              'absolute left-1/2 -translate-x-1/2 bottom-full mb-3 px-4 py-1.5 rounded-full bg-brand-bg/80 backdrop-blur-md border border-brand-cyan/20 text-xs font-semibold tracking-widest uppercase text-brand-cyan whitespace-nowrap transition-all duration-300 pointer-events-none',
+              'type-readout absolute left-1/2 -translate-x-1/2 bottom-full mb-3 px-4 py-1.5 rounded-full bg-brand-bg/80 backdrop-blur-md border border-brand-cyan/20 text-brand-cyan whitespace-nowrap transition-all duration-300 pointer-events-none',
               (persistentStatus || (statusLabel && !statusFading))
                 ? 'opacity-100 translate-y-0'
                 : 'opacity-0 translate-y-3'
@@ -446,7 +446,7 @@ export const HomeView = () => {
                           type="button"
                           onClick={() => selectTypeFilter(item.id)}
                           className={clsx(
-                            'w-full px-3 py-3 text-left text-sm font-bold flex items-center gap-2 transition-colors',
+                            'type-filter w-full px-3 py-3 text-left flex items-center gap-2 transition-colors',
                             isActive
                               ? 'text-brand-cyan bg-brand-cyan/5'
                               : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
@@ -464,7 +464,7 @@ export const HomeView = () => {
                       type="button"
                       onClick={selectFavoritesFilter}
                       className={clsx(
-                        'w-full px-3 py-3 text-left text-sm font-bold flex items-center gap-2 transition-colors',
+                        'type-filter w-full px-3 py-3 text-left flex items-center gap-2 transition-colors',
                         showFavoritesOnly
                           ? 'bg-brand-cyan/12 text-brand-cyan'
                           : 'text-brand-silver hover:bg-brand-bg/50 hover:text-white'
@@ -480,7 +480,7 @@ export const HomeView = () => {
                       type="button"
                       onClick={selectStreamView}
                       className={clsx(
-                        'w-full px-3 py-3 text-left text-sm font-bold flex items-center gap-2 transition-colors',
+                        'type-filter w-full px-3 py-3 text-left flex items-center gap-2 transition-colors',
                         showStreamView
                           ? 'text-brand-cyan bg-brand-cyan/5'
                           : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
@@ -498,7 +498,7 @@ export const HomeView = () => {
                         setShowTypeMenu(false);
                         setShowSyncModal(true);
                       }}
-                      className="w-full px-3 py-3 text-left text-sm font-bold flex items-center gap-2 text-brand-silver hover:text-white hover:bg-brand-bg/50 transition-colors"
+                      className="type-action w-full px-3 py-3 text-left flex items-center gap-2 text-brand-silver hover:text-white hover:bg-brand-bg/50 transition-colors"
                     >
                       <Settings size={15} />
                       Settings
@@ -614,12 +614,12 @@ export const HomeView = () => {
               exit={{ y: '100%' }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
               onClick={(e) => e.stopPropagation()}
-              className="sheet-surface will-change-transform"
+              className="sheet-surface sheet-surface-compact will-change-transform"
             >
               <FocusTrap active={showSyncModal}>
               <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-brand-bg/80">
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Settings</h2>
+                  <h2 className="type-title text-white">Settings</h2>
                 </div>
                 <button
                   onClick={() => setShowSyncModal(false)}
@@ -636,8 +636,8 @@ export const HomeView = () => {
                     <Github size={19} />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-sm font-semibold text-white">Connected to GitHub</h3>
-                    <p className="truncate text-xs text-brand-silver">@{githubLogin}</p>
+                    <h3 className="type-title text-white">Connected to GitHub</h3>
+                    <p className="type-readout truncate text-brand-silver">@{githubLogin}</p>
                   </div>
                 </div>
 
@@ -646,7 +646,7 @@ export const HomeView = () => {
                   onClick={() => void syncFromGist(true)}
                   disabled={!isOnline || isSyncingLibrary}
                   className={clsx(
-                    'w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-colors blueprint-border',
+                    'type-action w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 transition-colors blueprint-border',
                     !isOnline || isSyncingLibrary
                       ? 'bg-white/5 text-brand-silver/40 cursor-not-allowed'
                       : 'bg-brand-bg text-white hover:bg-brand-cyan/10'
@@ -662,7 +662,7 @@ export const HomeView = () => {
                     setShowSyncModal(false);
                     disconnectGithub();
                   }}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-red-200 transition-colors hover:bg-red-500/10"
+                  className="type-action flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-red-200 transition-colors hover:bg-red-500/10"
                 >
                   <LogOut size={16} />
                   Disconnect GitHub
@@ -670,12 +670,12 @@ export const HomeView = () => {
               </div>
 
               <div className="pt-2 text-center space-y-1">
-                <p className="text-xs text-brand-silver/50">Data provided by TMDB and IGDB.</p>
+                <p className="type-readout text-brand-silver/50">Data provided by TMDB and IGDB.</p>
                 <a
                   href="https://github.com/tinykings/void"
                   target="_blank"
                   rel="noreferrer"
-                  className="block text-xs text-brand-silver/70 hover:text-brand-cyan transition-colors"
+                  className="type-readout block text-brand-silver/70 hover:text-brand-cyan transition-colors"
                 >
                   github.com/tinykings/void
                   </a>

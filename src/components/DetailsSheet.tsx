@@ -380,7 +380,7 @@ export const DetailsSheet = () => {
             </div>
             <div className="p-2">
               <p className="truncate text-xs font-black leading-tight text-white">{video.name || 'Trailer'}</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-brand-silver">{video.type || 'Video'}</p>
+              <p className="type-micro text-brand-silver">{video.type || 'Video'}</p>
             </div>
           </motion.button>
         ))}
@@ -486,17 +486,17 @@ export const DetailsSheet = () => {
                   )}
                   <div className="min-w-0 flex-1 space-y-3">
                     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                      <h2 className="text-2xl font-black leading-tight text-white sm:text-3xl">
+                      <h2 className="type-display text-white">
                         {title}
                       </h2>
                       {(episodeLabel || movieReleaseLabel) && (
-                        <span className="text-[11px] font-black uppercase tracking-widest text-brand-cyan">
+                        <span className="type-label text-brand-cyan">
                           {episodeLabel || movieReleaseLabel}
                         </span>
                       )}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-widest font-bold text-brand-silver">
+                    <div className="type-readout flex flex-wrap items-center gap-2 text-brand-silver">
                       <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{isGame ? 'game' : selected.media_type}</span>
                       {year && <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{year}</span>}
                       <span className={clsx('px-2 py-1 rounded-full backdrop-blur-sm', (selected.vote_average ?? 0) >= 7 ? 'bg-brand-cyan/10 text-brand-cyan' : 'bg-white/10 text-brand-silver')}>★ {selected.vote_average?.toFixed(1) || '0.0'}</span>
@@ -540,7 +540,7 @@ export const DetailsSheet = () => {
                       <button
                         type="button"
                         onClick={handleRetryInit}
-                        className="rounded-lg border border-red-500/40 bg-red-950/40 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
+                        className="type-action rounded-lg border border-red-500/40 bg-red-950/40 px-3 py-1 text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
                       >
                         Retry
                       </button>
@@ -554,8 +554,8 @@ export const DetailsSheet = () => {
                     <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-brand-cyan/20 bg-brand-cyan/[0.05]">
                       {gameTimeItems.map((item) => (
                         <div key={item.label} className="border-r border-white/10 px-2 py-2 text-center last:border-r-0">
-                          <p className="truncate text-[8px] font-black uppercase tracking-widest text-brand-silver sm:text-[9px]">{item.label}</p>
-                          <p className="mt-1 text-base font-black leading-none text-white sm:text-xl">{item.value}H</p>
+                          <p className="type-micro truncate text-brand-silver">{item.label}</p>
+                          <p className="type-readout mt-1 text-base leading-none text-white sm:text-xl">{item.value}H</p>
                         </div>
                       ))}
                     </div>
@@ -571,7 +571,7 @@ export const DetailsSheet = () => {
                           <button
                             type="button"
                             onClick={() => handleRetrySection('cast')}
-                            className="rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
+                            className="type-action rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-1.5 text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
                           >
                             Retry
                           </button>
@@ -656,7 +656,7 @@ export const DetailsSheet = () => {
                             <button
                               type="button"
                               onClick={() => handleRetrySection('images')}
-                              className="rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
+                              className="type-action rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-1.5 text-red-200 transition-all hover:bg-red-900/60 hover:border-red-400/60"
                             >
                               Retry
                             </button>
@@ -682,7 +682,7 @@ export const DetailsSheet = () => {
                       </div>
                     )}
 
-                <p className="text-center text-[10px] uppercase tracking-[0.2em] text-brand-silver/60">
+                <p className="type-readout text-center text-brand-silver/60">
                   Data provided by {providerLabel}.
                 </p>
               </div>
@@ -795,7 +795,7 @@ export const DetailsSheet = () => {
                     animate={currentActionPulse === 'watched' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
                     transition={{ duration: 0.2, ease: 'easeOut' }}
                     className={clsx(
-                      'flex h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 text-xs font-black uppercase tracking-widest transition-colors duration-200',
+                      'type-action flex h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 transition-colors duration-200',
                       inWatched
                         ? 'border-green-400/40 bg-green-500/15 text-green-200 hover:border-green-300/60 hover:bg-green-500/25'
                         : 'border-white/15 bg-brand-bg/80 text-white hover:border-brand-cyan/30 hover:bg-brand-cyan/10 hover:text-brand-cyan'
@@ -845,7 +845,7 @@ export const DetailsSheet = () => {
                     animate={currentActionPulse === 'watchlist' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
                     transition={{ duration: 0.2, ease: 'easeOut' }}
                     className={clsx(
-                      'flex h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 text-xs font-black uppercase tracking-widest transition-colors duration-200',
+                      'type-action flex h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 transition-colors duration-200',
                       inWatchlist
                         ? 'border-brand-cyan/40 bg-brand-cyan/15 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.12)] hover:border-brand-cyan/60 hover:bg-brand-cyan/25'
                         : 'border-white/15 bg-brand-bg/80 text-white hover:border-brand-cyan/30 hover:bg-brand-cyan/10 hover:text-brand-cyan'

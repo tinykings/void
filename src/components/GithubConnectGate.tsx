@@ -48,7 +48,7 @@ export const GithubConnectGate = () => {
             priority
             className="h-32 w-32 rounded-[28px] object-cover sm:h-36 sm:w-36"
           />
-          <p className="text-xl font-black uppercase tracking-[0.18em] text-slate-50">Void</p>
+          <p className="type-display text-slate-50">Void</p>
         </div>
 
         <div className="border-y border-blueprint-border py-7">
@@ -69,7 +69,7 @@ export const GithubConnectGate = () => {
             type="button"
             onClick={handleConnect}
             disabled={isConnecting}
-            className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-brand-cyan px-5 py-3.5 text-xs font-black uppercase tracking-[0.12em] text-brand-bg transition-colors hover:bg-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-4 focus-visible:ring-offset-brand-bg active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
+            className="type-action flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-brand-cyan px-5 py-3.5 text-brand-bg transition-colors hover:bg-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-4 focus-visible:ring-offset-brand-bg active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
           >
             {isConnecting ? <LoaderCircle size={19} aria-hidden="true" className="animate-spin" /> : <Github size={19} aria-hidden="true" />}
             {isConnecting ? 'Connecting GitHub' : 'Connect GitHub'}
@@ -90,7 +90,7 @@ export const GithubConnectGate = () => {
             </summary>
             <div className="mt-4 rounded-lg border border-blueprint-border bg-surface-raised/30 p-4">
               <p>
-                GitHub&apos;s Gist permission can access your Gists. Void only looks for or creates <code className="text-slate-200">void-data.json</code>, then reads and updates that private Gist to sync your library.
+                GitHub&apos;s Gist permission can access your Gists. Void only looks for or creates <code className="type-readout text-slate-200">void-data.json</code>, then reads and updates that private Gist to sync your library.
               </p>
               <p className="mt-3">
                 Your GitHub username, sync file ID, and access token are stored in this browser&apos;s IndexedDB. Void does not create a profile, publish activity, or send your library to its own server.

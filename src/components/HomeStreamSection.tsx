@@ -33,12 +33,12 @@ export const HomeStreamSection = ({
   <div className="mx-auto max-w-3xl space-y-3">
     <div className="flex items-start justify-between gap-4 px-1">
       <div className="min-w-0">
-        <h1 className="text-xl font-black uppercase tracking-[0.18em] text-white">Stream</h1>
+        <h1 className="type-display text-white">Stream</h1>
         <p className="mt-1 text-xs font-medium text-brand-silver">
           US free and subscription providers for your playlist. Data provided by JustWatch.
         </p>
       </div>
-      <div className="rounded-full border border-brand-cyan/20 bg-brand-cyan/10 px-3 py-1 text-xs font-black uppercase tracking-widest text-brand-cyan">
+      <div className="type-readout rounded-full border border-brand-cyan/20 bg-brand-cyan/10 px-3 py-1 text-brand-cyan">
         {playlistCount}
       </div>
     </div>
@@ -59,10 +59,10 @@ export const HomeStreamSection = ({
         {groups.map((group) => (
           <section key={group.provider.provider_id} className="overflow-hidden rounded-xl blueprint-border bg-white/[0.03]">
             <div className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-3">
-              <h2 className="min-w-0 truncate text-sm font-black uppercase tracking-[0.16em] text-white">
+              <h2 className="type-title min-w-0 truncate text-white">
                 {group.provider.provider_name}
               </h2>
-              <span className="shrink-0 rounded-full bg-brand-cyan/10 px-2.5 py-1 text-[11px] font-black text-brand-cyan">
+              <span className="type-readout shrink-0 rounded-full bg-brand-cyan/10 px-2.5 py-1 text-brand-cyan">
                 {group.items.length}
               </span>
             </div>
@@ -74,7 +74,7 @@ export const HomeStreamSection = ({
                     key={`${group.provider.provider_id}-${getMediaKey(media)}`}
                     type="button"
                     onClick={() => onSelect(media)}
-                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold text-brand-silver transition-colors hover:bg-brand-cyan/10 hover:text-white"
+                    className="type-action flex w-full items-center gap-3 px-4 py-2.5 text-left text-brand-silver transition-colors hover:bg-brand-cyan/10 hover:text-white"
                   >
                     <div className="h-12 w-8 shrink-0 overflow-hidden rounded-md bg-brand-bg/80 ring-1 ring-white/10">
                       {posterUrl ? (
@@ -84,7 +84,7 @@ export const HomeStreamSection = ({
                       )}
                     </div>
                     <span className="min-w-0 flex-1 truncate">{getMediaTitle(media)}</span>
-                    <span className="shrink-0 rounded-full bg-white/10 px-2 py-1 text-[10px] font-black uppercase tracking-widest text-brand-silver/70">
+                    <span className="type-micro shrink-0 rounded-full bg-white/10 px-2 py-1 text-brand-silver/70">
                       {contentRating || 'N/A'}
                     </span>
                   </button>

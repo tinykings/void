@@ -174,7 +174,7 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, onClick }
 
           {shouldShowReleaseBadge && daysUntilRelease !== null && (
             <div className="absolute top-2 left-2 z-10">
-              <div className="rounded-full border border-white/10 bg-brand-bg/90 px-2 py-0.5 text-[10px] font-black uppercase tracking-tighter text-brand-cyan backdrop-blur-md">
+              <div className="type-micro rounded-full border border-white/10 bg-brand-bg/90 px-2 py-0.5 text-brand-cyan backdrop-blur-md">
                 {daysUntilRelease === 'now' ? 'now' : `${daysUntilRelease} ${daysUntilRelease === 1 ? 'day' : 'days'}`}
               </div>
             </div>

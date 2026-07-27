@@ -19,8 +19,8 @@ export const OfflineGuard = ({ children }: { children: React.ReactNode }) => {
             <WifiOff size={18} aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-white">Offline mode</p>
-            <p className="text-xs leading-relaxed text-brand-silver">
+            <p className="type-label text-white">Offline mode</p>
+            <p className="type-body text-brand-silver">
               Your saved collection is available. Search, sync, and metadata updates will resume when connected.
             </p>
           </div>

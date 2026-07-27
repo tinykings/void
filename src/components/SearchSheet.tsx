@@ -135,7 +135,7 @@ export const SearchSheet = () => {
           </div>
 
           {isLibraryEmpty && (
-            <p className="px-4 pb-2 pt-4 text-center text-xs uppercase tracking-[0.2em] text-brand-silver/60">
+            <p className="type-body px-4 pb-2 pt-4 text-center text-brand-silver/60">
               Search and add titles to your collection
             </p>
           )}
@@ -153,7 +153,7 @@ export const SearchSheet = () => {
             />
 
             {isLibraryEmpty && (
-              <div className="pt-10 pb-4 text-center text-xs uppercase tracking-[0.2em] text-brand-silver/60">
+              <div className="type-readout pt-10 pb-4 text-center text-brand-silver/60">
                 Data provided by TMDB and IGDB.
               </div>
             )}

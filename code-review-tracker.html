@@ -271,10 +271,10 @@
 
     <section class="dashboard" aria-label="Repair summary">
       <div class="metric"><strong id="total-count">22</strong><span>Total items</span></div>
-      <div class="metric"><strong id="open-count">7</strong><span>Still open</span></div>
+      <div class="metric"><strong id="open-count">6</strong><span>Still open</span></div>
       <div class="metric"><strong id="progress-count">1</strong><span>In progress</span></div>
-      <div class="metric"><strong id="fixed-count">15</strong><span>Fixed / complete</span></div>
-      <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progress-bar" style="width: 68.18%"></div></div>
+      <div class="metric"><strong id="fixed-count">16</strong><span>Fixed / complete</span></div>
+      <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progress-bar" style="width: 72.73%"></div></div>
     </section>
 
     <section class="controls" aria-label="Tracker controls">
@@ -551,14 +551,14 @@
         <div class="item-actions"></div>
       </article>
 
-      <article class="item" data-id="typographic-identity" data-type="design" data-severity="recommendation" data-status="open">
+      <article class="item" data-id="typographic-identity" data-type="design" data-severity="recommendation" data-status="fixed" data-resolution="Completed: Inter now carries content and actions while IBM Plex Mono identifies filters, labels, ratings, counts, sources, and status readouts through reusable type roles. Lint, TypeScript, 32 unit tests, and production build verified.">
         <div class="item-number">D-06</div>
         <div class="item-main">
           <div class="item-head"><span class="tag recommendation">Recommendation</span><span class="tag recommendation">Typography</span></div>
           <h2>Give utility chrome a distinct typographic voice</h2>
-          <p>Inter carries display, body, labels, and controls, while uppercase treatment is applied inconsistently. The result is clean but generic and does not fully express the technical instrument concept.</p>
+          <p>Content and actions now use Inter while operational labels and readouts use IBM Plex Mono, giving the interface a technical instrument voice without sacrificing reading clarity.</p>
           <div class="source">src/app/layout.tsx · src/app/globals.css · src/components/**/*.tsx · DESIGN.md: Typography</div>
-          <details><summary>Design recommendation</summary><ul><li>Keep Inter or another neutral grotesk for titles and reading text.</li><li>Add a narrow technical or monospaced face for filters, source labels, timestamps, ratings, and status readouts.</li><li>Use uppercase only for short utility labels; keep actions and explanatory copy in sentence case for readability.</li><li>Define reusable type utilities instead of repeated arbitrary sizes and tracking values.</li></ul></details>
+          <details><summary>Resolution</summary><ul><li>Added IBM Plex Mono as a self-hosted Next font alongside Inter.</li><li>Defined reusable display, title, body, action, filter, utility-label, micro-label, and readout roles.</li><li>Applied the utility face to filters, source lines, ratings, counts, metadata, and status readouts with tabular numerals.</li><li>Removed forced uppercase and arbitrary tracking from actions, content titles, and explanatory copy; uppercase remains limited to short labels and badges.</li><li>Updated the design system and verified lint, TypeScript, 32 unit tests, and production build.</li></ul></details>
         </div>
         <div class="item-actions"></div>
       </article>
