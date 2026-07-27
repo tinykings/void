@@ -410,7 +410,6 @@ export const DetailsSheet = () => {
     selected.source_url && source !== 'igdb' ? { label: providerLabel, url: selected.source_url } : null,
     ggDealsUrl ? { label: 'GG.deals', url: ggDealsUrl } : null,
     selected.website ? { label: 'Website', url: selected.website } : null,
-    !isGame ? { label: 'Cineby', url: `https://www.cineby.sc/${selected.media_type}/${selected.id}` } : null,
   ].filter((link): link is { label: string; url: string } => !!link && !!link.url);
   const renderImageGrid = (items: { src: string; alt: string }[]) => (
     <div className="relative">
@@ -631,7 +630,17 @@ export const DetailsSheet = () => {
                       <span className={clsx('px-2 py-1 rounded-full backdrop-blur-sm', (selected.vote_average ?? 0) >= 7 ? 'bg-brand-cyan/10 text-brand-cyan' : 'bg-white/10 text-brand-silver')}>★ {selected.vote_average?.toFixed(1) || '0.0'}</span>
                       {!isGame && <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{contentRatingValue || 'N/A'}</span>}
                       {isGame && selected.metacritic ? <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">MC {selected.metacritic}</span> : null}
-
+                      {externalLinks.map((link) => (
+                        <a
+                          key={`${link.label}-${link.url}`}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-full bg-white/10 px-2 py-1 text-brand-silver backdrop-blur-sm transition-colors hover:bg-brand-cyan/10 hover:text-brand-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
+                        >
+                          {link.label}
+                        </a>
+                      ))}
                     </div>
 
                     <p className="text-sm leading-relaxed text-white/90 line-clamp-6">
@@ -669,22 +678,6 @@ export const DetailsSheet = () => {
               </div>
 
               <div className="mt-3 space-y-4">
-                  {externalLinks.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {externalLinks.map((link) => (
-                        <a
-                          key={`${link.label}-${link.url}`}
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="rounded-lg border border-white/15 bg-white/[0.03] px-3 py-2 text-xs font-black uppercase tracking-widest text-brand-silver transition-colors hover:border-brand-cyan/35 hover:bg-brand-cyan/10 hover:text-white"
-                        >
-                          {link.label}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-
                   {gameTimeItems.length > 0 && (
                     <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-brand-cyan/20 bg-brand-cyan/[0.05]">
                       {gameTimeItems.map((item) => (

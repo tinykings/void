@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VOID — Code Review Repair Log</title>
+  <style>
+    :root {
+      --ink: #152238;
+      --muted: #66758b;
+      --paper: #eef3f6;
+      --sheet: #fbfcfc;
+      --line: #cbd6de;
+      --cyan: #007f8f;
+      --cyan-soft: #d9f0f1;
+      --orange: #d85b32;
+      --orange-soft: #f9e6de;
+      --amber: #9a6500;
+      --amber-soft: #f7eccb;
+      --green: #24734d;
+      --green-soft: #ddf0e5;
+      --shadow: 0 14px 40px rgba(26, 49, 68, .11);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(rgba(44, 91, 112, .055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(44, 91, 112, .055) 1px, transparent 1px);
+      background-size: 24px 24px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, select, textarea { font: inherit; }
+    button, select { cursor: pointer; }
+    button:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 3px solid rgba(0, 127, 143, .28);
+      outline-offset: 2px;
+    }
+
+    .shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 36px 0 72px; }
+
+    .masthead {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 28px;
+      align-items: end;
+      padding: 30px;
+      color: white;
+      background: var(--ink);
+      border-top: 6px solid #18a8b6;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    .masthead::after {
+      content: "REPAIR / VERIFY / CLOSE";
+      position: absolute;
+      right: -24px;
+      top: 21px;
+      transform: rotate(7deg);
+      color: rgba(255,255,255,.06);
+      font: 800 36px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .08em;
+      white-space: nowrap;
+    }
+    .eyebrow, .meta, .tag, .item-number, .source, .section-label {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .eyebrow { color: #7ed7df; font-size: 12px; font-weight: 800; }
+    h1 {
+      margin: 8px 0 10px;
+      max-width: 740px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(38px, 6vw, 74px);
+      font-weight: 400;
+      line-height: .95;
+      letter-spacing: -.045em;
+    }
+    .intro { max-width: 690px; margin: 0; color: #bac7d5; line-height: 1.65; }
+    .review-stamp {
+      width: 154px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border: 2px solid #7ed7df;
+      border-radius: 50%;
+      color: #7ed7df;
+      text-align: center;
+      transform: rotate(-5deg);
+      font: 800 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      background: var(--sheet);
+      border: 1px solid var(--line);
+      border-top: 0;
+      box-shadow: var(--shadow);
+    }
+    .metric { padding: 20px 22px; border-right: 1px solid var(--line); }
+    .metric:last-child { border-right: 0; }
+    .metric strong { display: block; font: 400 32px/1 Georgia, serif; }
+    .metric span { color: var(--muted); font-size: 12px; }
+    .progress-track { height: 5px; background: #dce4e9; grid-column: 1 / -1; }
+    .progress-bar { width: 0; height: 100%; background: var(--green); transition: width .25s ease; }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin: 28px 0 18px;
+      padding: 14px;
+      background: rgba(251,252,252,.88);
+      border: 1px solid var(--line);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .controls select, .control-button {
+      min-height: 40px;
+      padding: 0 13px;
+      border: 1px solid var(--line);
+      border-radius: 0;
+      background: white;
+      color: var(--ink);
+    }
+    .control-button { font-weight: 750; }
+    .control-button.primary { color: white; border-color: var(--cyan); background: var(--cyan); }
+    .control-button.danger { color: var(--orange); margin-left: auto; }
+    .results { color: var(--muted); font-size: 13px; }
+
+    .section-label {
+      margin: 34px 0 11px;
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .section-label::after { content: ""; display: inline-block; width: 80px; margin-left: 12px; border-top: 1px solid var(--cyan); vertical-align: middle; }
+
+    .list { display: grid; gap: 12px; }
+    .item {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr) 210px;
+      background: var(--sheet);
+      border: 1px solid var(--line);
+      box-shadow: 0 5px 16px rgba(26, 49, 68, .045);
+      transition: border-color .2s, opacity .2s;
+    }
+    .item:hover { border-color: #91a7b5; }
+    .item[data-status="fixed"] { border-color: #9fc9af; }
+    .item[data-status="fixed"] .item-number {
+      color: var(--green);
+      background: repeating-linear-gradient(-45deg, var(--green-soft), var(--green-soft) 7px, #d2e9db 7px, #d2e9db 8px);
+    }
+    .item[data-status="wont-fix"] { opacity: .68; }
+    .item.hidden { display: none; }
+
+    .item-number {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 25px;
+      color: var(--muted);
+      background: #f0f4f6;
+      border-right: 1px solid var(--line);
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .item-main { padding: 22px 24px; }
+    .item-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .item h2 { margin: 8px 0 9px; font: 600 21px/1.25 Georgia, serif; letter-spacing: -.015em; }
+    .item p { margin: 0; color: #526278; line-height: 1.55; font-size: 14px; }
+    .tag { padding: 4px 7px; font-size: 10px; font-weight: 900; border: 1px solid; }
+    .tag.high { color: var(--orange); background: var(--orange-soft); border-color: #edb7a3; }
+    .tag.medium { color: var(--amber); background: var(--amber-soft); border-color: #ddc981; }
+    .tag.low { color: var(--cyan); background: var(--cyan-soft); border-color: #9bcdd1; }
+    .tag.recommendation { color: #526278; background: #edf1f4; border-color: #c4ced6; }
+    .source { margin-top: 12px; color: var(--muted); font-size: 10px; line-height: 1.6; text-transform: none; letter-spacing: .02em; }
+    details { margin-top: 13px; font-size: 13px; }
+    summary { color: var(--cyan); font-weight: 800; cursor: pointer; }
+    details ul { margin: 9px 0 0; padding-left: 19px; color: #526278; line-height: 1.55; }
+
+    .item-actions {
+      padding: 18px;
+      background: #f5f7f8;
+      border-left: 1px solid var(--line);
+    }
+    .item-actions label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; }
+    .status-display {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      background: white;
+      font: 850 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .status-display::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+    .status-display[data-value="in-progress"]::before { background: var(--cyan); }
+    .status-display[data-value="blocked"]::before { background: var(--orange); }
+    .status-display[data-value="fixed"]::before { background: var(--green); }
+    .status-display[data-value="wont-fix"]::before { background: var(--muted); }
+    .status-context { margin-top: 11px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .managed-label { margin-top: 17px; color: #8190a1; font: 700 9px/1.5 ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; }
+
+    .empty { display: none; padding: 48px; text-align: center; background: var(--sheet); border: 1px solid var(--line); }
+    .empty.visible { display: block; }
+    footer { margin-top: 38px; padding-top: 18px; border-top: 1px solid #aebdc7; color: var(--muted); font-size: 12px; line-height: 1.6; }
+
+    @media (max-width: 820px) {
+      .masthead { grid-template-columns: 1fr; }
+      .review-stamp { display: none; }
+      .dashboard { grid-template-columns: repeat(2, 1fr); }
+      .metric:nth-child(2) { border-right: 0; }
+      .metric:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+      .item { grid-template-columns: 48px minmax(0, 1fr); }
+      .item-number { padding-top: 23px; }
+      .item-actions { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--line); padding-left: 64px; }
+      .control-button.danger { margin-left: 0; }
+    }
+    @media (max-width: 520px) {
+      .shell { width: min(100% - 20px, 1180px); padding-top: 10px; }
+      .masthead { padding: 24px 20px; }
+      .dashboard { grid-template-columns: 1fr 1fr; }
+      .metric { padding: 15px; }
+      .metric strong { font-size: 25px; }
+      .controls { position: static; }
+      .controls select, .control-button { flex: 1 1 46%; }
+      .results { width: 100%; }
+      .item-main { padding: 19px 16px; }
+      .item-actions { padding: 16px; }
+    }
+    @media print {
+      body { background: white; }
+      .shell { width: 100%; padding: 0; }
+      .controls { display: none; }
+      .masthead, .dashboard, .item { box-shadow: none; }
+      .item { break-inside: avoid; }
+      .item-actions { display: flex; align-items: center; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <div>
+        <div class="eyebrow">VOID / Engineering dossier / Review 01</div>
+        <h1>Code review<br>repair log</h1>
+        <p class="intro">A maintained ledger for the bugs, security risks, and maintainability work found during the VOID webapp review. Status changes are recorded in this file as fixes are completed and verified.</p>
+      </div>
+      <div class="review-stamp" aria-hidden="true">Build passed<br>Lint passed<br>Tests absent</div>
+    </header>
+
+    <section class="dashboard" aria-label="Repair summary">
+      <div class="metric"><strong id="total-count">15</strong><span>Total items</span></div>
+      <div class="metric"><strong id="open-count">15</strong><span>Still open</span></div>
+      <div class="metric"><strong id="progress-count">0</strong><span>In progress</span></div>
+      <div class="metric"><strong id="fixed-count">0</strong><span>Fixed / complete</span></div>
+      <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progress-bar"></div></div>
+    </section>
+
+    <section class="controls" aria-label="Tracker controls">
+      <select id="status-filter" aria-label="Filter by status">
+        <option value="all">All statuses</option>
+        <option value="open">Open</option>
+        <option value="in-progress">In progress</option>
+        <option value="blocked">Blocked</option>
+        <option value="fixed">Fixed / complete</option>
+        <option value="wont-fix">Won't fix</option>
+      </select>
+      <select id="type-filter" aria-label="Filter by category">
+        <option value="all">All categories</option>
+        <option value="bug">Bugs</option>
+        <option value="security">Security</option>
+        <option value="maintenance">Maintenance</option>
+      </select>
+      <select id="severity-filter" aria-label="Filter by severity">
+        <option value="all">All priorities</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+        <option value="recommendation">Recommendation</option>
+      </select>
+      <button class="control-button primary" type="button" onclick="window.print()">Print report</button>
+      <span class="results" id="results-count" aria-live="polite"></span>
+    </section>
+
+    <div class="section-label">Bugs / Product behavior</div>
+    <section class="list" id="tracker-list">
+      <article class="item" data-id="gist-overwrite" data-type="bug" data-severity="high" data-status="open">
+        <div class="item-number">B-01</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag high">High</span><span class="tag recommendation">Data integrity</span></div>
+          <h2>Gist sync can overwrite data after a failed read</h2>
+          <p>HTTP errors, missing content, and invalid JSON all become <code>null</code>. The sync path treats that as an empty Gist and may replace the remote library with the local collection.</p>
+          <div class="source">src/lib/gist.ts:59–79 · src/store/useStore.ts:142–146</div>
+          <details><summary>Fix and acceptance criteria</summary><ul><li>Return distinct results for empty, missing, invalid, and failed reads.</li><li>Only initialize after a successful response confirms an empty library.</li><li>Require confirmation before replacing malformed content.</li><li>Add tests for 403, 404, 5xx, invalid JSON, empty data, and valid data.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <article class="item" data-id="rating-duplicates" data-type="bug" data-severity="high" data-status="open">
+        <div class="item-number">B-02</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag high">High</span><span class="tag recommendation">State</span></div>
+          <h2>Rating updates duplicate history entries</h2>
+          <p><code>toggleWatched(media, rating)</code> never stores the rating. A truthy rating on an existing item appends another copy instead of updating it.</p>
+          <div class="source">src/store/useStore.ts:217–229</div>
+          <details><summary>Fix and acceptance criteria</summary><ul><li>Update the existing item by media key and persist <code>rating</code>.</li><li>Never permit duplicate media keys in either list.</li><li>Add tests for add, remove, rate, re-rate, and favorite preservation.</li><li>Either implement the documented star/TMDB sync feature or correct the README.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <article class="item" data-id="details-id-collision" data-type="bug" data-severity="medium" data-status="open">
+        <div class="item-number">B-03</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag medium">Medium</span><span class="tag recommendation">Data fetching</span></div>
+          <h2>Movie and TV detail caches can collide</h2>
+          <p>Providers, cast, images, ratings, and external IDs are cached by numeric ID only. A movie and show sharing the same TMDB ID can display each other’s metadata.</p>
+          <div class="source">src/components/DetailsSheet.tsx:105–109, 259–288</div>
+          <details><summary>Fix and acceptance criteria</summary><ul><li>Key all detail state with <code>getMediaKey()</code> or <code>{id, media_type}</code>.</li><li>Verify switching directly between a movie and show with the same numeric ID.</li><li>Ensure loading and error state is also scoped to the full media key.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <article class="item" data-id="offline-blocked" data-type="bug" data-severity="medium" data-status="open">
+        <div class="item-number">B-04</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag medium">Medium</span><span class="tag recommendation">PWA</span></div>
+          <h2>Offline mode blocks the local collection</h2>
+          <p>The offline guard replaces the entire app, while the service worker caches only visited navigation documents. This conflicts with the advertised offline support.</p>
+          <div class="source">src/components/OfflineGuard.tsx:24–50 · public/sw.js:38–64 · README.md:45</div>
+          <details><summary>Fix and acceptance criteria</summary><ul><li>Keep IndexedDB library browsing available without a connection.</li><li>Disable or label only network-dependent actions.</li><li>Precache the application shell and required static assets.</li><li>Test a cold offline launch and an offline launch after first visit.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <article class="item" data-id="migration-window" data-type="bug" data-severity="medium" data-status="open">
+        <div class="item-number">B-05</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag medium">Medium</span><span class="tag recommendation">Requirement</span></div>
+          <h2>TV migration uses 30 days instead of 7</h2>
+          <p>The README says history items return to the playlist when an episode airs within seven days; the implementation uses a 30-day cutoff.</p>
+          <div class="source">README.md:32 · src/store/useStore.ts:291–296</div>
+          <details><summary>Fix and acceptance criteria</summary><ul><li>Choose the intended product behavior and align code and documentation.</li><li>Move the window into a named constant.</li><li>Add boundary tests for today, day 7, day 8, ended, and canceled shows.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <article class="item" data-id="incomplete-sync" data-type="bug" data-severity="medium" data-status="open">
+        <div class="item-number">B-06</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag medium">Medium</span><span class="tag recommendation">Backup</span></div>
+          <h2>Sync and backups omit tracking state</h2>
+          <p>The schema preserves playlist, history, and favorites, but drops ratings and played episodes during a restore.</p>
+          <div class="source">src/lib/gist.ts:52–57 · src/store/useStore.ts:122–130</div>
+          <details><summary>Fix and acceptance criteria</summary><ul><li>Create a versioned schema containing all collection-related state.</li><li>Add migrations for existing version 1 and 2 files.</li><li>Round-trip test ratings, favorites, played episodes, dates, and media sources.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <article class="item" data-id="escape-modal" data-type="bug" data-severity="low" data-status="open">
+        <div class="item-number">B-07</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag low">Low</span><span class="tag recommendation">Interaction</span></div>
+          <h2>Escape can close the lightbox and details sheet</h2>
+          <p>The lightbox and global shortcut handlers both receive Escape, so the topmost modal and its parent sheet may close together.</p>
+          <div class="source">src/components/DetailsSheet.tsx:210–222 · src/components/KeyboardShortcuts.tsx:14–17</div>
+          <details><summary>Fix and acceptance criteria</summary><ul><li>Centralize topmost-modal Escape handling.</li><li>First Escape closes only the image or trailer; second closes details.</li><li>Keep keyboard focus inside the currently visible modal.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <article class="item" data-id="shortcut-confirmation" data-type="bug" data-severity="low" data-status="open">
+        <div class="item-number">B-08</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag low">Low</span><span class="tag recommendation">Interaction</span></div>
+          <h2>Keyboard shortcuts bypass removal confirmation</h2>
+          <p>W and E directly toggle list membership, while the visible controls ask for confirmation before removing an existing item.</p>
+          <div class="source">src/components/KeyboardShortcuts.tsx:27–36</div>
+          <details><summary>Fix and acceptance criteria</summary><ul><li>Route keyboard removal through the same confirmation flow.</li><li>Alternatively, limit shortcuts to additions and document that behavior.</li><li>Verify shortcuts do nothing while typing in any form control.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <div class="section-label" data-section="security">Security / Operations</div>
+
+      <article class="item" data-id="dependencies" data-type="security" data-severity="high" data-status="open">
+        <div class="item-number">S-01</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag high">High</span><span class="tag recommendation">Dependency</span></div>
+          <h2>Upgrade vulnerable dependencies</h2>
+          <p>The production audit reported one critical and five high advisories, including the installed Next.js release and transitive packages.</p>
+          <div class="source">package.json · package-lock.json</div>
+          <details><summary>Completion criteria</summary><ul><li>Upgrade Next.js to a patched compatible release and refresh the lockfile.</li><li>Update or override affected transitive packages.</li><li>Rerun audit, lint, and production build.</li><li>Document any accepted advisories and why they are not exploitable.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <article class="item" data-id="worker-protection" data-type="security" data-severity="high" data-status="open">
+        <div class="item-number">S-02</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag high">High</span><span class="tag recommendation">Abuse prevention</span></div>
+          <h2>Protect the public game API Worker</h2>
+          <p>CORS does not authenticate callers. Requests without an Origin can use the Worker and consume IGDB, HLTB, and Cloudflare resources.</p>
+          <div class="source">worker/src/index.ts:100–106, 603–646</div>
+          <details><summary>Completion criteria</summary><ul><li>Add rate limiting and request-size/query limits.</li><li>Reject disallowed browser origins before upstream work.</li><li>Add monitoring for request volume, errors, and upstream quota use.</li><li>Evaluate signed requests or another app-specific authorization mechanism.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <article class="item" data-id="gist-credentials" data-type="security" data-severity="recommendation" data-status="open">
+        <div class="item-number">S-03</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag recommendation">Recommendation</span><span class="tag recommendation">Credentials</span></div>
+          <h2>Reduce exposure of Gist credentials</h2>
+          <p>The GitHub token is persisted in browser IndexedDB. An XSS payload or malicious extension could retrieve it.</p>
+          <div class="source">src/store/useStore.ts:78–79, 95–97, 347–349</div>
+          <details><summary>Completion criteria</summary><ul><li>Recommend a narrowly scoped fine-grained token in the UI.</li><li>Clearly disclose that the token is stored locally.</li><li>Consider an opt-in session-only storage mode.</li><li>Authenticate Gist reads to avoid anonymous API rate limits.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <div class="section-label" data-section="maintenance">Maintainability / Quality</div>
+
+      <article class="item" data-id="automated-tests" data-type="maintenance" data-severity="recommendation" data-status="open">
+        <div class="item-number">M-01</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag recommendation">Recommendation</span><span class="tag recommendation">Quality</span></div>
+          <h2>Add automated tests</h2>
+          <p>No test or specification files were found. The persistence and synchronization paths especially need regression coverage.</p>
+          <details><summary>Completion criteria</summary><ul><li>Unit test mutual exclusion, rating updates, Gist failures, imports, and migration boundaries.</li><li>Add end-to-end tests for search, details, sync, keyboard use, and offline startup.</li><li>Run tests in CI alongside lint and build.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <article class="item" data-id="schema-validation" data-type="maintenance" data-severity="recommendation" data-status="open">
+        <div class="item-number">M-02</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag recommendation">Recommendation</span><span class="tag recommendation">Validation</span></div>
+          <h2>Validate imported data at runtime</h2>
+          <p>Backup import checks top-level arrays but trusts each item’s shape. Gist content is cast directly to TypeScript types.</p>
+          <div class="source">src/components/views/HomeView.tsx:320–325 · src/lib/gist.ts:75–76</div>
+          <details><summary>Completion criteria</summary><ul><li>Define one runtime schema for backups and Gist payloads.</li><li>Validate media IDs, types, sources, dates, and optional fields.</li><li>Show a useful error without changing the current collection.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <article class="item" data-id="component-size" data-type="maintenance" data-severity="recommendation" data-status="open">
+        <div class="item-number">M-03</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag recommendation">Recommendation</span><span class="tag recommendation">Architecture</span></div>
+          <h2>Split large view components</h2>
+          <p>HomeView, DetailsSheet, and SearchSheet combine extensive network, state, and presentation logic, increasing regression risk.</p>
+          <div class="source">src/components/views/HomeView.tsx · src/components/DetailsSheet.tsx · src/components/SearchSheet.tsx</div>
+          <details><summary>Completion criteria</summary><ul><li>Extract focused data hooks and presentational sections.</li><li>Keep modal state and network cancellation behavior explicit.</li><li>Cover extracted behavior with tests before restructuring UI.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+
+      <article class="item" data-id="browser-zoom" data-type="maintenance" data-severity="recommendation" data-status="open">
+        <div class="item-number">M-04</div>
+        <div class="item-main">
+          <div class="item-head"><span class="tag recommendation">Recommendation</span><span class="tag recommendation">Accessibility</span></div>
+          <h2>Restore browser zoom</h2>
+          <p>The viewport configuration disables user scaling, preventing users with low vision from zooming the interface.</p>
+          <div class="source">src/app/layout.tsx:41–46</div>
+          <details><summary>Completion criteria</summary><ul><li>Remove <code>maximumScale: 1</code> and <code>userScalable: false</code>.</li><li>Test layout at 200% browser zoom and increased mobile text size.</li></ul></details>
+        </div>
+        <div class="item-actions"></div>
+      </article>
+    </section>
+
+    <div class="empty" id="empty-state">No repair items match these filters.</div>
+
+    <footer>
+      <strong>Review baseline:</strong> lint and production build passed; no automated tests were present. This report is maintained in source control. Statuses change only when the corresponding work has been completed or deliberately closed.
+    </footer>
+  </main>
+
+  <script>
+    (() => {
+      const items = [...document.querySelectorAll('.item')];
+      const filters = {
+        status: document.querySelector('#status-filter'),
+        type: document.querySelector('#type-filter'),
+        severity: document.querySelector('#severity-filter')
+      };
+      const statusLabels = {
+        open: 'Open',
+        'in-progress': 'In progress',
+        blocked: 'Blocked',
+        fixed: 'Fixed / complete',
+        'wont-fix': "Won't fix"
+      };
+      const statusContext = {
+        open: 'Awaiting implementation',
+        'in-progress': 'Work has started',
+        blocked: 'Waiting on a dependency or decision',
+        fixed: 'Completed and verified',
+        'wont-fix': 'Closed without implementation'
+      };
+
+      items.forEach(item => {
+        const status = item.dataset.status;
+        const resolution = item.dataset.resolution || statusContext[status];
+        item.querySelector('.item-actions').innerHTML = `
+          <label>Fix status</label>
+          <div class="status-display" data-value="${status}">${statusLabels[status]}</div>
+          <div class="status-context">${resolution}</div>
+          <div class="managed-label">Maintained in<br>code-review-tracker.html</div>`;
+      });
+
+      function refresh() {
+        let visible = 0;
+        const counts = { open: 0, 'in-progress': 0, blocked: 0, fixed: 0, 'wont-fix': 0 };
+        items.forEach(item => {
+          counts[item.dataset.status]++;
+          const show =
+            (filters.status.value === 'all' || item.dataset.status === filters.status.value) &&
+            (filters.type.value === 'all' || item.dataset.type === filters.type.value) &&
+            (filters.severity.value === 'all' || item.dataset.severity === filters.severity.value);
+          item.classList.toggle('hidden', !show);
+          if (show) visible++;
+        });
+        document.querySelector('#total-count').textContent = items.length;
+        document.querySelector('#open-count').textContent = counts.open + counts['in-progress'] + counts.blocked;
+        document.querySelector('#progress-count').textContent = counts['in-progress'];
+        document.querySelector('#fixed-count').textContent = counts.fixed;
+        document.querySelector('#progress-bar').style.width = `${(counts.fixed / items.length) * 100}%`;
+        document.querySelector('#results-count').textContent = `Showing ${visible} of ${items.length}`;
+        document.querySelector('#empty-state').classList.toggle('visible', visible === 0);
+
+        document.querySelectorAll('.section-label[data-section]').forEach(label => {
+          const sectionType = label.dataset.section;
+          const hasVisible = items.some(item => item.dataset.type === sectionType && !item.classList.contains('hidden'));
+          label.style.display = hasVisible ? '' : 'none';
+        });
+      }
+
+      Object.values(filters).forEach(filter => filter.addEventListener('change', refresh));
+      refresh();
+    })();
+  </script>
+</body>
+</html>
