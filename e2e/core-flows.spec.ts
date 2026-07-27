@@ -70,10 +70,11 @@ test('search opens details and keyboard shortcut uses history action', async ({ 
   await page.goto('/');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
 
-  const search = page.getByPlaceholder('Search movies, shows, games...');
+  const searchDialog = page.getByRole('dialog', { name: 'Search' });
+  const search = searchDialog.getByPlaceholder('Search movies, shows, games...');
   await search.fill('Test Movie');
-  await page.getByRole('button', { name: 'Search', exact: true }).click();
-  await page.getByRole('button', { name: 'Test Movie' }).click();
+  await searchDialog.getByRole('button', { name: 'Search', exact: true }).click();
+  await searchDialog.getByRole('button', { name: 'Test Movie' }).click();
 
   await expect(page.getByRole('heading', { name: 'Test Movie' })).toBeVisible();
   await page.keyboard.press('e');

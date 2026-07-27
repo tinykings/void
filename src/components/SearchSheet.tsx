@@ -117,6 +117,9 @@ export const SearchSheet = () => {
           transition={{ duration: 0.12, ease: 'easeOut' }}
           onClick={(e) => e.stopPropagation()}
           className="sheet-surface will-change-transform"
+          role="dialog"
+          aria-label="Search"
+          aria-modal="true"
         >
           <FocusTrap active={isSearchFocused}>
           <div className={topBarClassName}>
