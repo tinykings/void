@@ -7,6 +7,7 @@ import { getMediaDetails } from '@/lib/tmdb';
 import { getIgdbGameDetails } from '@/lib/igdb';
 import { mapWithConcurrency } from '@/lib/concurrency';
 import { getMediaKey, getMediaSource } from '@/lib/media';
+import { isDateInLocalDayWindow, toggleWatchedInLibrary, toggleWatchlistInLibrary } from '@/lib/library';
 
 const DEFAULT_TMDB_ACCESS_TOKEN = process.env.NEXT_PUBLIC_TMDB_READ_ACCESS_TOKEN || '';
 const METADATA_HYDRATION_CONCURRENCY = 1;
@@ -239,54 +240,13 @@ export const useStore = create<StoreState>()(
 
         toggleWatchlist: async (media) => {
           const { watchlist, watched } = get();
-          const mediaKey = getMediaKey(media);
-          const inWatchlist = watchlist.some((m) => getMediaKey(m) === mediaKey);
-          
-          if (inWatchlist) {
-            set({ watchlist: watchlist.filter((m) => getMediaKey(m) !== mediaKey) });
-          } else {
-            set({ 
-              watchlist: [...watchlist, { ...media, date_added: new Date().toISOString() }],
-              watched: watched.filter((m) => getMediaKey(m) !== mediaKey)
-            });
-          }
-
+          set(toggleWatchlistInLibrary(watchlist, watched, media));
           void get().syncToGist();
         },
 
         toggleWatched: async (media, rating) => {
           const { watched, watchlist } = get();
-          const mediaKey = getMediaKey(media);
-          const inWatched = watched.some((m) => getMediaKey(m) === mediaKey);
-
-          if (inWatched && rating === undefined) {
-            set({ watched: watched.filter((m) => getMediaKey(m) !== mediaKey) });
-          } else if (inWatched) {
-            let updated = false;
-            const nextWatched = watched.flatMap((item) => {
-              if (getMediaKey(item) !== mediaKey) return [item];
-              if (updated) return [];
-
-              updated = true;
-              return [{ ...item, rating }];
-            });
-
-            set({
-              watched: nextWatched,
-              watchlist: watchlist.filter((m) => getMediaKey(m) !== mediaKey),
-            });
-          } else {
-            set({
-              watched: [...watched, {
-                ...media,
-                ...(rating === undefined ? {} : { rating }),
-                date_added: new Date().toISOString(),
-                lastChecked: Date.now(),
-              }],
-              watchlist: watchlist.filter((m) => getMediaKey(m) !== mediaKey),
-            });
-          }
-
+          set(toggleWatchedInLibrary(watchlist, watched, media, rating));
           void get().syncToGist();
         },
 
@@ -337,25 +297,7 @@ export const useStore = create<StoreState>()(
               let shouldMigrate = false;
 
               if (airDateStr) {
-                const parts = airDateStr.split('-');
-                if (parts.length === 3) {
-                  const airDate = new Date(
-                    parseInt(parts[0], 10),
-                    parseInt(parts[1], 10) - 1,
-                    parseInt(parts[2], 10)
-                  );
-                  if (!isNaN(airDate.getTime())) {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const cutoff = new Date(today);
-                    cutoff.setDate(today.getDate() + TV_MIGRATION_WINDOW_DAYS);
-                    cutoff.setHours(23, 59, 59, 999);
-
-                    if (airDate.getTime() >= today.getTime() && airDate.getTime() <= cutoff.getTime()) {
-                      shouldMigrate = true;
-                    }
-                  }
-                }
+                shouldMigrate = isDateInLocalDayWindow(airDateStr, new Date(), TV_MIGRATION_WINDOW_DAYS);
               }
 
               if (shouldMigrate) {

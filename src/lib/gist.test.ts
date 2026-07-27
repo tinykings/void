@@ -93,6 +93,21 @@ test('getGistContent distinguishes safe initialization from read failures', asyn
   });
 });
 
+test('legacy Gist imports restore media defaults and favorites', () => {
+  const imported = fromGistItem({
+    id: 12,
+    title: 'Legacy game',
+    media_type: 'game',
+    date_added: '2025-03-04T00:00:00.000Z',
+  }, true);
+
+  assert.equal(imported.source, 'igdb');
+  assert.equal(imported.date_added, '2025-03-04T00:00:00.000Z');
+  assert.equal(imported.isFavorite, true);
+  assert.equal(imported.poster_path, null);
+  assert.equal(imported.backdrop_path, null);
+});
+
 test('version 3 payload preserves ratings and played episodes', () => {
   const watched: Media = {
     id: 42,

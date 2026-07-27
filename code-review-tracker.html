@@ -266,13 +266,13 @@
         <h1>Code review<br>repair log</h1>
         <p class="intro">A maintained ledger for the bugs, security risks, and maintainability work found during the VOID webapp review. Status changes are recorded in this file as fixes are completed and verified.</p>
       </div>
-      <div class="review-stamp" aria-hidden="true">Build passed<br>Lint passed<br>Tests absent</div>
+      <div class="review-stamp" aria-hidden="true">Build passed<br>Lint passed<br>Tests added</div>
     </header>
 
     <section class="dashboard" aria-label="Repair summary">
       <div class="metric"><strong id="total-count">15</strong><span>Total items</span></div>
       <div class="metric"><strong id="open-count">7</strong><span>Still open</span></div>
-      <div class="metric"><strong id="progress-count">0</strong><span>In progress</span></div>
+      <div class="metric"><strong id="progress-count">1</strong><span>In progress</span></div>
       <div class="metric"><strong id="fixed-count">8</strong><span>Fixed / complete</span></div>
       <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progress-bar" style="width: 53.33%"></div></div>
     </section>
@@ -441,13 +441,13 @@
 
       <div class="section-label" data-section="maintenance">Maintainability / Quality</div>
 
-      <article class="item" data-id="automated-tests" data-type="maintenance" data-severity="recommendation" data-status="open">
+      <article class="item" data-id="automated-tests" data-type="maintenance" data-severity="recommendation" data-status="in-progress" data-resolution="Unit and end-to-end suites plus CI gates are implemented. Unit tests, lint, typecheck, and build pass; Playwright execution awaits a runner with required Chromium system libraries.">
         <div class="item-number">M-01</div>
         <div class="item-main">
           <div class="item-head"><span class="tag recommendation">Recommendation</span><span class="tag recommendation">Quality</span></div>
           <h2>Add automated tests</h2>
-          <p>No test or specification files were found. The persistence and synchronization paths especially need regression coverage.</p>
-          <details><summary>Completion criteria</summary><ul><li>Unit test mutual exclusion, rating updates, Gist failures, imports, and migration boundaries.</li><li>Add end-to-end tests for search, details, sync, keyboard use, and offline startup.</li><li>Run tests in CI alongside lint and build.</li></ul></details>
+          <p>Automated regression coverage now exercises collection state, persistence boundaries, Gist behavior, core browser flows, and offline startup.</p>
+          <details><summary>Implementation status</summary><ul><li>Unit coverage includes mutual exclusion, rating updates and duplicate cleanup, Gist failures and imports, concurrency, and seven-day migration boundaries.</li><li>Playwright covers search, details, keyboard actions, Gist sync, and cached offline startup.</li><li>GitHub Actions runs lint, unit tests, Playwright, and build before deployment.</li><li>Local unit tests, lint, typecheck, and production build pass. Final Playwright verification requires Chromium runtime libraries unavailable in the current host; CI installs them with <code>playwright install --with-deps</code>.</li></ul></details>
         </div>
         <div class="item-actions"></div>
       </article>
@@ -492,7 +492,7 @@
     <div class="empty" id="empty-state">No repair items match these filters.</div>
 
     <footer>
-      <strong>Review baseline:</strong> lint and production build passed; no automated tests were present. This report is maintained in source control. Statuses change only when the corresponding work has been completed or deliberately closed.
+      <strong>Review baseline:</strong> lint and production build passed; automated coverage was absent at review time and has since been added. This report is maintained in source control. Statuses change only when the corresponding work has been completed or deliberately closed.
     </footer>
   </main>
 
