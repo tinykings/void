@@ -271,10 +271,10 @@
 
     <section class="dashboard" aria-label="Repair summary">
       <div class="metric"><strong id="total-count">22</strong><span>Total items</span></div>
-      <div class="metric"><strong id="open-count">9</strong><span>Still open</span></div>
+      <div class="metric"><strong id="open-count">8</strong><span>Still open</span></div>
       <div class="metric"><strong id="progress-count">1</strong><span>In progress</span></div>
-      <div class="metric"><strong id="fixed-count">13</strong><span>Fixed / complete</span></div>
-      <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progress-bar" style="width: 59.09%"></div></div>
+      <div class="metric"><strong id="fixed-count">14</strong><span>Fixed / complete</span></div>
+      <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progress-bar" style="width: 63.64%"></div></div>
     </section>
 
     <section class="controls" aria-label="Tracker controls">
@@ -527,14 +527,14 @@
         <div class="item-actions"></div>
       </article>
 
-      <article class="item" data-id="accent-semantics" data-type="design" data-severity="medium" data-status="open">
+      <article class="item" data-id="accent-semantics" data-type="design" data-severity="medium" data-status="fixed" data-resolution="Completed: cyan now identifies Favorites and non-destructive selection, green is limited to history completion, red remains destructive/error-only, and decorative glows were removed. Contrast, lint, typecheck, tests, and build verified.">
         <div class="item-number">D-04</div>
         <div class="item-main">
           <div class="item-head"><span class="tag medium">Medium</span><span class="tag recommendation">Color system</span></div>
           <h2>Restore one clear meaning for cyan and red</h2>
-          <p>The design system says cyan marks interaction and red marks destructive actions, but active Favorites is red and some active states use stronger glows than primary actions. This weakens state recognition.</p>
-          <div class="source">src/components/views/HomeView.tsx:491–509, 532–558 · src/components/DetailsSheet.tsx:798–852 · DESIGN.md: Colors</div>
-          <details><summary>Design recommendation</summary><ul><li>Use cyan for selected Favorites and other non-destructive active states.</li><li>Reserve red for remove, disconnect, and destructive confirmations; keep green for completed/history confirmation only.</li><li>Limit glow to focus, active selection, and one primary action per surface.</li><li>Test text and icon contrast in every tinted state, not only the base colors.</li></ul></details>
+          <p>Favorites, filters, playlist state, and other non-destructive selections now use the cyan interaction signal. History completion uses green; destructive actions and errors retain red.</p>
+          <div class="source">src/components/views/HomeView.tsx · src/components/DetailsSheet.tsx · src/components/MediaCard.tsx · src/components/SheetDragHandle.tsx</div>
+          <details><summary>Resolution</summary><ul><li>Changed selected Favorites and its filter trigger from red to cyan in the collection and details surfaces.</li><li>Changed completed History state to green while keeping Playlist and other active selections cyan.</li><li>Removed decorative cyan glows from resting posters, hover cards, close controls, and drag handles; glow remains tied to focus, primary actions, or active selection.</li><li>Verified representative tinted-state contrast: cyan 7.91:1, green 12.32:1, and destructive white-on-red 4.83:1.</li><li>Lint completed with existing warnings only; TypeScript, 32 unit tests, and production build passed.</li></ul></details>
         </div>
         <div class="item-actions"></div>
       </article>

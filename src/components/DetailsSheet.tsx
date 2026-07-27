@@ -310,7 +310,7 @@ export const DetailsSheet = () => {
             variants={staggerItem}
             type="button"
             onClick={() => setActiveImage({ ...image, mediaKey })}
-            className="group w-[31%] shrink-0 snap-start overflow-hidden rounded-xl bg-white/5 blueprint-border transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-cyan/35 hover:shadow-[0_0_18px_rgba(34,211,238,0.08)] sm:w-[23.5%] md:w-[18.4%]"
+            className="group w-[31%] shrink-0 snap-start overflow-hidden rounded-xl bg-white/5 blueprint-border transition-colors duration-200 hover:border-brand-cyan/35 sm:w-[23.5%] md:w-[18.4%]"
           >
             <img
               src={image.src}
@@ -362,7 +362,7 @@ export const DetailsSheet = () => {
             variants={staggerItem}
             type="button"
             onClick={() => setActiveTrailer({ video, mediaKey })}
-            className="group w-[70%] shrink-0 snap-start overflow-hidden rounded-xl bg-brand-bg/80 blueprint-border text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-cyan/35 hover:bg-brand-bg hover:shadow-[0_0_18px_rgba(34,211,238,0.08)] sm:w-[46%] md:w-[31%]"
+            className="group w-[70%] shrink-0 snap-start overflow-hidden rounded-xl bg-brand-bg/80 text-left blueprint-border transition-colors duration-200 hover:border-brand-cyan/35 hover:bg-brand-bg sm:w-[46%] md:w-[31%]"
           >
             <div className="relative aspect-video bg-white/5">
               <img
@@ -609,7 +609,7 @@ export const DetailsSheet = () => {
                                 variants={staggerItem}
                                 type="button"
                                 onClick={() => openActor(member)}
-                                className="group w-[31%] shrink-0 snap-start overflow-hidden rounded-xl bg-brand-bg/80 blueprint-border text-left transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-bg hover:border-brand-cyan/30 hover:shadow-[0_0_18px_rgba(34,211,238,0.08)] cursor-pointer sm:w-[23.5%] md:w-[18.4%]"
+                                className="group w-[31%] shrink-0 snap-start cursor-pointer overflow-hidden rounded-xl bg-brand-bg/80 text-left blueprint-border transition-colors duration-200 hover:border-brand-cyan/30 hover:bg-brand-bg sm:w-[23.5%] md:w-[18.4%]"
                               >
                                 <div className="aspect-square bg-white/5">
                                   {member.profile_path ? (
@@ -795,10 +795,10 @@ export const DetailsSheet = () => {
                     animate={currentActionPulse === 'watched' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
                     transition={{ duration: 0.2, ease: 'easeOut' }}
                     className={clsx(
-                      'flex h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 text-xs font-black uppercase tracking-widest transition-all duration-200 hover:-translate-y-0.5',
+                      'flex h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 text-xs font-black uppercase tracking-widest transition-colors duration-200',
                       inWatched
-                        ? 'border-brand-cyan/40 bg-brand-cyan/30 text-brand-cyan hover:border-brand-cyan/70 hover:bg-brand-cyan/40 hover:text-white hover:shadow-[0_0_18px_rgba(34,211,238,0.14)]'
-                        : 'border-white/15 bg-brand-bg/80 text-white hover:border-brand-cyan/30 hover:bg-brand-bg hover:text-brand-cyan hover:shadow-[0_0_18px_rgba(34,211,238,0.08)]'
+                        ? 'border-green-400/40 bg-green-500/15 text-green-200 hover:border-green-300/60 hover:bg-green-500/25'
+                        : 'border-white/15 bg-brand-bg/80 text-white hover:border-brand-cyan/30 hover:bg-brand-cyan/10 hover:text-brand-cyan'
                     )}
                   >
                     <Eye size={14} />
@@ -815,10 +815,10 @@ export const DetailsSheet = () => {
                       animate={currentActionPulse === 'favorite' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
                       transition={{ duration: 0.2, ease: 'easeOut' }}
                       className={clsx(
-                        'flex h-11 w-full items-center justify-center rounded-lg border transition-all duration-200',
+                        'flex h-11 w-full items-center justify-center rounded-lg border transition-colors duration-200',
                         isFavorited
-                          ? 'border-red-400/40 bg-red-500/20 text-red-300 hover:border-red-400/70 hover:bg-red-500/30 hover:text-white hover:shadow-[0_0_18px_rgba(239,68,68,0.14)] hover:-translate-y-0.5'
-                          : 'border-white/15 bg-brand-bg/80 text-white hover:border-red-400/30 hover:bg-brand-bg hover:text-red-300 hover:shadow-[0_0_18px_rgba(239,68,68,0.08)] hover:-translate-y-0.5'
+                          ? 'border-brand-cyan/40 bg-brand-cyan/15 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.12)] hover:border-brand-cyan/60 hover:bg-brand-cyan/25'
+                          : 'border-white/15 bg-brand-bg/80 text-white hover:border-brand-cyan/30 hover:bg-brand-cyan/10 hover:text-brand-cyan'
                       )}
                     >
                       <Heart size={16} className={isFavorited ? 'fill-current' : ''} />
@@ -828,7 +828,7 @@ export const DetailsSheet = () => {
                   <button
                     type="button"
                     onClick={closeDetails}
-                    className="flex h-11 w-full items-center justify-center rounded-lg bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/25 shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:bg-brand-cyan/20 hover:text-white hover:border-brand-cyan/40"
+                    className="flex h-11 w-full items-center justify-center rounded-lg border border-white/10 text-brand-silver transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/10 hover:text-white"
                     aria-label="Close sheet"
                     title="Tap to close"
                   >
@@ -845,10 +845,10 @@ export const DetailsSheet = () => {
                     animate={currentActionPulse === 'watchlist' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
                     transition={{ duration: 0.2, ease: 'easeOut' }}
                     className={clsx(
-                      'flex h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 text-xs font-black uppercase tracking-widest transition-all duration-200 hover:-translate-y-0.5',
+                      'flex h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 text-xs font-black uppercase tracking-widest transition-colors duration-200',
                       inWatchlist
-                        ? 'border-brand-cyan/40 bg-brand-cyan/30 text-brand-cyan hover:border-brand-cyan/70 hover:bg-brand-cyan/40 hover:text-white hover:shadow-[0_0_18px_rgba(34,211,238,0.14)]'
-                        : 'border-white/15 bg-brand-bg/80 text-white hover:border-brand-cyan/30 hover:bg-brand-bg hover:text-brand-cyan hover:shadow-[0_0_18px_rgba(34,211,238,0.08)]'
+                        ? 'border-brand-cyan/40 bg-brand-cyan/15 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.12)] hover:border-brand-cyan/60 hover:bg-brand-cyan/25'
+                        : 'border-white/15 bg-brand-bg/80 text-white hover:border-brand-cyan/30 hover:bg-brand-cyan/10 hover:text-brand-cyan'
                     )}
                   >
                     <Bookmark size={14} />

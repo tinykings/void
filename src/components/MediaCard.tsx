@@ -46,7 +46,7 @@ const PosterImage = ({ candidates, title, fit = 'cover' }: PosterImageProps) => 
         src={imageSrc}
         alt={title}
         className={clsx(
-          'w-full h-full group-hover:scale-105 transition-all duration-300 rounded-xl shadow-2xl shadow-brand-cyan/10',
+          'h-full w-full rounded-xl transition-transform duration-300 group-hover:scale-105',
           fit === 'contain' ? 'object-contain bg-brand-bg' : 'object-cover',
           imageLoaded ? 'opacity-100' : 'opacity-0'
         )}

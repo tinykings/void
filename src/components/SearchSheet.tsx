@@ -129,7 +129,7 @@ export const SearchSheet = () => {
             {!isLibraryEmpty && (
               <button
                 onClick={closeSheet}
-                className="shrink-0 rounded-lg border border-brand-cyan/25 bg-brand-cyan/10 p-3 text-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:border-brand-cyan/40 hover:bg-brand-cyan/20 hover:text-white"
+                className="shrink-0 rounded-lg border border-white/10 p-3 text-brand-silver transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/10 hover:text-white"
                 title="Close search"
               >
                 <X size={20} />

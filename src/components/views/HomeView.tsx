@@ -466,8 +466,8 @@ export const HomeView = () => {
                       className={clsx(
                         'w-full px-3 py-3 text-left text-sm font-bold flex items-center gap-2 transition-colors',
                         showFavoritesOnly
-                          ? 'text-red-200 bg-red-500/15'
-                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
+                          ? 'bg-brand-cyan/12 text-brand-cyan'
+                          : 'text-brand-silver hover:bg-brand-bg/50 hover:text-white'
                       )}
                     >
                       <Heart size={15} className={showFavoritesOnly ? 'fill-current' : undefined} />
@@ -518,11 +518,9 @@ export const HomeView = () => {
                   }}
                   className={clsx(
                     'flex h-12 w-12 items-center justify-center rounded-full transition-all',
-                    showStreamView || showFavoritesOnly
-                      ? 'bg-red-500/15 text-red-200 shadow-[0_0_18px_rgba(239,68,68,0.16)] hover:bg-red-500/25 hover:text-white'
-                      : showTypeMenu || activeFilter !== 'all'
-                      ? 'bg-brand-cyan/12 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.16)]'
-                      : 'text-brand-silver hover:text-white'
+                    showStreamView || showFavoritesOnly || showTypeMenu || activeFilter !== 'all'
+                      ? 'bg-brand-cyan/12 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.16)] hover:bg-brand-cyan/20 hover:text-white'
+                      : 'text-brand-silver hover:bg-brand-cyan/10 hover:text-white'
                   )}
                   aria-label={showStreamView ? 'Clear Stream view' : showFavoritesOnly ? 'Clear Favorites view' : `Filter: ${activeFilterLabel}`}
                   aria-haspopup={showStreamView || showFavoritesOnly ? undefined : 'menu'}
@@ -625,7 +623,7 @@ export const HomeView = () => {
                 </div>
                 <button
                   onClick={() => setShowSyncModal(false)}
-                  className="p-3 rounded-lg bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/25 shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:bg-brand-cyan/20 hover:text-white hover:border-brand-cyan/40"
+                  className="rounded-lg border border-white/10 p-3 text-brand-silver transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/10 hover:text-white"
                 >
                   <X size={20} />
                 </button>

@@ -67,7 +67,7 @@ export const CreditsModal = ({
               
               <button
                 onClick={onClose}
-                className="p-3 rounded-lg bg-brand-cyan/10 text-brand-cyan border border-brand-cyan/25 shadow-[0_0_15px_rgba(34,211,238,0.1)] transition-all hover:bg-brand-cyan/20 hover:text-white hover:border-brand-cyan/40"
+                className="rounded-lg border border-white/10 p-3 text-brand-silver transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/10 hover:text-white"
               >
                 <X size={20} />
               </button>
@@ -77,7 +77,7 @@ export const CreditsModal = ({
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
               {loading ? (
                 <div className="flex items-center justify-center h-full">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-cyan shadow-[0_0_15px_rgba(34,211,238,0.2)]"></div>
+                  <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-brand-cyan"></div>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
