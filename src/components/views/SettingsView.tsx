@@ -4,50 +4,15 @@ import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/context/AppContext';
 import { Download, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { Media } from '@/lib/types';
-import { getMediaSource } from '@/lib/media';
-
-type BackupItem = {
-  id: number;
-  title: string;
-  media_type: 'movie' | 'tv' | 'game';
-  source?: 'tmdb' | 'igdb' | 'rawg' | 'steam';
-  date_added: string;
-  release_date?: string;
-  image?: string | null;
-  poster_source?: Media['poster_source'];
-};
-
-interface LibraryBackup {
-  version: 2;
-  watchlist: BackupItem[];
-  watched: BackupItem[];
-  favorites: BackupItem[];
-}
+import { buildGistPayload } from '@/lib/gist';
 
 export const SettingsView = () => {
   const router = useRouter();
-  const { gistId, gistToken, watchlist, watched } = useAppContext();
+  const { gistId, gistToken, watchlist, watched, playedEpisodes } = useAppContext();
   const hasGistSync = !!(gistId && gistToken);
 
   const handleBackupJson = () => {
-    const toBackupItem = (item: Media): BackupItem => ({
-      id: item.id,
-      title: item.title || item.name || 'Unknown',
-      media_type: item.media_type,
-      source: getMediaSource(item),
-      date_added: item.date_added || new Date().toISOString(),
-      release_date: item.release_date,
-      image: item.poster_path || item.backdrop_path,
-      poster_source: item.poster_source,
-    });
-
-    const backup: LibraryBackup = {
-      version: 2,
-      watchlist: watchlist.map(toBackupItem),
-      watched: watched.map(toBackupItem),
-      favorites: watched.filter((item) => item.isFavorite).map(toBackupItem),
-    };
+    const backup = buildGistPayload(watchlist, watched, playedEpisodes);
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);

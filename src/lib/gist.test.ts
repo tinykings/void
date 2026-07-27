@@ -60,6 +60,54 @@ test('getGistContent distinguishes safe initialization from read failures', asyn
     assert.equal(result.status, 'invalid');
   });
 
+  await t.test('rejects malformed items with a useful field path', async () => {
+    globalThis.fetch = async () => gistResponse(JSON.stringify({
+      ...emptyLibrary,
+      watchlist: [{
+        id: 1,
+        title: 'Bad item',
+        media_type: 'podcast',
+        date_added: '2026-01-01T00:00:00.000Z',
+      }],
+    }));
+    assert.deepEqual(await getGistContent('gist-id'), {
+      status: 'invalid',
+      reason: 'void-data.json: watchlist[0].media_type must be movie, tv, or game',
+    });
+  });
+
+  await t.test('rejects invalid item fields instead of casting them', async () => {
+    const invalidItems = [
+      { id: 0, title: 'Title', media_type: 'movie', date_added: '2026-01-01' },
+      { id: 1, title: '', media_type: 'movie', date_added: '2026-01-01' },
+      { id: 1, title: 'Title', media_type: 'movie', source: 'igdb', date_added: '2026-01-01' },
+      { id: 1, title: 'Title', media_type: 'movie', date_added: 'not-a-date' },
+      { id: 1, title: 'Title', media_type: 'movie', date_added: '2026-02-30' },
+      { id: 1, title: 'Title', media_type: 'movie', date_added: '2026-01-01', rating: 6 },
+    ];
+
+    for (const item of invalidItems) {
+      globalThis.fetch = async () => gistResponse(JSON.stringify({ ...emptyLibrary, watched: [item] }));
+      assert.equal((await getGistContent('gist-id')).status, 'invalid');
+    }
+  });
+
+  await t.test('rejects unsupported fields', async () => {
+    globalThis.fetch = async () => gistResponse(JSON.stringify({
+      ...emptyLibrary,
+      favorites: [{
+        id: 1,
+        title: 'Unexpected data',
+        media_type: 'movie',
+        date_added: '2026-01-01',
+        executable: true,
+      }],
+    }));
+    const result = await getGistContent('gist-id');
+    assert.equal(result.status, 'invalid');
+    if (result.status === 'invalid') assert.match(result.reason, /favorites\[0\] contains unsupported fields/);
+  });
+
   await t.test('loads and identifies a valid empty library', async () => {
     globalThis.fetch = async () => gistResponse(JSON.stringify(emptyLibrary));
     const result = await getGistContent('gist-id');

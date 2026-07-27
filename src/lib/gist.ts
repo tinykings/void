@@ -1,25 +1,14 @@
 import type { Media } from './types';
 import { getMediaSource } from './media';
+import {
+  MAX_LIBRARY_FILE_BYTES,
+  validateLibraryPayload,
+  type LibraryPayload,
+  type LibraryPayloadItem,
+} from './libraryPayload';
 
-export type GistLibraryItem = {
-  id: number;
-  title: string;
-  media_type: 'movie' | 'tv' | 'game';
-  source?: 'tmdb' | 'igdb' | 'rawg' | 'steam';
-  date_added: string;
-  release_date?: string;
-  image?: string | null;
-  poster_source?: Media['poster_source'];
-  rating?: number;
-};
-
-export interface GistLibraryData {
-  version: 1 | 2 | 3;
-  watchlist: GistLibraryItem[];
-  watched: GistLibraryItem[];
-  favorites: GistLibraryItem[];
-  playedEpisodes?: Record<string, boolean>;
-}
+export type GistLibraryItem = LibraryPayloadItem;
+export type GistLibraryData = LibraryPayload;
 
 const GIST_FILENAME = 'void-data.json';
 const LEGACY_GIST_FILENAME = 'void-library.json';
@@ -86,24 +75,6 @@ export type GistContentResult =
   | { status: 'missing' }
   | { status: 'invalid'; reason: string };
 
-export const isPlayedEpisodesData = (value: unknown): value is Record<string, boolean> => {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  return Object.entries(value).every(([key, played]) => /^\d+-\d+-\d+$/.test(key) && played === true);
-};
-
-const isGistLibraryData = (value: unknown): value is GistLibraryData => {
-  if (!value || typeof value !== 'object') return false;
-
-  const payload = value as Partial<GistLibraryData>;
-  const hasSupportedVersion = payload.version === 1 || payload.version === 2 || payload.version === 3;
-  const hasLists = Array.isArray(payload.watchlist)
-    && Array.isArray(payload.watched)
-    && Array.isArray(payload.favorites);
-  const hasValidEpisodeData = payload.version !== 3 || isPlayedEpisodesData(payload.playedEpisodes);
-
-  return hasSupportedVersion && hasLists && hasValidEpisodeData;
-};
-
 export const getGistContent = async (gistId: string, token?: string): Promise<GistContentResult> => {
   const response = await fetch(`https://api.github.com/gists/${gistId}`, {
     headers: {
@@ -130,6 +101,9 @@ export const getGistContent = async (gistId: string, token?: string): Promise<Gi
     return { status: 'invalid', reason: `${filename} has no readable content` };
   }
   if (!file.content.trim()) return { status: 'empty' };
+  if (new Blob([file.content]).size > MAX_LIBRARY_FILE_BYTES) {
+    return { status: 'invalid', reason: `${filename} exceeds the 2 MB size limit` };
+  }
 
   let parsed: unknown;
   try {
@@ -138,11 +112,12 @@ export const getGistContent = async (gistId: string, token?: string): Promise<Gi
     return { status: 'invalid', reason: `${filename} contains invalid JSON` };
   }
 
-  if (!isGistLibraryData(parsed)) {
-    return { status: 'invalid', reason: `${filename} does not match a supported library schema` };
+  const validation = validateLibraryPayload(parsed);
+  if (!validation.success) {
+    return { status: 'invalid', reason: `${filename}: ${validation.error}` };
   }
 
-  return { status: 'loaded', data: parsed };
+  return { status: 'loaded', data: validation.data };
 };
 
 export const updateGist = async (gistId: string, token: string, content: GistLibraryData): Promise<void> => {

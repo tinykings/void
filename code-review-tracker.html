@@ -452,13 +452,13 @@
         <div class="item-actions"></div>
       </article>
 
-      <article class="item" data-id="schema-validation" data-type="maintenance" data-severity="recommendation" data-status="open">
+      <article class="item" data-id="schema-validation" data-type="maintenance" data-severity="recommendation" data-status="fixed" data-resolution="Implemented one strict runtime schema for library backups and Gist payloads, with field-level errors, size and item limits, and validation before collection state changes.">
         <div class="item-number">M-02</div>
         <div class="item-main">
           <div class="item-head"><span class="tag recommendation">Recommendation</span><span class="tag recommendation">Validation</span></div>
           <h2>Validate imported data at runtime</h2>
-          <p>Backup import checks top-level arrays but trusts each item’s shape. Gist content is cast directly to TypeScript types.</p>
-          <div class="source">src/components/views/HomeView.tsx:320–325 · src/lib/gist.ts:75–76</div>
+          <p>Library payloads now receive strict runtime validation before they can change collection state.</p>
+          <div class="source">src/lib/libraryPayload.ts · src/lib/gist.ts</div>
           <details><summary>Completion criteria</summary><ul><li>Define one runtime schema for backups and Gist payloads.</li><li>Validate media IDs, types, sources, dates, and optional fields.</li><li>Show a useful error without changing the current collection.</li></ul></details>
         </div>
         <div class="item-actions"></div>
