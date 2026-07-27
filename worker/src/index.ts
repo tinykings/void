@@ -1,7 +1,13 @@
+type RateLimiter = {
+  limit(options: { key: string }): Promise<{ success: boolean }>;
+};
+
 type Env = {
   IGDB_CLIENT_ID: string;
   IGDB_CLIENT_SECRET: string;
   ALLOWED_ORIGINS?: string;
+  ALLOW_ORIGINLESS_REQUESTS?: string;
+  RATE_LIMITER: RateLimiter;
 };
 
 type ExecutionContextLike = {
@@ -88,22 +94,48 @@ const DEFAULT_ALLOWED_ORIGINS = ['https://tinykings.github.io', 'http://localhos
 const SEARCH_CACHE_SECONDS = 60 * 60;
 const DETAILS_CACHE_SECONDS = 60 * 60 * 24;
 const CACHE_VERSION = 'hltb-v3';
+const MAX_URL_LENGTH = 2048;
+const MAX_SEARCH_QUERY_LENGTH = 100;
+const RATE_LIMIT_RETRY_SECONDS = 60;
 
 let tokenCache: TokenCache | null = null;
 let hltbSearchPathCache: string | null = null;
 
 const getAllowedOrigins = (env: Env) => {
   const configured = env.ALLOWED_ORIGINS?.split(',').map((origin) => origin.trim()).filter(Boolean);
-  return [...new Set([...(configured || []), ...DEFAULT_ALLOWED_ORIGINS])];
+  return [...new Set(configured?.length ? configured : DEFAULT_ALLOWED_ORIGINS)];
 };
+
+const allowsOriginlessRequests = (env: Env) => env.ALLOW_ORIGINLESS_REQUESTS?.toLowerCase() === 'true';
 
 const getCorsOrigin = (request: Request, env: Env) => {
   const origin = request.headers.get('Origin');
   const allowedOrigins = getAllowedOrigins(env);
 
   if (allowedOrigins.includes('*')) return '*';
-  if (!origin) return '*';
+  if (!origin) return allowsOriginlessRequests(env) ? '*' : '';
   return allowedOrigins.includes(origin) ? origin : '';
+};
+
+const isRequestOriginAllowed = (request: Request, env: Env) => {
+  const origin = request.headers.get('Origin');
+  if (!origin) return allowsOriginlessRequests(env);
+  return getAllowedOrigins(env).includes('*') || getAllowedOrigins(env).includes(origin);
+};
+
+const getClientKey = (request: Request) => request.headers.get('CF-Connecting-IP') || 'local';
+
+const logSecurityEvent = (request: Request, event: string, details: Record<string, unknown> = {}) => {
+  const url = new URL(request.url);
+  console.warn(JSON.stringify({
+    level: 'warn',
+    event,
+    method: request.method,
+    path: url.pathname,
+    origin: request.headers.get('Origin') || null,
+    ray: request.headers.get('CF-Ray') || null,
+    ...details,
+  }));
 };
 
 const corsHeaders = (request: Request, env: Env) => {
@@ -123,14 +155,26 @@ const jsonResponse = (request: Request, env: Env, data: unknown, init: ResponseI
     ...init,
     headers: {
       'Content-Type': 'application/json',
+      'X-Content-Type-Options': 'nosniff',
       ...corsHeaders(request, env),
       ...init.headers,
     },
   });
 };
 
-const errorResponse = (request: Request, env: Env, status: number, error: string) => {
-  return jsonResponse(request, env, { error }, { status });
+const errorResponse = (request: Request, env: Env, status: number, error: string, headers: Record<string, string> = {}) => {
+  return jsonResponse(request, env, { error }, {
+    status,
+    headers: {
+      'Cache-Control': 'no-store',
+      ...headers,
+    },
+  });
+};
+
+const applyRateLimit = async (request: Request, env: Env, route: string) => {
+  const result = await env.RATE_LIMITER.limit({ key: `${getClientKey(request)}:${route}` });
+  return result.success;
 };
 
 const escapeIgdbString = (value: string) => value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
@@ -602,25 +646,50 @@ const withCache = async (
 
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContextLike): Promise<Response> {
+    if (!isRequestOriginAllowed(request, env)) {
+      logSecurityEvent(request, 'request_origin_blocked');
+      return errorResponse(request, env, 403, 'Origin not allowed');
+    }
+
     if (request.method === 'OPTIONS') {
-      const origin = getCorsOrigin(request, env);
       return new Response(null, {
-        status: origin ? 204 : 403,
+        status: 204,
         headers: corsHeaders(request, env),
       });
     }
 
     if (request.method !== 'GET') {
-      return errorResponse(request, env, 405, 'Method not allowed');
+      return errorResponse(request, env, 405, 'Method not allowed', { Allow: 'GET, OPTIONS' });
+    }
+
+    if (request.url.length > MAX_URL_LENGTH) {
+      logSecurityEvent(request, 'request_url_too_long', { length: request.url.length });
+      return errorResponse(request, env, 414, 'Request URL is too long');
     }
 
     const url = new URL(request.url);
+    const route = url.pathname === '/api/games/search' ? 'search' : url.pathname.startsWith('/api/games/') ? 'details' : 'other';
 
     try {
+      if (!await applyRateLimit(request, env, route)) {
+        logSecurityEvent(request, 'request_rate_limited', { route });
+        return errorResponse(request, env, 429, 'Too many requests', {
+          'Retry-After': String(RATE_LIMIT_RETRY_SECONDS),
+        });
+      }
+
       if (url.pathname === '/api/games/search') {
+        const unexpectedParameters = [...url.searchParams.keys()].filter((key) => key !== 'q');
+        if (unexpectedParameters.length > 0) {
+          return errorResponse(request, env, 400, 'Unsupported query parameter');
+        }
+
         const query = (url.searchParams.get('q') || '').trim();
         if (query.length < 2) {
           return errorResponse(request, env, 400, 'Search query must be at least 2 characters');
+        }
+        if (query.length > MAX_SEARCH_QUERY_LENGTH) {
+          return errorResponse(request, env, 400, `Search query must not exceed ${MAX_SEARCH_QUERY_LENGTH} characters`);
         }
 
         return withCache(request, env, ctx, SEARCH_CACHE_SECONDS, async () => {
@@ -631,7 +700,15 @@ const worker = {
 
       const detailsMatch = url.pathname.match(/^\/api\/games\/(\d+)$/);
       if (detailsMatch) {
+        if ([...url.searchParams.keys()].length > 0) {
+          return errorResponse(request, env, 400, 'Query parameters are not supported for game details');
+        }
+
         const id = Number(detailsMatch[1]);
+        if (!Number.isSafeInteger(id) || id <= 0) {
+          return errorResponse(request, env, 400, 'Invalid game ID');
+        }
+
         return withCache(request, env, ctx, DETAILS_CACHE_SECONDS, async () => {
           const game = await getGameDetails(env, id);
           if (!game) return errorResponse(request, env, 404, 'Game not found');
@@ -641,8 +718,14 @@ const worker = {
 
       return errorResponse(request, env, 404, 'Not found');
     } catch (error) {
-      console.error(error);
-      return errorResponse(request, env, 502, error instanceof Error ? error.message : 'Game API request failed');
+      console.error(JSON.stringify({
+        level: 'error',
+        event: 'game_api_request_failed',
+        path: url.pathname,
+        ray: request.headers.get('CF-Ray') || null,
+        message: error instanceof Error ? error.message : 'Game API request failed',
+      }));
+      return errorResponse(request, env, 502, 'Game API request failed');
     }
   },
 };

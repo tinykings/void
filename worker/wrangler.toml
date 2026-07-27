@@ -4,3 +4,11 @@ compatibility_date = "2026-06-20"
 
 [vars]
 ALLOWED_ORIGINS = "https://tinykings.github.io,http://localhost:3000,http://127.0.0.1:3000"
+ALLOW_ORIGINLESS_REQUESTS = "false"
+
+# Cloudflare's native per-location rate limiter. Search and detail routes use
+# separate keys, so one burst does not starve the other route.
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 120, period = 60 }
