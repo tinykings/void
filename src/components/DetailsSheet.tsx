@@ -302,6 +302,15 @@ export const DetailsSheet = () => {
               className="sheet-surface will-change-transform"
             >
               <FocusTrap active={isOpen}>
+              <button
+                type="button"
+                onClick={closeDetails}
+                className="absolute right-4 top-3 z-30 rounded-lg border border-white/10 bg-brand-bg/80 p-3 text-brand-silver backdrop-blur-md transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
+                aria-label="Close details"
+                title="Close details"
+              >
+                <X size={20} />
+              </button>
               <div className="relative z-10 flex-1 overflow-y-auto px-4 pb-[calc(7rem+env(safe-area-inset-bottom,0px))]">
                 <div className="flex gap-4 pb-4 pt-4">
                   {posterSrc && (
@@ -314,7 +323,7 @@ export const DetailsSheet = () => {
                     />
                   )}
                   <div className="min-w-0 flex-1 space-y-3">
-                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 pr-12">
                       <h2 className="type-display text-white">
                         {title}
                       </h2>
@@ -396,7 +405,9 @@ export const DetailsSheet = () => {
 
               {isGame && (gameTimeItems.length > 0 || isGamePriceLoading || (gamePrice?.lowestCurrent && formattedGamePrice) || gamePriceError) && (
                 <section aria-labelledby="game-metrics-heading" className="space-y-3 border-t border-white/10 pt-4">
-                  <h3 id="game-metrics-heading" className="type-label text-brand-silver">HLTB + Deals</h3>
+                  <h3 id="game-metrics-heading" className="type-label text-brand-silver">
+                    {gamePrice?.lowestCurrent && formattedGamePrice ? 'HLTB + Deals' : 'HLTB'}
+                  </h3>
                   <div className={clsx(
                     'grid items-stretch gap-2',
                     (isGamePriceLoading || (gamePrice?.lowestCurrent && formattedGamePrice) || gamePriceError) && 'sm:grid-cols-[minmax(0,2fr)_minmax(14rem,1fr)]'
@@ -405,7 +416,7 @@ export const DetailsSheet = () => {
                       <div className="grid min-h-[5rem] w-full grid-cols-3 overflow-hidden rounded-lg border border-brand-cyan/20 bg-brand-cyan/[0.05]">
                         {gameTimeItems.map((item) => (
                           <div key={item.label} className="flex min-w-0 flex-col justify-center border-r border-white/10 px-2 py-3 text-center last:border-r-0">
-                            <p className="type-micro truncate text-brand-silver">{item.label}</p>
+                            <p className="type-label truncate text-brand-silver">{item.label}</p>
                             <p className="type-readout mt-1 text-xl leading-none text-white sm:text-2xl">{item.value}H</p>
                           </div>
                         ))}
@@ -420,18 +431,15 @@ export const DetailsSheet = () => {
                         target="_blank"
                         rel="noopener noreferrer sponsored"
                         className="group flex min-h-[5rem] items-center justify-between gap-3 rounded-lg border border-brand-cyan/25 bg-brand-cyan/[0.06] px-4 py-3 transition-colors hover:border-brand-cyan/45 hover:bg-brand-cyan/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
-                        aria-label={`Lowest Steam price ${formattedGamePrice}; view prices on GG.deals`}
+                        aria-label={`${gamePrice.lowestCurrent.source === 'keyshop' ? 'Keyshop' : 'Retail'} price ${formattedGamePrice}; view prices on GG.deals`}
                       >
                         <span>
-                          <span className="type-micro block text-brand-silver">Lowest Steam price</span>
-                          <span className="type-readout mt-1 block text-2xl text-white">{formattedGamePrice}</span>
-                        </span>
-                        <span className="text-right">
-                          <span className="type-micro block text-brand-cyan">
+                          <span className="type-label block text-brand-cyan">
                             {gamePrice.lowestCurrent.source === 'keyshop' ? 'Keyshop' : 'Retail'}
                           </span>
-                          <span className="type-label mt-1 block text-brand-silver transition-colors group-hover:text-white">GG.deals ↗</span>
+                          <span className="type-readout mt-1 block text-2xl text-white">{formattedGamePrice}</span>
                         </span>
+                        <span className="type-label text-right text-brand-silver transition-colors group-hover:text-white">GG.deals ↗</span>
                       </a>
                     )}
                     {gamePriceError && (
@@ -489,11 +497,12 @@ export const DetailsSheet = () => {
                       <div className="grid grid-cols-1 gap-2 xs:grid-cols-3">
                         {detailImages.map((image, index) => {
                           const imageSrc = getImageSrc(image, (tmdbPath) => getImageUrl(tmdbPath, 'w780'));
+                          const fullImageSrc = getImageSrc(image, (tmdbPath) => getImageUrl(tmdbPath, 'original'));
                           return (
                             <button
                               key={image}
                               type="button"
-                              onClick={() => setActiveImage({ src: imageSrc, alt: `${title} image ${index + 1}`, mediaKey })}
+                              onClick={() => setActiveImage({ src: fullImageSrc, alt: `${title} image ${index + 1}`, mediaKey })}
                               className="group cursor-pointer overflow-hidden rounded-lg bg-white/5 blueprint-border transition-colors hover:border-brand-cyan/35"
                             >
                               <img
@@ -669,7 +678,7 @@ export const DetailsSheet = () => {
                         initial={{ opacity: 0, scale: 0.96 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.96 }}
-                        className="relative max-h-full max-w-6xl cursor-default"
+                        className="relative flex max-h-[96vh] max-w-[96vw] cursor-default items-center justify-center"
                         onClick={(event) => event.stopPropagation()}
                       >
                         <button
@@ -683,7 +692,7 @@ export const DetailsSheet = () => {
                         <img
                           src={activeImage.src}
                           alt={activeImage.alt}
-                          className="max-h-[88vh] max-w-full rounded-xl object-contain blueprint-border"
+                          className="max-h-[94vh] max-w-[96vw] rounded-xl object-contain blueprint-border"
                         />
                       </motion.div>
                     </div>
