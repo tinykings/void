@@ -3,13 +3,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   getContentRating,
-  getExternalIds,
   getMediaCredits,
   getMediaImages,
   getUSStreamingProviders,
   getWatchProviders,
 } from '@/lib/tmdb';
-import type { CastMember, ExternalIdsResponse, Media, TmdbImage, WatchProvider } from '@/lib/types';
+import type { CastMember, Media, TmdbImage, WatchProvider } from '@/lib/types';
 
 type KeyedItems<T> = { key: string; items: T[] } | null;
 type UseDetailsSupplementaryDataOptions = {
@@ -31,7 +30,6 @@ export const useDetailsSupplementaryData = ({
   const [backdrops, setBackdrops] = useState<KeyedItems<TmdbImage>>(null);
   const [watchProviders, setWatchProviders] = useState<KeyedItems<WatchProvider>>(null);
   const [contentRating, setContentRating] = useState<{ key: string; value: string | null } | null>(null);
-  const [externalIds, setExternalIds] = useState<{ key: string; value: ExternalIdsResponse | null } | null>(null);
   const [sectionErrors, setSectionErrors] = useState<Set<string>>(new Set());
   const [retryCount, setRetryCount] = useState(0);
 
@@ -93,20 +91,11 @@ export const useDetailsSupplementaryData = ({
 
     const controller = new AbortController();
     const mediaType = activeMedia.media_type;
-    void Promise.all([
-      getContentRating(activeMedia.id, mediaType, apiKey, controller.signal)
-        .then((value) => {
-          if (!controller.signal.aborted) setContentRating({ key: activeKey, value });
-        })
-        .catch(() => undefined),
-      getExternalIds(activeMedia.id, mediaType, apiKey, controller.signal)
-        .then((value) => {
-          if (!controller.signal.aborted) setExternalIds({ key: activeKey, value });
-        })
-        .catch(() => {
-          if (!controller.signal.aborted) setExternalIds({ key: activeKey, value: null });
-        }),
-    ]);
+    void getContentRating(activeMedia.id, mediaType, apiKey, controller.signal)
+      .then((value) => {
+        if (!controller.signal.aborted) setContentRating({ key: activeKey, value });
+      })
+      .catch(() => undefined);
 
     return () => controller.abort();
   }, [activeKey, activeMedia, apiKey, isOnline]);
@@ -117,7 +106,6 @@ export const useDetailsSupplementaryData = ({
     castItems: cast?.key === activeKey ? cast.items : [],
     castKey: cast?.key,
     contentRatingValue: contentRating?.key === activeKey ? contentRating.value : null,
-    externalIdsValue: externalIds?.key === activeKey ? externalIds.value : null,
     retrySection,
     sectionErrors,
     watchProviderItems: watchProviders?.key === activeKey ? watchProviders.items : [],

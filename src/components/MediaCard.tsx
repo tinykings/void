@@ -158,7 +158,7 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, onClick }
       <div ref={cardRef} className="relative group bg-brand-bg rounded-xl overflow-hidden transition-colors duration-300">
         <button
           type="button"
-          className="block relative aspect-[2/3] bg-brand-bg/50 overflow-hidden shrink-0 blueprint-border"
+          className="relative block aspect-[2/3] shrink-0 cursor-pointer overflow-hidden bg-brand-bg/50 blueprint-border"
           onClick={() => {
             openDetails(media);
             onClick?.();

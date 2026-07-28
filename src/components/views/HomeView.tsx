@@ -517,7 +517,7 @@ export const HomeView = () => {
                     setShowTypeMenu((current) => !current);
                   }}
                   className={clsx(
-                    'flex h-12 w-12 items-center justify-center rounded-lg transition-all',
+                    'flex h-12 w-12 cursor-pointer items-center justify-center rounded-lg transition-all',
                     showStreamView || showFavoritesOnly || showTypeMenu || activeFilter !== 'all'
                       ? 'bg-brand-cyan/12 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.16)] hover:bg-brand-cyan/20 hover:text-white'
                       : 'text-brand-silver hover:bg-brand-cyan/10 hover:text-white'
@@ -555,7 +555,7 @@ export const HomeView = () => {
                   type="button"
                   onClick={() => selectLibraryMode('library')}
                   className={clsx(
-                    'relative z-10 flex h-11 items-center justify-center rounded-full transition-colors',
+                    'relative z-10 flex h-11 cursor-pointer items-center justify-center rounded-full transition-colors',
                     activeLibraryMode === 'library' && !showFavoritesOnly && !showStreamView ? 'text-brand-cyan' : 'text-brand-silver hover:text-white'
                   )}
                   aria-label="History"
@@ -568,7 +568,7 @@ export const HomeView = () => {
                   type="button"
                   onClick={() => selectLibraryMode('watchlist')}
                   className={clsx(
-                    'relative z-10 flex h-11 items-center justify-center rounded-full transition-colors',
+                    'relative z-10 flex h-11 cursor-pointer items-center justify-center rounded-full transition-colors',
                     activeLibraryMode === 'watchlist' && !showFavoritesOnly && !showStreamView ? 'text-brand-cyan' : 'text-brand-silver hover:text-white'
                   )}
                   aria-label="Playlist"
@@ -587,7 +587,7 @@ export const HomeView = () => {
                   });
                   setShowTypeMenu(false);
                 }}
-                className="flex h-12 w-12 items-center justify-center rounded-lg text-brand-silver hover:bg-brand-cyan/10 hover:text-white transition-all"
+                className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-lg text-brand-silver hover:bg-brand-cyan/10 hover:text-white transition-all"
                 aria-label="Search"
                 title="Search"
               >

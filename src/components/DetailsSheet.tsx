@@ -88,7 +88,6 @@ export const DetailsSheet = () => {
     castItems,
     castKey,
     contentRatingValue,
-    externalIdsValue,
     retrySection: handleRetrySection,
     sectionErrors,
     watchProviderItems,
@@ -99,7 +98,6 @@ export const DetailsSheet = () => {
     enabled: hasResolvedDetails,
     isOnline,
   });
-  const imdbUrl = externalIdsValue?.imdb_id ? `https://www.imdb.com/title/${externalIdsValue.imdb_id}` : '';
   const steamAppId = selected?.media_type === 'game' ? getSteamAppId(selected) : undefined;
   const {
     error: gamePriceError,
@@ -113,7 +111,7 @@ export const DetailsSheet = () => {
     title: selected ? getMediaTitle(selected) : '',
   });
   const currentActionPulse = selected && actionPulse?.key === mediaKey ? actionPulse.action : null;
-  const railButtonClass = 'absolute inset-y-0 z-10 hidden w-10 items-center justify-center rounded-lg border border-white/10 bg-brand-bg/85 text-brand-cyan backdrop-blur-md transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/15 hover:text-white md:flex';
+  const railButtonClass = 'absolute inset-y-0 z-10 hidden w-10 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-brand-bg/85 text-brand-cyan backdrop-blur-md transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/15 hover:text-white md:flex';
 
   function scrollCast(direction: 'left' | 'right') {
     const scroller = castScrollerRef.current;
@@ -281,8 +279,6 @@ export const DetailsSheet = () => {
     : sectionErrors.has(`${mediaKey}:images`) || backdropsKey !== mediaKey || backdropItems.length > 0;
   const externalLinks = [
     trailerItems.length === 0 ? { label: 'Trailer', url: trailerSearchUrl } : null,
-    imdbUrl ? { label: 'IMDb', url: imdbUrl } : null,
-    !isGame && watchProviderItems.length > 0 ? { label: 'JustWatch', url: `https://www.justwatch.com/us/search?q=${encodeURIComponent(title)}` } : null,
     selected.source_url && source !== 'igdb' ? { label: providerLabel, url: selected.source_url } : null,
   ].filter((link): link is { label: string; url: string } => !!link && !!link.url);
   const renderImageGrid = (items: { src: string; alt: string }[]) => (
@@ -308,7 +304,7 @@ export const DetailsSheet = () => {
             key={image.src}
             type="button"
             onClick={() => setActiveImage({ ...image, mediaKey })}
-            className="group w-[31%] shrink-0 snap-start overflow-hidden rounded-xl bg-white/5 blueprint-border transition-colors duration-200 hover:border-brand-cyan/35 sm:w-[23.5%] md:w-[18.4%]"
+            className="group w-[31%] shrink-0 snap-start cursor-pointer overflow-hidden rounded-xl bg-white/5 blueprint-border transition-colors duration-200 hover:border-brand-cyan/35 sm:w-[23.5%] md:w-[18.4%]"
           >
             <img
               src={image.src}
@@ -356,7 +352,7 @@ export const DetailsSheet = () => {
             key={`${video.id}-${video.key}`}
             type="button"
             onClick={() => setActiveTrailer({ video, mediaKey })}
-            className="group w-[70%] shrink-0 snap-start overflow-hidden rounded-xl bg-brand-bg/80 text-left blueprint-border transition-colors duration-200 hover:border-brand-cyan/35 hover:bg-brand-bg sm:w-[46%] md:w-[31%]"
+            className="group w-[70%] shrink-0 snap-start cursor-pointer overflow-hidden rounded-xl bg-brand-bg/80 text-left blueprint-border transition-colors duration-200 hover:border-brand-cyan/35 hover:bg-brand-bg sm:w-[46%] md:w-[31%]"
           >
             <div className="relative aspect-video bg-white/5">
               <img
@@ -820,7 +816,7 @@ export const DetailsSheet = () => {
                     animate={currentActionPulse === 'watched' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
                     transition={{ duration: 0.2, ease: 'easeOut' }}
                     className={clsx(
-                      'type-action flex h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 transition-colors duration-200',
+                      'type-action flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 transition-colors duration-200 disabled:cursor-wait',
                       inWatched
                         ? 'border-green-400/40 bg-green-500/15 text-green-200 hover:border-green-300/60 hover:bg-green-500/25'
                         : 'border-white/15 bg-brand-bg/80 text-white hover:border-brand-cyan/30 hover:bg-brand-cyan/10 hover:text-brand-cyan'
@@ -840,7 +836,7 @@ export const DetailsSheet = () => {
                       animate={currentActionPulse === 'favorite' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
                       transition={{ duration: 0.2, ease: 'easeOut' }}
                       className={clsx(
-                        'flex h-11 w-full items-center justify-center rounded-lg border transition-colors duration-200',
+                        'flex h-11 w-full cursor-pointer items-center justify-center rounded-lg border transition-colors duration-200 disabled:cursor-wait',
                         isFavorited
                           ? 'border-brand-cyan/40 bg-brand-cyan/15 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.12)] hover:border-brand-cyan/60 hover:bg-brand-cyan/25'
                           : 'border-white/15 bg-brand-bg/80 text-white hover:border-brand-cyan/30 hover:bg-brand-cyan/10 hover:text-brand-cyan'
@@ -853,7 +849,7 @@ export const DetailsSheet = () => {
                   <button
                     type="button"
                     onClick={closeDetails}
-                    className="flex h-11 w-full items-center justify-center rounded-lg border border-white/10 text-brand-silver transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/10 hover:text-white"
+                    className="flex h-11 w-full cursor-pointer items-center justify-center rounded-lg border border-white/10 text-brand-silver transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/10 hover:text-white"
                     aria-label="Close sheet"
                     title="Tap to close"
                   >
@@ -870,7 +866,7 @@ export const DetailsSheet = () => {
                     animate={currentActionPulse === 'watchlist' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
                     transition={{ duration: 0.2, ease: 'easeOut' }}
                     className={clsx(
-                      'type-action flex h-11 w-full items-center justify-center gap-2 rounded-lg border px-3 transition-colors duration-200',
+                      'type-action flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 transition-colors duration-200 disabled:cursor-wait',
                       inWatchlist
                         ? 'border-brand-cyan/40 bg-brand-cyan/15 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.12)] hover:border-brand-cyan/60 hover:bg-brand-cyan/25'
                         : 'border-white/15 bg-brand-bg/80 text-white hover:border-brand-cyan/30 hover:bg-brand-cyan/10 hover:text-brand-cyan'
