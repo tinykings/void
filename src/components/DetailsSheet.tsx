@@ -16,6 +16,9 @@ import { useMediaDetails } from '@/hooks/useMediaDetails';
 import { useDetailsSupplementaryData } from '@/hooks/useDetailsSupplementaryData';
 import { useGamePrice } from '@/hooks/useGamePrice';
 
+const basePath = (process.env.NEXT_PUBLIC_BASE_PATH || '').replace(/\/$/, '');
+const episodePlaceholderSrc = `${basePath}/episode-placeholder.svg`;
+
 export const DetailsSheet = () => {
   const isOnline = useOnlineStatus();
   const {
@@ -569,7 +572,7 @@ export const DetailsSheet = () => {
                               <article key={episode.id} className="grid overflow-hidden rounded-xl bg-white/[0.025] blueprint-border sm:grid-cols-[13rem_1fr]">
                                 <div className="aspect-video min-w-0 overflow-hidden bg-white/5 sm:aspect-auto sm:h-full sm:min-h-32">
                                   <img
-                                    src={episode.still_path ? getImageUrl(episode.still_path, 'w500') : '/episode-placeholder.svg'}
+                                    src={episode.still_path ? getImageUrl(episode.still_path, 'w500') : episodePlaceholderSrc}
                                     alt=""
                                     className="block h-full w-full object-cover"
                                     decoding="async"
