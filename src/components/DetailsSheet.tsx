@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
-import { getImageUrl } from '@/lib/tmdb';
+import { getImageUrl, getSeasonDetails } from '@/lib/tmdb';
 import { formatGamePrice, getSteamAppId } from '@/lib/ggDeals';
 import { getImageSrc, getMediaKey, getMediaSource, getMediaTitle } from '@/lib/media';
-import type { Video } from '@/lib/types';
-import { Bookmark, ChevronDown, ChevronLeft, ChevronRight, Eye, Heart, Play, X } from 'lucide-react';
+import type { SeasonDetails, Video } from '@/lib/types';
+import { Bookmark, ChevronDown, Eye, Heart, Play, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { FocusTrap } from '@/components/FocusTrap';
@@ -36,10 +36,11 @@ export const DetailsSheet = () => {
   const [activeImage, setActiveImage] = useState<{ src: string; alt: string; mediaKey: string } | null>(null);
   const [activeTrailer, setActiveTrailer] = useState<{ video: Video; mediaKey: string } | null>(null);
   const [actionPulse, setActionPulse] = useState<{ key: string; action: 'watchlist' | 'watched' | 'favorite' } | null>(null);
-  const [showCastLeftButton, setShowCastLeftButton] = useState(false);
-  const [showCastRightButton, setShowCastRightButton] = useState(false);
+  const [seasonSelection, setSeasonSelection] = useState<{ mediaKey: string; number: number } | null>(null);
+  const [seasonData, setSeasonData] = useState<{ key: string; data: SeasonDetails } | null>(null);
+  const [seasonErrorKey, setSeasonErrorKey] = useState<string | null>(null);
+  const [seasonRetryCount, setSeasonRetryCount] = useState(0);
   const closeActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const castScrollerRef = useRef<HTMLDivElement | null>(null);
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -72,6 +73,18 @@ export const DetailsSheet = () => {
     if (!selected) return '';
     return getMediaKey(selected);
   }, [selected]);
+  const availableSeasons = useMemo(
+    () => selected?.media_type === 'tv'
+      ? [...(selected.seasons || [])]
+          .filter((season) => season.season_number > 0 && season.episode_count > 0)
+          .sort((a, b) => b.season_number - a.season_number)
+      : [],
+    [selected],
+  );
+  const latestSeasonNumber = availableSeasons[0]?.season_number ?? null;
+  const selectedSeasonNumber = seasonSelection?.mediaKey === mediaKey
+    ? seasonSelection.number
+    : latestSeasonNumber;
 
   const inWatchlist = mediaKey ? watchlistIds.has(mediaKey) : false;
   const inWatched = mediaKey ? watchedIds.has(mediaKey) : false;
@@ -103,23 +116,6 @@ export const DetailsSheet = () => {
     title: selected ? getMediaTitle(selected) : '',
   });
   const currentActionPulse = selected && actionPulse?.key === mediaKey ? actionPulse.action : null;
-  const railButtonClass = 'absolute inset-y-0 z-10 hidden w-10 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-brand-bg/85 text-brand-cyan backdrop-blur-md transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/15 hover:text-white md:flex';
-
-  function scrollCast(direction: 'left' | 'right') {
-    const scroller = castScrollerRef.current;
-    if (!scroller) return;
-
-    scroller.scrollBy({
-      left: direction === 'left' ? -scroller.clientWidth * 0.85 : scroller.clientWidth * 0.85,
-      behavior: 'smooth',
-    });
-  }
-
-  function handleCastScroll() {
-    const scroller = castScrollerRef.current;
-    setShowCastLeftButton(!!scroller && scroller.scrollLeft > 4);
-    setShowCastRightButton(!!scroller && scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 4);
-  }
 
   useEffect(() => {
     return () => {
@@ -143,16 +139,22 @@ export const DetailsSheet = () => {
   }, [activeImage, activeTrailer]);
 
   useEffect(() => {
-    if (castScrollerRef.current) castScrollerRef.current.scrollLeft = 0;
-    queueMicrotask(() => {
-      setShowCastLeftButton(false);
-      setShowCastRightButton(false);
-    });
-  }, [mediaKey]);
+    if (!selected || selected.media_type !== 'tv' || selectedSeasonNumber === null || !apiKey || !isOnline) return;
 
-  useEffect(() => {
-    queueMicrotask(handleCastScroll);
-  }, [castItems.length, mediaKey]);
+    const requestKey = `${mediaKey}:${selectedSeasonNumber}:${seasonRetryCount}`;
+    if (seasonData?.key === requestKey) return;
+
+    const controller = new AbortController();
+    void getSeasonDetails(selected.id, selectedSeasonNumber, apiKey, controller.signal)
+      .then((data) => {
+        if (!controller.signal.aborted) setSeasonData({ key: requestKey, data });
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setSeasonErrorKey(requestKey);
+      });
+
+    return () => controller.abort();
+  }, [apiKey, isOnline, mediaKey, seasonData?.key, seasonRetryCount, selected, selectedSeasonNumber]);
 
   useEffect(() => {
     if (!activeDetailsMedia) return;
@@ -202,10 +204,18 @@ export const DetailsSheet = () => {
     : [];
   const providerLabel = source === 'igdb' ? 'IGDB' : source === 'rawg' ? 'RAWG' : source === 'steam' ? 'Steam' : 'TMDB';
   const posterSrc = getImageSrc(selected.poster_path, (tmdbPath) => getImageUrl(tmdbPath, 'w342'));
-  const gameImages = isGame ? (selected.screenshots || []).slice(0, 3) : [];
-  const gameTrailers = isGame
-    ? (selected.videos || []).filter((video) => video.site === 'YouTube' && !!video.key).slice(0, 3)
-    : [];
+  const detailImages = (selected.screenshots || []).slice(0, 3);
+  const detailTrailers = (selected.videos || [])
+    .filter((video) => video.site === 'YouTube' && !!video.key)
+    .slice(0, 3);
+  const seasonRequestKey = selectedSeasonNumber === null ? '' : `${mediaKey}:${selectedSeasonNumber}:${seasonRetryCount}`;
+  const currentSeason = seasonData?.key === seasonRequestKey ? seasonData.data : null;
+  const isSeasonLoading = selected.media_type === 'tv'
+    && selectedSeasonNumber !== null
+    && isOnline
+    && !!apiKey
+    && !currentSeason
+    && seasonErrorKey !== seasonRequestKey;
   const externalLinks = [
     selected.source_url && source !== 'igdb' ? { label: providerLabel, url: selected.source_url } : null,
   ].filter((link): link is { label: string; url: string } => !!link && !!link.url);  const runAction = async (action: 'watchlist' | 'watched', commit: () => Promise<void> | void) => {
@@ -311,6 +321,11 @@ export const DetailsSheet = () => {
                       {year && <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{year}</span>}
                       <span className={clsx('px-2 py-1 rounded-full backdrop-blur-sm', (selected.vote_average ?? 0) >= 7 ? 'bg-brand-cyan/10 text-brand-cyan' : 'bg-white/10 text-brand-silver')}>★ {selected.vote_average?.toFixed(1) || '0.0'}</span>
                       {!isGame && <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{contentRatingValue || 'N/A'}</span>}
+                      {!isGame && selected.genres && selected.genres.length > 0 && (
+                        <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">
+                          {selected.genres.slice(0, 3).join(' · ')}
+                        </span>
+                      )}
                       {isGame && selected.metacritic ? <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">MC {selected.metacritic}</span> : null}
                       {externalLinks.map((link) => (
                         <a
@@ -338,118 +353,11 @@ export const DetailsSheet = () => {
                         {selected.genres.slice(0, 6).join(' · ')}
                       </p>
                     )}
-                    {(gameTimeItems.length > 0 || isGamePriceLoading || (gamePrice?.lowestCurrent && formattedGamePrice)) && (
-                      <div className={clsx(
-                        'grid items-stretch gap-2',
-                        (isGamePriceLoading || (gamePrice?.lowestCurrent && formattedGamePrice)) && 'sm:grid-cols-[minmax(0,24rem)_16rem]'
-                      )}>
-                        {gameTimeItems.length > 0 && (
-                          <div className="grid w-full max-w-96 grid-cols-3 overflow-hidden rounded-lg border border-brand-cyan/20 bg-brand-cyan/[0.05]">
-                            {gameTimeItems.map((item) => (
-                              <div key={item.label} className="flex flex-col justify-center border-r border-white/10 px-2 py-2 text-center last:border-r-0">
-                                <p className="type-micro truncate text-brand-silver">{item.label}</p>
-                                <p className="type-readout mt-1 text-base leading-none text-white sm:text-xl">{item.value}H</p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {isGamePriceLoading && (
-                          <div className="min-h-[4.25rem] rounded-lg skeleton-shimmer animate-shimmer blueprint-border" aria-label="Loading Steam price" />
-                        )}
-                        {gamePrice?.lowestCurrent && formattedGamePrice && (
-                          <a
-                            href={gamePrice.url}
-                            target="_blank"
-                            rel="noopener noreferrer sponsored"
-                            className="group flex min-h-[4.25rem] items-center justify-between gap-3 rounded-lg border border-brand-cyan/25 bg-brand-cyan/[0.06] px-3 py-2 transition-colors hover:border-brand-cyan/45 hover:bg-brand-cyan/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
-                            aria-label={`Lowest Steam price ${formattedGamePrice}; view prices on GG.deals`}
-                          >
-                            <span>
-                              <span className="type-micro block text-brand-silver">Lowest Steam price</span>
-                              <span className="type-readout mt-0.5 block text-xl text-white">{formattedGamePrice}</span>
-                            </span>
-                            <span className="text-right">
-                              <span className="type-micro block text-brand-cyan">
-                                {gamePrice.lowestCurrent.source === 'keyshop' ? 'Keyshop' : 'Retail'}
-                              </span>
-                              <span className="type-label mt-1 block text-brand-silver transition-colors group-hover:text-white">GG.deals ↗</span>
-                            </span>
-                          </a>
-                        )}
-                      </div>
-                    )}
-                    {gamePriceError && (
-                      <div className="flex max-w-sm items-center justify-between gap-3 text-xs text-brand-silver">
-                        <span>Steam price unavailable.</span>
-                        <button
-                          type="button"
-                          onClick={retryGamePrice}
-                          className="min-h-11 rounded-lg px-3 text-brand-cyan transition-colors hover:bg-brand-cyan/10 hover:text-white"
-                        >
-                          Retry
-                        </button>
-                      </div>
-                    )}
                     {watchProviderItems.length > 0 && (
-                      <p className="text-xs text-brand-silver">
+                      <p className="text-base font-semibold leading-relaxed text-white/90">
                         {watchProviderItems.map((p) => p.provider_name).join(' · ')}
                       </p>
                     )}
-                    {gameTrailers.length > 0 && (
-                      <div>
-                        <p className="type-micro mb-2 text-brand-silver">Trailers</p>
-                        <div className="grid grid-cols-3 gap-2">
-                          {gameTrailers.map((video) => (
-                            <button
-                              key={`${video.id}-${video.key}`}
-                              type="button"
-                              onClick={() => setActiveTrailer({ video, mediaKey })}
-                              className="group cursor-pointer overflow-hidden rounded-lg bg-white/5 blueprint-border transition-colors hover:border-brand-cyan/35"
-                              aria-label={`Play ${video.name || 'trailer'}`}
-                            >
-                              <span className="relative block aspect-video overflow-hidden">
-                                <img
-                                  src={`https://img.youtube.com/vi/${video.key}/hqdefault.jpg`}
-                                  alt=""
-                                  className="h-full w-full object-cover opacity-90 transition-transform group-hover:scale-105"
-                                  decoding="async"
-                                  loading="lazy"
-                                />
-                                <span className="absolute inset-0 flex items-center justify-center bg-black/25">
-                                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-bg/80 text-brand-cyan backdrop-blur-md">
-                                    <Play size={14} fill="currentColor" />
-                                  </span>
-                                </span>
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {gameImages.length > 0 && (
-                      <div>
-                        <p className="type-micro mb-2 text-brand-silver">Images</p>
-                        <div className="grid grid-cols-3 gap-2">
-                          {gameImages.map((image, index) => (
-                            <button
-                              key={image}
-                              type="button"
-                              onClick={() => setActiveImage({ src: image, alt: `${title} screenshot ${index + 1}`, mediaKey })}
-                              className="group cursor-pointer overflow-hidden rounded-lg bg-white/5 blueprint-border transition-colors hover:border-brand-cyan/35"
-                            >
-                              <img
-                                src={image}
-                                alt={`${title} screenshot ${index + 1}`}
-                                className="aspect-video h-full w-full object-cover transition-transform group-hover:scale-105"
-                                decoding="async"
-                                loading="lazy"
-                              />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
                   {initErrorKey === mediaKey && (
                     <div className="flex items-center justify-between rounded-xl bg-red-900/20 border border-red-500/30 p-3">
                       <p className="text-xs font-medium text-red-200">Could not load details. Check your connection and try again.</p>
@@ -465,11 +373,213 @@ export const DetailsSheet = () => {
                 </div>
               </div>
 
+              {isGame && (gameTimeItems.length > 0 || isGamePriceLoading || (gamePrice?.lowestCurrent && formattedGamePrice) || gamePriceError) && (
+                <section aria-labelledby="game-metrics-heading" className="space-y-3 border-t border-white/10 pt-4">
+                  <h3 id="game-metrics-heading" className="type-label text-brand-silver">HLTB + Deals</h3>
+                  <div className={clsx(
+                    'grid items-stretch gap-2',
+                    (isGamePriceLoading || (gamePrice?.lowestCurrent && formattedGamePrice) || gamePriceError) && 'sm:grid-cols-[minmax(0,2fr)_minmax(14rem,1fr)]'
+                  )}>
+                    {gameTimeItems.length > 0 && (
+                      <div className="grid min-h-[5rem] w-full grid-cols-3 overflow-hidden rounded-lg border border-brand-cyan/20 bg-brand-cyan/[0.05]">
+                        {gameTimeItems.map((item) => (
+                          <div key={item.label} className="flex min-w-0 flex-col justify-center border-r border-white/10 px-2 py-3 text-center last:border-r-0">
+                            <p className="type-micro truncate text-brand-silver">{item.label}</p>
+                            <p className="type-readout mt-1 text-xl leading-none text-white sm:text-2xl">{item.value}H</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {isGamePriceLoading && (
+                      <div className="min-h-[5rem] rounded-lg skeleton-shimmer animate-shimmer blueprint-border" aria-label="Loading Steam price" />
+                    )}
+                    {gamePrice?.lowestCurrent && formattedGamePrice && (
+                      <a
+                        href={gamePrice.url}
+                        target="_blank"
+                        rel="noopener noreferrer sponsored"
+                        className="group flex min-h-[5rem] items-center justify-between gap-3 rounded-lg border border-brand-cyan/25 bg-brand-cyan/[0.06] px-4 py-3 transition-colors hover:border-brand-cyan/45 hover:bg-brand-cyan/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
+                        aria-label={`Lowest Steam price ${formattedGamePrice}; view prices on GG.deals`}
+                      >
+                        <span>
+                          <span className="type-micro block text-brand-silver">Lowest Steam price</span>
+                          <span className="type-readout mt-1 block text-2xl text-white">{formattedGamePrice}</span>
+                        </span>
+                        <span className="text-right">
+                          <span className="type-micro block text-brand-cyan">
+                            {gamePrice.lowestCurrent.source === 'keyshop' ? 'Keyshop' : 'Retail'}
+                          </span>
+                          <span className="type-label mt-1 block text-brand-silver transition-colors group-hover:text-white">GG.deals ↗</span>
+                        </span>
+                      </a>
+                    )}
+                    {gamePriceError && (
+                      <div className="flex min-h-[5rem] items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.025] px-4 text-xs text-brand-silver">
+                        <span>Steam price unavailable.</span>
+                        <button
+                          type="button"
+                          onClick={retryGamePrice}
+                          className="min-h-11 rounded-lg px-3 text-brand-cyan transition-colors hover:bg-brand-cyan/10 hover:text-white"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {(detailTrailers.length > 0 || detailImages.length > 0) && (
+                <div className="space-y-4 border-t border-white/10 pt-4">
+                  {detailTrailers.length > 0 && (
+                    <div>
+                      <p className="type-label mb-2 text-brand-silver">Trailers</p>
+                      <div className="grid grid-cols-1 gap-2 xs:grid-cols-3">
+                        {detailTrailers.map((video) => (
+                          <button
+                            key={`${video.id}-${video.key}`}
+                            type="button"
+                            onClick={() => setActiveTrailer({ video, mediaKey })}
+                            className="group cursor-pointer overflow-hidden rounded-lg bg-white/5 blueprint-border transition-colors hover:border-brand-cyan/35"
+                            aria-label={`Play ${video.name || 'trailer'}`}
+                          >
+                            <span className="relative block aspect-video overflow-hidden">
+                              <img
+                                src={`https://img.youtube.com/vi/${video.key}/hqdefault.jpg`}
+                                alt=""
+                                className="h-full w-full object-cover opacity-90 transition-transform group-hover:scale-105"
+                                decoding="async"
+                                loading="lazy"
+                              />
+                              <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-bg/80 text-brand-cyan backdrop-blur-md">
+                                  <Play size={14} fill="currentColor" />
+                                </span>
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {detailImages.length > 0 && (
+                    <div>
+                      <p className="type-label mb-2 text-brand-silver">Images</p>
+                      <div className="grid grid-cols-1 gap-2 xs:grid-cols-3">
+                        {detailImages.map((image, index) => {
+                          const imageSrc = getImageSrc(image, (tmdbPath) => getImageUrl(tmdbPath, 'w780'));
+                          return (
+                            <button
+                              key={image}
+                              type="button"
+                              onClick={() => setActiveImage({ src: imageSrc, alt: `${title} image ${index + 1}`, mediaKey })}
+                              className="group cursor-pointer overflow-hidden rounded-lg bg-white/5 blueprint-border transition-colors hover:border-brand-cyan/35"
+                            >
+                              <img
+                                src={imageSrc}
+                                alt={`${title} image ${index + 1}`}
+                                className="aspect-video h-full w-full object-cover transition-transform group-hover:scale-105"
+                                decoding="async"
+                                loading="lazy"
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="mt-3 space-y-4">
                   {!isGame && (
                     <>
+                    {selected.media_type === 'tv' && (
+                      <section aria-labelledby="episodes-heading" className="space-y-3 border-t border-white/10 pt-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <h3 id="episodes-heading" className="type-label text-brand-silver">Episodes</h3>
+                          {availableSeasons.length > 0 && (
+                            <label className="relative">
+                              <span className="sr-only">Select season</span>
+                              <select
+                                value={selectedSeasonNumber ?? ''}
+                                onChange={(event) => setSeasonSelection({ mediaKey, number: Number(event.target.value) })}
+                                className="type-readout min-h-11 appearance-none rounded-lg border border-white/15 bg-brand-bg py-2 pl-3 pr-9 text-white outline-none transition-colors hover:border-brand-cyan/35 focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
+                              >
+                                {availableSeasons.map((season) => (
+                                  <option key={season.id} value={season.season_number}>
+                                    {season.name || `Season ${season.season_number}`} · {season.episode_count}
+                                  </option>
+                                ))}
+                              </select>
+                              <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-brand-cyan" />
+                            </label>
+                          )}
+                        </div>
+
+                        {isSeasonLoading ? (
+                          <div className="space-y-2" aria-label="Loading episodes">
+                            {[0, 1, 2].map((item) => (
+                              <div key={item} className="grid grid-cols-[7.5rem_1fr] gap-3 overflow-hidden rounded-xl blueprint-border sm:grid-cols-[11rem_1fr]">
+                                <div className="aspect-video skeleton-shimmer animate-shimmer" />
+                                <div className="space-y-2 py-3 pr-3">
+                                  <div className="h-3 w-24 rounded skeleton-shimmer animate-shimmer" />
+                                  <div className="h-3 w-full rounded skeleton-shimmer animate-shimmer" />
+                                  <div className="h-3 w-3/4 rounded skeleton-shimmer animate-shimmer" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : seasonErrorKey === seasonRequestKey ? (
+                          <div className="flex items-center justify-between rounded-xl border border-red-500/30 bg-red-900/20 p-3">
+                            <p className="text-sm text-red-200">Failed to load episodes.</p>
+                            <button
+                              type="button"
+                              onClick={() => setSeasonRetryCount((count) => count + 1)}
+                              className="type-action min-h-11 rounded-lg border border-red-500/40 bg-red-950/40 px-4 text-red-200 transition-colors hover:bg-red-900/60"
+                            >
+                              Retry
+                            </button>
+                          </div>
+                        ) : currentSeason?.episodes.length ? (
+                          <div className="space-y-2">
+                            {currentSeason.episodes.map((episode) => (
+                              <article key={episode.id} className="grid overflow-hidden rounded-xl bg-white/[0.025] blueprint-border sm:grid-cols-[13rem_1fr]">
+                                <div className="aspect-video min-w-0 overflow-hidden bg-white/5 sm:aspect-auto sm:h-full sm:min-h-32">
+                                  {episode.still_path ? (
+                                    <img
+                                      src={getImageUrl(episode.still_path, 'w500')}
+                                      alt=""
+                                      className="block h-full w-full object-cover"
+                                      decoding="async"
+                                      loading="lazy"
+                                    />
+                                  ) : null}
+                                </div>
+                                <div className="flex min-w-0 flex-col justify-center p-3 sm:p-4">
+                                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                                    <p className="type-micro text-brand-cyan">E{String(episode.episode_number).padStart(2, '0')}</p>
+                                    {episode.air_date && <p className="type-readout text-brand-silver">{episode.air_date}</p>}
+                                  </div>
+                                  <h4 className="type-title mt-1 text-white">{episode.name || `Episode ${episode.episode_number}`}</h4>
+                                  <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-brand-silver">
+                                    {episode.overview || 'Episode description unavailable.'}
+                                  </p>
+                                </div>
+                              </article>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="rounded-xl border border-dashed border-white/10 py-8 text-center text-sm text-brand-silver">
+                            Episode information unavailable.
+                          </p>
+                        )}
+                      </section>
+                    )}
+
                     {/* Cast */}
-                    <div>
+                    <section aria-labelledby="cast-heading" className="space-y-3 border-t border-white/10 pt-4">
+                      <h3 id="cast-heading" className="type-label text-brand-silver">Cast</h3>
                       {sectionErrors.has(`${mediaKey}:cast`) ? (
                         <div className="flex flex-col items-center gap-3 py-10">
                           <p className="text-sm text-red-200">Failed to load cast.</p>
@@ -482,64 +592,36 @@ export const DetailsSheet = () => {
                           </button>
                         </div>
                       ) : castKey !== mediaKey ? (
-                        <div className="flex gap-2 overflow-hidden">
-                          {[...Array(5)].map((_, index) => (
-                            <div key={index} className="aspect-square w-[31%] shrink-0 rounded-xl skeleton-shimmer animate-shimmer sm:w-[23.5%] md:w-[18.4%]" />
+                        <div className="grid grid-cols-3 gap-2 md:grid-cols-6">
+                          {[...Array(6)].map((_, index) => (
+                            <div key={index} className="aspect-square rounded-xl skeleton-shimmer animate-shimmer" />
                           ))}
                         </div>
                       ) : castItems.length > 0 ? (
-                        <div className="relative">
-                          {showCastLeftButton && (
+                        <div className="grid grid-cols-3 gap-2 md:grid-cols-6">
+                          {castItems.map((member) => (
                             <button
+                              key={`${member.id}-${member.character}`}
                               type="button"
-                              onClick={() => scrollCast('left')}
-                              className={`${railButtonClass} left-0`}
-                              aria-label="Scroll cast left"
-                              title="Scroll cast left"
+                              onClick={() => openActor(member)}
+                              className="group min-w-0 cursor-pointer overflow-hidden rounded-xl bg-brand-bg/80 text-left blueprint-border transition-colors duration-200 hover:border-brand-cyan/30 hover:bg-brand-bg"
                             >
-                              <ChevronLeft size={18} />
+                              <div className="aspect-square bg-white/5">
+                                {member.profile_path ? (
+                                  <img src={getImageUrl(member.profile_path, 'w342')} alt={member.name} className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]" decoding="async" loading="lazy" />
+                                ) : null}
+                              </div>
+                              <div className="p-2">
+                                <p className="break-words text-xs font-black leading-tight text-white">{member.name}</p>
+                                <p className="truncate text-[10px] text-brand-silver">{member.character}</p>
+                              </div>
                             </button>
-                          )}
-                          <div
-                            ref={castScrollerRef}
-                            onScroll={handleCastScroll}
-                            className="flex snap-x gap-2 overflow-x-auto scroll-smooth pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                          >
-                            {castItems.map((member) => (
-                              <button
-                                key={`${member.id}-${member.character}`}
-                                type="button"
-                                onClick={() => openActor(member)}
-                                className="group w-[31%] shrink-0 snap-start cursor-pointer overflow-hidden rounded-xl bg-brand-bg/80 text-left blueprint-border transition-colors duration-200 hover:border-brand-cyan/30 hover:bg-brand-bg sm:w-[23.5%] md:w-[18.4%]"
-                              >
-                                <div className="aspect-square bg-white/5">
-                                  {member.profile_path ? (
-                                    <img src={getImageUrl(member.profile_path, 'w342')} alt={member.name} className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]" decoding="async" loading="lazy" />
-                                  ) : null}
-                                </div>
-                                <div className="p-2">
-                                  <p className="break-words text-xs font-black leading-tight text-white">{member.name}</p>
-                                  <p className="truncate text-[10px] text-brand-silver">{member.character}</p>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                          {showCastRightButton && (
-                            <button
-                              type="button"
-                              onClick={() => scrollCast('right')}
-                              className={`${railButtonClass} right-0`}
-                              aria-label="Scroll cast right"
-                              title="Scroll cast right"
-                            >
-                              <ChevronRight size={18} />
-                            </button>
-                          )}
+                          ))}
                         </div>
                       ) : (
                         <p className="py-10 text-center text-sm text-brand-silver">Cast unavailable.</p>
                       )}
-                    </div>
+                    </section>
                     </>
                   )}
 

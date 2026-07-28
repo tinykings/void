@@ -61,7 +61,7 @@ export const useDetailsSupplementaryData = ({
         ? Promise.resolve()
         : getMediaCredits(activeMedia.id, mediaType, apiKey, controller.signal)
             .then((data) => {
-              if (!controller.signal.aborted) setCast({ key: requestKey, items: data.cast.slice(0, 20) });
+              if (!controller.signal.aborted) setCast({ key: requestKey, items: data.cast.slice(0, 6) });
             })
             .catch(() => {
               if (!controller.signal.aborted) setSectionErrors((previous) => new Set(previous).add(`${requestKey}:cast`));

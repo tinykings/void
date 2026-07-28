@@ -1,4 +1,4 @@
-import { Media, WatchProvider, WatchProvidersResponse, SeasonDetails, TmdbResult, ReleaseDatesResponse, ContentRatingsResponse, ReleaseDatesResult, ContentRating, ReleaseDate, CreditsResponse, PersonCreditsResponse, PersonDetails } from './types';
+import { Media, Video, WatchProvider, WatchProvidersResponse, SeasonDetails, TmdbResult, ReleaseDatesResponse, ContentRatingsResponse, ReleaseDatesResult, ContentRating, ReleaseDate, CreditsResponse, PersonCreditsResponse, PersonDetails } from './types';
 
 const BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_MAX_RETRIES = 2;
@@ -67,8 +67,23 @@ export const getContentRating = async (id: number, type: 'movie' | 'tv', apiKey:
 };
 
 export const getMediaDetails = async (id: number, type: 'movie' | 'tv', apiKey: string, signal?: AbortSignal): Promise<Media> => {
-  const data: Media = await fetchFromTMDB(`/${type}/${id}`, apiKey, {}, signal);
-  return { ...data, media_type: type };
+  const data = await fetchFromTMDB(`/${type}/${id}`, apiKey, {
+    append_to_response: 'videos,images',
+    include_image_language: 'en,null',
+  }, signal) as Omit<Media, 'videos' | 'genres'> & {
+    genres?: { id: number; name: string }[];
+    videos?: { results?: Video[] };
+    images?: { backdrops?: { file_path: string }[] };
+  };
+
+  const { genres, images, videos, ...media } = data;
+  return {
+    ...media,
+    media_type: type,
+    genres: (genres || []).map((genre) => genre.name),
+    videos: videos?.results || [],
+    screenshots: (images?.backdrops || []).slice(0, 3).map((image) => image.file_path),
+  };
 };
 
 export const getUSReleaseDate = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<string | null> => {
@@ -163,6 +178,6 @@ export const getImageUrl = (path: string | null, size: 'w185' | 'w342' | 'w500' 
   return `https://image.tmdb.org/t/p/${size}${path}`;
 };
 
-export const getSeasonDetails = async (tvId: number, seasonNumber: number, apiKey: string): Promise<SeasonDetails> => {
-  return fetchFromTMDB(`/tv/${tvId}/season/${seasonNumber}`, apiKey);
+export const getSeasonDetails = async (tvId: number, seasonNumber: number, apiKey: string, signal?: AbortSignal): Promise<SeasonDetails> => {
+  return fetchFromTMDB(`/tv/${tvId}/season/${seasonNumber}`, apiKey, {}, signal);
 };
