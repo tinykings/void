@@ -5,6 +5,7 @@ type RateLimiter = {
 type Env = {
   IGDB_CLIENT_ID: string;
   IGDB_CLIENT_SECRET: string;
+  GG_DEALS_API_KEY: string;
   ALLOWED_ORIGINS?: string;
   ALLOW_ORIGINLESS_REQUESTS?: string;
   RATE_LIMITER: RateLimiter;
@@ -26,6 +27,11 @@ type IgdbWebsite = {
   url?: string;
 };
 
+type IgdbExternalGame = {
+  category?: number;
+  uid?: string;
+};
+
 type IgdbGame = {
   id: number;
   name?: string;
@@ -39,6 +45,7 @@ type IgdbGame = {
   platforms?: IgdbNamedItem[];
   genres?: IgdbNamedItem[];
   websites?: IgdbWebsite[];
+  external_games?: IgdbExternalGame[];
   videos?: { name?: string; video_id?: string }[];
 };
 
@@ -84,19 +91,48 @@ type TokenCache = {
   expiresAt: number;
 };
 
+type GgDealsGamePrices = {
+  title?: unknown;
+  url?: unknown;
+  prices?: {
+    currentRetail?: unknown;
+    currentKeyshops?: unknown;
+    historicalRetail?: unknown;
+    historicalKeyshops?: unknown;
+    currency?: unknown;
+  };
+};
+
+type GgDealsResponse = {
+  success?: boolean;
+  data?: Record<string, GgDealsGamePrices | null>;
+};
+
+class GgDealsApiError extends Error {
+  constructor(public status: number, public retryAfter?: string) {
+    super(`GG.deals API error: ${status}`);
+  }
+}
+
 const IGDB_BASE_URL = 'https://api.igdb.com/v4';
 const TWITCH_TOKEN_URL = 'https://id.twitch.tv/oauth2/token';
 const HLTB_BASE_URL = 'https://howlongtobeat.com';
+const GG_DEALS_PRICES_URL = 'https://api.gg.deals/v1/prices/by-steam-app-id/';
 const HLTB_GAME_URL = `${HLTB_BASE_URL}/game`;
 const HLTB_FALLBACK_SEARCH_PATH = '/api/s';
 const HLTB_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 const DEFAULT_ALLOWED_ORIGINS = ['https://tinykings.github.io', 'http://localhost:3000', 'http://127.0.0.1:3000'];
 const SEARCH_CACHE_SECONDS = 60 * 60;
 const DETAILS_CACHE_SECONDS = 60 * 60 * 24;
-const CACHE_VERSION = 'hltb-v3';
+const PRICE_CACHE_SECONDS = 60 * 60;
+const CACHE_VERSION = 'gg-prices-v1';
 const MAX_URL_LENGTH = 2048;
 const MAX_SEARCH_QUERY_LENGTH = 100;
 const RATE_LIMIT_RETRY_SECONDS = 60;
+const STEAM_EXTERNAL_GAME_CATEGORY = 1;
+const GG_DEALS_REGIONS = new Set([
+  'au', 'be', 'br', 'ca', 'ch', 'de', 'dk', 'es', 'eu', 'fi', 'fr', 'gb', 'ie', 'it', 'nl', 'no', 'pl', 'se', 'us',
+]);
 
 let tokenCache: TokenCache | null = null;
 let hltbSearchPathCache: string | null = null;
@@ -173,7 +209,10 @@ const errorResponse = (request: Request, env: Env, status: number, error: string
 };
 
 const applyRateLimit = async (request: Request, env: Env, route: string) => {
-  const result = await env.RATE_LIMITER.limit({ key: `${getClientKey(request)}:${route}` });
+  // Price quota belongs to one shared GG.deals key, so share its limiter within
+  // each Cloudflare location. Other routes remain isolated per client.
+  const key = route === 'prices' ? 'gg-deals:prices' : `${getClientKey(request)}:${route}`;
+  const result = await env.RATE_LIMITER.limit({ key });
   return result.success;
 };
 
@@ -187,6 +226,114 @@ const imageUrl = (imageId: string | undefined, size: string) => {
 const dateFromUnixSeconds = (value?: number) => {
   if (!value) return undefined;
   return new Date(value * 1000).toISOString().split('T')[0];
+};
+
+const parsePositiveInteger = (value: unknown) => {
+  if (typeof value !== 'string' || !/^\d+$/.test(value)) return undefined;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined;
+};
+
+const getSteamAppIdFromUrl = (value: string | undefined) => {
+  if (!value) return undefined;
+
+  try {
+    const url = new URL(value);
+    if (url.hostname !== 'store.steampowered.com' && url.hostname !== 'www.store.steampowered.com') return undefined;
+    return parsePositiveInteger(url.pathname.match(/^\/app\/(\d+)(?:\/|$)/)?.[1]);
+  } catch {
+    return undefined;
+  }
+};
+
+export const getSteamAppId = (game: IgdbGame) => {
+  const externalId = game.external_games
+    ?.find((externalGame) => externalGame.category === STEAM_EXTERNAL_GAME_CATEGORY)
+    ?.uid;
+  const parsedExternalId = parsePositiveInteger(externalId);
+  if (parsedExternalId) return parsedExternalId;
+
+  for (const website of game.websites || []) {
+    const websiteId = getSteamAppIdFromUrl(website.url);
+    if (websiteId) return websiteId;
+  }
+
+  return undefined;
+};
+
+const normalizePrice = (value: unknown) => {
+  if (typeof value !== 'string' || !/^\d+(?:\.\d+)?$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? value : null;
+};
+
+const normalizeGgDealsUrl = (value: unknown) => {
+  if (typeof value !== 'string') return null;
+
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:' || (url.hostname !== 'gg.deals' && url.hostname !== 'www.gg.deals')) return null;
+    return url.href;
+  } catch {
+    return null;
+  }
+};
+
+export const normalizeGgDealsGamePrice = (steamAppId: number, game: GgDealsGamePrices | null | undefined) => {
+  if (!game || typeof game.title !== 'string') return null;
+  const url = normalizeGgDealsUrl(game.url);
+  const currency = game.prices?.currency;
+  if (!url || typeof currency !== 'string' || !/^[A-Z]{3}$/.test(currency)) return null;
+
+  const currentRetail = normalizePrice(game.prices?.currentRetail);
+  const currentKeyshops = normalizePrice(game.prices?.currentKeyshops);
+  const historicalRetail = normalizePrice(game.prices?.historicalRetail);
+  const historicalKeyshops = normalizePrice(game.prices?.historicalKeyshops);
+  const retailAmount = currentRetail === null ? null : Number(currentRetail);
+  const keyshopAmount = currentKeyshops === null ? null : Number(currentKeyshops);
+  const lowestCurrent = retailAmount === null && keyshopAmount === null
+    ? null
+    : retailAmount !== null && (keyshopAmount === null || retailAmount <= keyshopAmount)
+      ? { amount: currentRetail as string, source: 'retail' as const }
+      : { amount: currentKeyshops as string, source: 'keyshop' as const };
+
+  return {
+    steamAppId,
+    title: game.title,
+    url,
+    currency,
+    currentRetail,
+    currentKeyshops,
+    historicalRetail,
+    historicalKeyshops,
+    lowestCurrent,
+  };
+};
+
+const getGgDealsRetryAfter = (response: Response) => {
+  const reset = Number(response.headers.get('x-ratelimit-reset'));
+  if (Number.isFinite(reset)) {
+    return String(Math.max(1, Math.ceil(reset - Date.now() / 1000)));
+  }
+  return response.headers.get('Retry-After') || String(RATE_LIMIT_RETRY_SECONDS);
+};
+
+const fetchSteamGamePrice = async (env: Env, steamAppId: number, region: string) => {
+  if (!env.GG_DEALS_API_KEY) throw new Error('GG.deals API key is not configured');
+
+  const url = new URL(GG_DEALS_PRICES_URL);
+  url.searchParams.set('ids', String(steamAppId));
+  url.searchParams.set('key', env.GG_DEALS_API_KEY);
+  url.searchParams.set('region', region);
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new GgDealsApiError(response.status, response.status === 429 ? getGgDealsRetryAfter(response) : undefined);
+  }
+
+  const data = await response.json() as GgDealsResponse;
+  if (!data.success || !data.data) throw new Error('GG.deals response was incomplete');
+  return normalizeGgDealsGamePrice(steamAppId, data.data[String(steamAppId)]);
 };
 
 const normalizeSearchText = (value: string) =>
@@ -511,6 +658,7 @@ const normalizeGame = (game: IgdbGame, hltbCompletion?: HltbCompletion | null, h
     platforms: (game.platforms || []).map((platform) => platform.name).filter(Boolean),
     genres: (game.genres || []).map((genre) => genre.name).filter(Boolean),
     website: game.websites?.find((site) => site.url)?.url || null,
+    steam_app_id: getSteamAppId(game),
     screenshots,
     videos,
     source_url: slug ? `https://www.igdb.com/games/${slug}` : undefined,
@@ -588,6 +736,8 @@ const gameFields = [
   'platforms.name',
   'genres.name',
   'websites.url',
+  'external_games.category',
+  'external_games.uid',
   'videos.name',
   'videos.video_id',
 ].join(',');
@@ -668,7 +818,13 @@ const worker = {
     }
 
     const url = new URL(request.url);
-    const route = url.pathname === '/api/games/search' ? 'search' : url.pathname.startsWith('/api/games/') ? 'details' : 'other';
+    const route = url.pathname === '/api/games/search'
+      ? 'search'
+      : url.pathname.startsWith('/api/games/')
+        ? 'details'
+        : url.pathname.startsWith('/api/prices/steam/')
+          ? 'prices'
+          : 'other';
 
     try {
       if (!await applyRateLimit(request, env, route)) {
@@ -698,6 +854,24 @@ const worker = {
         });
       }
 
+      const priceMatch = url.pathname.match(/^\/api\/prices\/steam\/(\d+)$/);
+      if (priceMatch) {
+        const unexpectedParameters = [...url.searchParams.keys()].filter((key) => key !== 'region');
+        if (unexpectedParameters.length > 0) {
+          return errorResponse(request, env, 400, 'Unsupported query parameter');
+        }
+
+        const steamAppId = parsePositiveInteger(priceMatch[1]);
+        if (!steamAppId) return errorResponse(request, env, 400, 'Invalid Steam App ID');
+        const region = (url.searchParams.get('region') || 'us').toLowerCase();
+        if (!GG_DEALS_REGIONS.has(region)) return errorResponse(request, env, 400, 'Unsupported GG.deals region');
+
+        return withCache(request, env, ctx, PRICE_CACHE_SECONDS, async () => {
+          const price = await fetchSteamGamePrice(env, steamAppId, region);
+          return jsonResponse(request, env, price);
+        });
+      }
+
       const detailsMatch = url.pathname.match(/^\/api\/games\/(\d+)$/);
       if (detailsMatch) {
         if ([...url.searchParams.keys()].length > 0) {
@@ -718,6 +892,13 @@ const worker = {
 
       return errorResponse(request, env, 404, 'Not found');
     } catch (error) {
+      if (error instanceof GgDealsApiError && error.status === 429) {
+        logSecurityEvent(request, 'gg_deals_rate_limited', { route });
+        return errorResponse(request, env, 429, 'Price service rate limit reached', {
+          'Retry-After': error.retryAfter || String(RATE_LIMIT_RETRY_SECONDS),
+        });
+      }
+
       console.error(JSON.stringify({
         level: 'error',
         event: 'game_api_request_failed',

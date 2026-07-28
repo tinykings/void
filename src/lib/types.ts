@@ -65,6 +65,7 @@ export interface Media {
   hltb_url?: string;
   hltb_checked_at?: number;
   website?: string | null;
+  steam_app_id?: number;
   stores?: { name: string; url: string }[];
   screenshots?: string[];
   videos?: Video[];
@@ -78,6 +79,21 @@ export interface Media {
     name: string;
     overview: string;
     still_path: string | null;
+  } | null;
+}
+
+export interface GamePrice {
+  steamAppId: number;
+  title: string;
+  url: string;
+  currency: string;
+  currentRetail: string | null;
+  currentKeyshops: string | null;
+  historicalRetail: string | null;
+  historicalKeyshops: string | null;
+  lowestCurrent: {
+    amount: string;
+    source: 'retail' | 'keyshop';
   } | null;
 }
 

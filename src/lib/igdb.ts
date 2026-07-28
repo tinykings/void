@@ -1,4 +1,4 @@
-import { Media } from './types';
+import { GamePrice, Media } from './types';
 
 const DEFAULT_LOCAL_GAME_API_BASE_URL = 'http://localhost:8787';
 const GAME_API_BASE_URL = (
@@ -35,6 +35,22 @@ export const searchIgdbGames = async (query: string, signal?: AbortSignal): Prom
 
 export const getIgdbGameDetails = async (id: number, signal?: AbortSignal): Promise<Media> => {
   return fetchFromGameApi<Media>(`/api/games/${id}`, signal);
+};
+
+export const findExactIgdbGameByTitle = async (title: string, signal?: AbortSignal): Promise<Media | undefined> => {
+  const normalizedTitle = title.trim().toLocaleLowerCase();
+  const matches = await searchIgdbGames(title, signal);
+  return matches.find((game) => (game.title || game.name || '').trim().toLocaleLowerCase() === normalizedTitle);
+};
+
+export const getIgdbGameDetailsByTitle = async (title: string, signal?: AbortSignal): Promise<Media> => {
+  const exactMatch = await findExactIgdbGameByTitle(title, signal);
+  if (!exactMatch) throw new Error('No exact IGDB game match');
+  return getIgdbGameDetails(exactMatch.id, signal);
+};
+
+export const getSteamGamePrice = async (appId: number, signal?: AbortSignal): Promise<GamePrice | null> => {
+  return fetchFromGameApi<GamePrice | null>(`/api/prices/steam/${appId}?region=us`, signal);
 };
 
 export const hasGameApi = () => !!GAME_API_BASE_URL;

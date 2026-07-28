@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getIgdbGameDetails } from '@/lib/igdb';
-import { getMediaKey, getMediaSource } from '@/lib/media';
+import { getIgdbGameDetails, getIgdbGameDetailsByTitle } from '@/lib/igdb';
+import { getMediaKey, getMediaSource, getMediaTitle } from '@/lib/media';
 import { getMediaDetails } from '@/lib/tmdb';
 import type { Media } from '@/lib/types';
 
@@ -57,17 +57,19 @@ export const useMediaDetails = ({ activeMedia, apiKey, isOnline, updateMediaMeta
     const request = activeMedia.media_type === 'game'
       ? source === 'steam'
         ? Promise.resolve(activeMedia)
-        : getIgdbGameDetails(activeMedia.id, controller.signal)
+        : source === 'rawg'
+          ? getIgdbGameDetailsByTitle(getMediaTitle(activeMedia), controller.signal)
+          : getIgdbGameDetails(activeMedia.id, controller.signal)
       : getMediaDetails(activeMedia.id, activeMedia.media_type, apiKey, controller.signal);
 
     void request
       .then((mediaData) => {
         if (controller.signal.aborted) return;
         setDetails({ key: requestKey, media: mediaData });
-        updateMediaMetadata(mediaData.id, mediaData.media_type, {
+        updateMediaMetadata(activeMedia.id, activeMedia.media_type, {
           ...mediaData,
           lastChecked: Date.now(),
-        }, getMediaSource(mediaData));
+        }, source);
       })
       .catch(() => {
         if (!controller.signal.aborted) setErrorKey(requestKey);

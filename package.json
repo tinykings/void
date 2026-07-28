@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test --test-concurrency=1 src/**/*.test.ts",
+    "test": "tsx --test --test-concurrency=1 src/**/*.test.ts worker/src/*.test.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

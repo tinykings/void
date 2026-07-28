@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getImageUrl } from '@/lib/tmdb';
-import { getImageSrc, getMediaKey, getMediaSource } from '@/lib/media';
+import { formatGamePrice, getSteamAppId } from '@/lib/ggDeals';
+import { getImageSrc, getMediaKey, getMediaSource, getMediaTitle } from '@/lib/media';
 import { Video } from '@/lib/types';
 import { Bookmark, ChevronDown, ChevronLeft, ChevronRight, Eye, Heart, Play, X } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -13,6 +14,7 @@ import { FocusTrap } from '@/components/FocusTrap';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useMediaDetails } from '@/hooks/useMediaDetails';
 import { useDetailsSupplementaryData } from '@/hooks/useDetailsSupplementaryData';
+import { useGamePrice } from '@/hooks/useGamePrice';
 
 export const DetailsSheet = () => {
   const isOnline = useOnlineStatus();
@@ -98,6 +100,18 @@ export const DetailsSheet = () => {
     isOnline,
   });
   const imdbUrl = externalIdsValue?.imdb_id ? `https://www.imdb.com/title/${externalIdsValue.imdb_id}` : '';
+  const steamAppId = selected?.media_type === 'game' ? getSteamAppId(selected) : undefined;
+  const {
+    error: gamePriceError,
+    isLoading: isGamePriceLoading,
+    price: gamePrice,
+    retry: retryGamePrice,
+  } = useGamePrice({
+    enabled: selected?.media_type === 'game',
+    isOnline,
+    steamAppId,
+    title: selected ? getMediaTitle(selected) : '',
+  });
   const currentActionPulse = selected && actionPulse?.key === mediaKey ? actionPulse.action : null;
   const railButtonClass = 'absolute inset-y-0 z-10 hidden w-10 items-center justify-center rounded-lg border border-white/10 bg-brand-bg/85 text-brand-cyan backdrop-blur-md transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/15 hover:text-white md:flex';
 
@@ -214,7 +228,7 @@ export const DetailsSheet = () => {
 
   const title = selected.title || selected.name || 'Unknown';
   const isGame = selected.media_type === 'game';
-  const ggDealsUrl = isGame ? `https://gg.deals/search/?title=${encodeURIComponent(title)}` : '';
+  const formattedGamePrice = gamePrice ? formatGamePrice(gamePrice) : '';
   const source = getMediaSource(selected);
   const nextEpisode = selected.media_type === 'tv' ? selected.next_episode_to_air : null;
   const episodeLabel = nextEpisode
@@ -270,8 +284,6 @@ export const DetailsSheet = () => {
     imdbUrl ? { label: 'IMDb', url: imdbUrl } : null,
     !isGame && watchProviderItems.length > 0 ? { label: 'JustWatch', url: `https://www.justwatch.com/us/search?q=${encodeURIComponent(title)}` } : null,
     selected.source_url && source !== 'igdb' ? { label: providerLabel, url: selected.source_url } : null,
-    ggDealsUrl ? { label: 'GG.deals', url: ggDealsUrl } : null,
-    selected.website ? { label: 'Website', url: selected.website } : null,
   ].filter((link): link is { label: string; url: string } => !!link && !!link.url);
   const renderImageGrid = (items: { src: string; alt: string }[]) => (
     <div className="relative">
@@ -500,6 +512,41 @@ export const DetailsSheet = () => {
                     <p className="text-sm leading-relaxed text-white/90 line-clamp-6">
                       {selected.overview || 'Overview unavailable.'}
                     </p>
+                    {isGamePriceLoading && (
+                      <div className="h-[4.25rem] max-w-sm rounded-lg skeleton-shimmer animate-shimmer blueprint-border" aria-label="Loading Steam price" />
+                    )}
+                    {gamePrice?.lowestCurrent && formattedGamePrice && (
+                      <a
+                        href={gamePrice.url}
+                        target="_blank"
+                        rel="noopener noreferrer sponsored"
+                        className="group flex max-w-sm items-center justify-between gap-4 rounded-lg border border-brand-cyan/25 bg-brand-cyan/[0.06] px-3 py-2 transition-colors hover:border-brand-cyan/45 hover:bg-brand-cyan/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
+                        aria-label={`Lowest Steam price ${formattedGamePrice}; view prices on GG.deals`}
+                      >
+                        <span>
+                          <span className="type-micro block text-brand-silver">Lowest Steam price</span>
+                          <span className="type-readout mt-0.5 block text-xl text-white">{formattedGamePrice}</span>
+                        </span>
+                        <span className="text-right">
+                          <span className="type-micro block text-brand-cyan">
+                            {gamePrice.lowestCurrent.source === 'keyshop' ? 'Keyshop' : 'Retail'}
+                          </span>
+                          <span className="type-label mt-1 block text-brand-silver transition-colors group-hover:text-white">GG.deals ↗</span>
+                        </span>
+                      </a>
+                    )}
+                    {gamePriceError && (
+                      <div className="flex max-w-sm items-center justify-between gap-3 text-xs text-brand-silver">
+                        <span>Steam price unavailable.</span>
+                        <button
+                          type="button"
+                          onClick={retryGamePrice}
+                          className="min-h-11 rounded-lg px-3 text-brand-cyan transition-colors hover:bg-brand-cyan/10 hover:text-white"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    )}
                     {watchProviderItems.length > 0 && (
                       <p className="text-xs text-brand-silver">
                         {watchProviderItems.map((p) => p.provider_name).join(' · ')}

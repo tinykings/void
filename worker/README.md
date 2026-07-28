@@ -1,11 +1,11 @@
 # VOID game API Worker
 
-Cloudflare Worker proxy for IGDB game search/details and HowLongToBeat completion data.
+Cloudflare Worker proxy for IGDB game search/details, HowLongToBeat completion data, and GG.deals Steam prices.
 
 ## Security controls
 
 - **Origin allowlist:** Requests are accepted only from `ALLOWED_ORIGINS`. Originless requests are rejected by default. Set `ALLOW_ORIGINLESS_REQUESTS="true"` only if a trusted non-browser client requires access.
-- **Rate limiting:** Cloudflare's native rate-limit binding allows 120 requests per minute per Cloudflare client IP and route group (`search` or `details`). Adjust the `[[ratelimits]]` block in `wrangler.toml` if production traffic requires a different limit.
+- **Rate limiting:** Cloudflare's native rate-limit binding allows 100 requests per minute. Search/details use per-client route keys; prices share a key within each Cloudflare location because GG.deals quota belongs to one API key. Adjust the `[[ratelimits]]` block in `wrangler.toml` if production traffic requires a different limit.
 - **Input limits:** URLs are limited to 2,048 characters, search text to 100 characters, and unsupported query parameters are rejected.
 - **Monitoring:** Blocked origins, rate-limit events, and upstream failures emit structured JSON logs containing the event, route, origin, and Cloudflare Ray ID. Queries and credentials are never logged.
 
@@ -18,6 +18,7 @@ Set Worker secrets:
 ```sh
 npx wrangler secret put IGDB_CLIENT_ID --config worker/wrangler.toml
 npx wrangler secret put IGDB_CLIENT_SECRET --config worker/wrangler.toml
+npx wrangler secret put GG_DEALS_API_KEY --config worker/wrangler.toml
 ```
 
 Configure allowed origins in `worker/wrangler.toml` or the Cloudflare dashboard:
@@ -42,4 +43,7 @@ Local requests must include an allowed `Origin` header unless originless request
 
 ```sh
 curl -H 'Origin: http://localhost:3000' 'http://localhost:8787/api/games/search?q=halo'
+curl -H 'Origin: http://localhost:3000' 'http://localhost:8787/api/prices/steam/620?region=us'
 ```
+
+Price endpoint accepts GG.deals-supported regions and caches successful responses for one hour. It returns `null` when GG.deals has no Steam App ID match. GG.deals key remains Worker-only; never expose it through a `NEXT_PUBLIC_*` variable.
