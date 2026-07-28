@@ -72,6 +72,8 @@ export interface Media {
   source_url?: string;
   poster_source?: 'tmdb' | 'igdb' | 'rawg' | 'steam';
   seasons?: SeasonSummary[];
+  number_of_seasons?: number;
+  number_of_episodes?: number;
   next_episode_to_air?: {
     air_date: string;
     episode_number: number;

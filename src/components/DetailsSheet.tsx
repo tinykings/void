@@ -195,6 +195,12 @@ export const DetailsSheet = () => {
     }).format(releaseDate)}`;
   })();
   const year = (selected.release_date || selected.first_air_date || '').split('-')[0];
+  const totalSeasons = selected.media_type === 'tv'
+    ? selected.number_of_seasons ?? availableSeasons.length
+    : 0;
+  const totalEpisodes = selected.media_type === 'tv'
+    ? selected.number_of_episodes ?? availableSeasons.reduce((total, season) => total + season.episode_count, 0)
+    : 0;
   const gameTimeItems = isGame
     ? [
         selected.playtime_main ? { label: 'MAIN', value: selected.playtime_main } : null,
@@ -324,6 +330,18 @@ export const DetailsSheet = () => {
                       {!isGame && selected.genres && selected.genres.length > 0 && (
                         <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">
                           {selected.genres.slice(0, 3).join(' · ')}
+                        </span>
+                      )}
+                      {!isGame && selected.status && (
+                        <span className={clsx(
+                          'px-2 py-1 rounded-full backdrop-blur-sm',
+                          /cancel/i.test(selected.status)
+                            ? 'bg-red-500/10 text-red-200'
+                            : /production|returning/i.test(selected.status)
+                              ? 'bg-brand-cyan/10 text-brand-cyan'
+                              : 'bg-white/10 text-brand-silver'
+                        )}>
+                          {selected.status}
                         </span>
                       )}
                       {isGame && selected.metacritic ? <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">MC {selected.metacritic}</span> : null}
@@ -497,7 +515,11 @@ export const DetailsSheet = () => {
                     {selected.media_type === 'tv' && (
                       <section aria-labelledby="episodes-heading" className="space-y-3 border-t border-white/10 pt-4">
                         <div className="flex items-center justify-between gap-3">
-                          <h3 id="episodes-heading" className="type-label text-brand-silver">Episodes</h3>
+                          <h3 id="episodes-heading" className="type-label text-brand-silver">
+                            {totalSeasons > 0 || totalEpisodes > 0
+                              ? `${totalSeasons} ${totalSeasons === 1 ? 'season' : 'seasons'} - ${totalEpisodes} ${totalEpisodes === 1 ? 'episode' : 'episodes'}`
+                              : 'Episodes'}
+                          </h3>
                           {availableSeasons.length > 0 && (
                             <label className="relative">
                               <span className="sr-only">Select season</span>
@@ -546,19 +568,17 @@ export const DetailsSheet = () => {
                             {currentSeason.episodes.map((episode) => (
                               <article key={episode.id} className="grid overflow-hidden rounded-xl bg-white/[0.025] blueprint-border sm:grid-cols-[13rem_1fr]">
                                 <div className="aspect-video min-w-0 overflow-hidden bg-white/5 sm:aspect-auto sm:h-full sm:min-h-32">
-                                  {episode.still_path ? (
-                                    <img
-                                      src={getImageUrl(episode.still_path, 'w500')}
-                                      alt=""
-                                      className="block h-full w-full object-cover"
-                                      decoding="async"
-                                      loading="lazy"
-                                    />
-                                  ) : null}
+                                  <img
+                                    src={episode.still_path ? getImageUrl(episode.still_path, 'w500') : '/episode-placeholder.svg'}
+                                    alt=""
+                                    className="block h-full w-full object-cover"
+                                    decoding="async"
+                                    loading="lazy"
+                                  />
                                 </div>
                                 <div className="flex min-w-0 flex-col justify-center p-3 sm:p-4">
                                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                                    <p className="type-micro text-brand-cyan">E{String(episode.episode_number).padStart(2, '0')}</p>
+                                    <p className="type-readout text-brand-cyan">E{String(episode.episode_number).padStart(2, '0')}</p>
                                     {episode.air_date && <p className="type-readout text-brand-silver">{episode.air_date}</p>}
                                   </div>
                                   <h4 className="type-title mt-1 text-white">{episode.name || `Episode ${episode.episode_number}`}</h4>
