@@ -10,7 +10,7 @@ export function KeyboardShortcuts() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      const isInteractive = !!target.closest('input, textarea, select, button, [contenteditable="true"]');
+      const isTextEntry = !!target.closest('input, textarea, select, [contenteditable="true"]');
 
       if (e.key === 'Escape' && (activeDetailsMedia || activeActorMedia || isSearchFocused)) {
         e.preventDefault();
@@ -25,7 +25,7 @@ export function KeyboardShortcuts() {
         return;
       }
 
-      if (!isInteractive && activeDetailsMedia && !document.querySelector('[data-block-details-shortcuts="true"]')) {
+      if (!isTextEntry && activeDetailsMedia && !document.querySelector('[data-block-details-shortcuts="true"]')) {
         const action = getDetailsKeyboardAction(e.key);
         if (action && triggerDetailsAction(action)) {
           e.preventDefault();
