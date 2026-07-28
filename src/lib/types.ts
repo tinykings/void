@@ -142,11 +142,6 @@ export interface ContentRatingsResponse {
   results: ContentRating[];
 }
 
-export interface ExternalIdsResponse {
-  id: number;
-  imdb_id: string | null;
-}
-
 export interface Video {
   id: string;
   key: string;
@@ -155,11 +150,6 @@ export interface Video {
   type: string;
   official: boolean;
   published_at: string;
-}
-
-export interface VideosResponse {
-  id: number;
-  results: Video[];
 }
 
 export interface CastMember {
@@ -187,23 +177,6 @@ export interface CreditsResponse {
 export interface PersonCreditsResponse {
   id: number;
   cast: (TmdbResult & { character: string })[];
-}
-
-export interface TmdbImage {
-  file_path: string;
-  vote_count: number;
-  vote_average: number;
-  width: number;
-  height: number;
-  aspect_ratio: number;
-  iso_639_1: string | null;
-}
-
-export interface ImagesResponse {
-  id: number;
-  backdrops: TmdbImage[];
-  logos?: TmdbImage[];
-  posters?: TmdbImage[];
 }
 
 export interface WatchProvider {

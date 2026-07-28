@@ -125,7 +125,7 @@ const DEFAULT_ALLOWED_ORIGINS = ['https://tinykings.github.io', 'http://localhos
 const SEARCH_CACHE_SECONDS = 60 * 60;
 const DETAILS_CACHE_SECONDS = 60 * 60 * 24;
 const PRICE_CACHE_SECONDS = 60 * 60;
-const CACHE_VERSION = 'gg-prices-v1';
+const CACHE_VERSION = 'gg-prices-v2-game-media';
 const MAX_URL_LENGTH = 2048;
 const MAX_SEARCH_QUERY_LENGTH = 100;
 const RATE_LIMIT_RETRY_SECONDS = 60;
@@ -631,6 +631,7 @@ const normalizeGame = (game: IgdbGame, hltbCompletion?: HltbCompletion | null, h
   const slug = game.slug || '';
   const videos = (game.videos || [])
     .filter((video) => video.video_id)
+    .slice(0, 3)
     .map((video) => ({
       id: video.video_id || '',
       key: video.video_id || '',
@@ -659,7 +660,7 @@ const normalizeGame = (game: IgdbGame, hltbCompletion?: HltbCompletion | null, h
     genres: (game.genres || []).map((genre) => genre.name).filter(Boolean),
     website: game.websites?.find((site) => site.url)?.url || null,
     steam_app_id: getSteamAppId(game),
-    screenshots,
+    screenshots: screenshots.slice(0, 3),
     videos,
     source_url: slug ? `https://www.igdb.com/games/${slug}` : undefined,
     ...(hltbChecked ? { hltb_checked_at: Date.now() } : {}),

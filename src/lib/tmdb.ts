@@ -1,4 +1,4 @@
-import { Media, WatchProvider, WatchProvidersResponse, SeasonDetails, TmdbResult, ReleaseDatesResponse, ContentRatingsResponse, ExternalIdsResponse, ReleaseDatesResult, ContentRating, ReleaseDate, CreditsResponse, PersonCreditsResponse, PersonDetails, ImagesResponse, VideosResponse } from './types';
+import { Media, WatchProvider, WatchProvidersResponse, SeasonDetails, TmdbResult, ReleaseDatesResponse, ContentRatingsResponse, ReleaseDatesResult, ContentRating, ReleaseDate, CreditsResponse, PersonCreditsResponse, PersonDetails } from './types';
 
 const BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_MAX_RETRIES = 2;
@@ -67,12 +67,8 @@ export const getContentRating = async (id: number, type: 'movie' | 'tv', apiKey:
 };
 
 export const getMediaDetails = async (id: number, type: 'movie' | 'tv', apiKey: string, signal?: AbortSignal): Promise<Media> => {
-  const data: Media & { videos?: VideosResponse } = await fetchFromTMDB(`/${type}/${id}`, apiKey, { append_to_response: 'videos' }, signal);
-  return { ...data, media_type: type, videos: data.videos?.results || [] };
-};
-
-export const getExternalIds = async (id: number, type: 'movie' | 'tv', apiKey: string, signal?: AbortSignal): Promise<ExternalIdsResponse> => {
-  return fetchFromTMDB(`/${type}/${id}/external_ids`, apiKey, {}, signal);
+  const data: Media = await fetchFromTMDB(`/${type}/${id}`, apiKey, {}, signal);
+  return { ...data, media_type: type };
 };
 
 export const getUSReleaseDate = async (id: number, type: 'movie' | 'tv', apiKey: string): Promise<string | null> => {
@@ -148,10 +144,6 @@ export const getUSStreamingProviders = (data: WatchProvidersResponse): WatchProv
       return providerName.startsWith(`${candidateName} `);
     });
   });
-};
-
-export const getMediaImages = async (id: number, type: 'movie' | 'tv', apiKey: string, signal?: AbortSignal): Promise<ImagesResponse> => {
-  return fetchFromTMDB(`/${type}/${id}/images`, apiKey, {}, signal);
 };
 
 export const getMediaCredits = async (id: number, type: 'movie' | 'tv', apiKey: string, signal?: AbortSignal): Promise<CreditsResponse> => {

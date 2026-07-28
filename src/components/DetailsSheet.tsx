@@ -6,7 +6,7 @@ import { useAppContext } from '@/context/AppContext';
 import { getImageUrl } from '@/lib/tmdb';
 import { formatGamePrice, getSteamAppId } from '@/lib/ggDeals';
 import { getImageSrc, getMediaKey, getMediaSource, getMediaTitle } from '@/lib/media';
-import { Video } from '@/lib/types';
+import type { Video } from '@/lib/types';
 import { Bookmark, ChevronDown, ChevronLeft, ChevronRight, Eye, Heart, Play, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
@@ -38,14 +38,8 @@ export const DetailsSheet = () => {
   const [actionPulse, setActionPulse] = useState<{ key: string; action: 'watchlist' | 'watched' | 'favorite' } | null>(null);
   const [showCastLeftButton, setShowCastLeftButton] = useState(false);
   const [showCastRightButton, setShowCastRightButton] = useState(false);
-  const [showImageLeftButton, setShowImageLeftButton] = useState(false);
-  const [showImageRightButton, setShowImageRightButton] = useState(false);
-  const [showTrailerLeftButton, setShowTrailerLeftButton] = useState(false);
-  const [showTrailerRightButton, setShowTrailerRightButton] = useState(false);
   const closeActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const castScrollerRef = useRef<HTMLDivElement | null>(null);
-  const imageScrollerRef = useRef<HTMLDivElement | null>(null);
-  const trailerScrollerRef = useRef<HTMLDivElement | null>(null);
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -83,8 +77,6 @@ export const DetailsSheet = () => {
   const inWatched = mediaKey ? watchedIds.has(mediaKey) : false;
   const isFavorited = inWatched && selected ? watchedMap.get(mediaKey)?.isFavorite ?? false : false;
   const {
-    backdropItems,
-    backdropsKey,
     castItems,
     castKey,
     contentRatingValue,
@@ -129,38 +121,6 @@ export const DetailsSheet = () => {
     setShowCastRightButton(!!scroller && scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 4);
   }
 
-  function scrollImages(direction: 'left' | 'right') {
-    const scroller = imageScrollerRef.current;
-    if (!scroller) return;
-
-    scroller.scrollBy({
-      left: direction === 'left' ? -scroller.clientWidth * 0.85 : scroller.clientWidth * 0.85,
-      behavior: 'smooth',
-    });
-  }
-
-  function handleImageScroll() {
-    const scroller = imageScrollerRef.current;
-    setShowImageLeftButton(!!scroller && scroller.scrollLeft > 4);
-    setShowImageRightButton(!!scroller && scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 4);
-  }
-
-  function scrollTrailers(direction: 'left' | 'right') {
-    const scroller = trailerScrollerRef.current;
-    if (!scroller) return;
-
-    scroller.scrollBy({
-      left: direction === 'left' ? -scroller.clientWidth * 0.85 : scroller.clientWidth * 0.85,
-      behavior: 'smooth',
-    });
-  }
-
-  function handleTrailerScroll() {
-    const scroller = trailerScrollerRef.current;
-    setShowTrailerLeftButton(!!scroller && scroller.scrollLeft > 4);
-    setShowTrailerRightButton(!!scroller && scroller.scrollLeft + scroller.clientWidth < scroller.scrollWidth - 4);
-  }
-
   useEffect(() => {
     return () => {
       if (closeActionTimerRef.current) clearTimeout(closeActionTimerRef.current);
@@ -172,7 +132,6 @@ export const DetailsSheet = () => {
 
     const handler = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
-
       event.preventDefault();
       event.stopImmediatePropagation();
       setActiveImage(null);
@@ -185,29 +144,15 @@ export const DetailsSheet = () => {
 
   useEffect(() => {
     if (castScrollerRef.current) castScrollerRef.current.scrollLeft = 0;
-    if (imageScrollerRef.current) imageScrollerRef.current.scrollLeft = 0;
-    if (trailerScrollerRef.current) trailerScrollerRef.current.scrollLeft = 0;
     queueMicrotask(() => {
       setShowCastLeftButton(false);
       setShowCastRightButton(false);
-      setShowImageLeftButton(false);
-      setShowImageRightButton(false);
-      setShowTrailerLeftButton(false);
-      setShowTrailerRightButton(false);
     });
   }, [mediaKey]);
 
   useEffect(() => {
     queueMicrotask(handleCastScroll);
   }, [castItems.length, mediaKey]);
-
-  useEffect(() => {
-    queueMicrotask(handleImageScroll);
-  }, [backdropItems.length, mediaKey, selected?.screenshots?.length]);
-
-  useEffect(() => {
-    queueMicrotask(handleTrailerScroll);
-  }, [mediaKey, selected?.videos?.length]);
 
   useEffect(() => {
     if (!activeDetailsMedia) return;
@@ -257,138 +202,13 @@ export const DetailsSheet = () => {
     : [];
   const providerLabel = source === 'igdb' ? 'IGDB' : source === 'rawg' ? 'RAWG' : source === 'steam' ? 'Steam' : 'TMDB';
   const posterSrc = getImageSrc(selected.poster_path, (tmdbPath) => getImageUrl(tmdbPath, 'w342'));
-  const gameScreenshots = isGame ? (selected.screenshots || []).slice(0, 20) : [];
-  const trailerItems = [...(selected.videos || [])]
-    .filter((video) => video.site === 'YouTube' && !!video.key)
-    .sort((a, b) => {
-      const score = (video: Video) => {
-        if (video.type === 'Trailer') return 0;
-        if (video.type === 'Teaser') return 1;
-        if (video.type === 'Clip') return 2;
-        return 3;
-      };
-      const scoreDiff = score(a) - score(b);
-      if (scoreDiff !== 0) return scoreDiff;
-      if (a.official !== b.official) return a.official ? -1 : 1;
-      return (b.published_at || '').localeCompare(a.published_at || '');
-    })
-    .slice(0, 10);
-  const trailerSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${title} trailer`)}`;
-  const showImageSection = isGame
-    ? gameScreenshots.length > 0
-    : sectionErrors.has(`${mediaKey}:images`) || backdropsKey !== mediaKey || backdropItems.length > 0;
+  const gameImages = isGame ? (selected.screenshots || []).slice(0, 3) : [];
+  const gameTrailers = isGame
+    ? (selected.videos || []).filter((video) => video.site === 'YouTube' && !!video.key).slice(0, 3)
+    : [];
   const externalLinks = [
-    trailerItems.length === 0 ? { label: 'Trailer', url: trailerSearchUrl } : null,
     selected.source_url && source !== 'igdb' ? { label: providerLabel, url: selected.source_url } : null,
-  ].filter((link): link is { label: string; url: string } => !!link && !!link.url);
-  const renderImageGrid = (items: { src: string; alt: string }[]) => (
-    <div className="relative">
-      {showImageLeftButton && (
-        <button
-          type="button"
-          onClick={() => scrollImages('left')}
-          className={`${railButtonClass} left-0`}
-          aria-label="Scroll images left"
-          title="Scroll images left"
-        >
-          <ChevronLeft size={18} />
-        </button>
-      )}
-      <div
-        ref={imageScrollerRef}
-        onScroll={handleImageScroll}
-        className="flex snap-x gap-2 overflow-x-auto scroll-smooth pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {items.map((image) => (
-          <button
-            key={image.src}
-            type="button"
-            onClick={() => setActiveImage({ ...image, mediaKey })}
-            className="group w-[31%] shrink-0 snap-start cursor-pointer overflow-hidden rounded-xl bg-white/5 blueprint-border transition-colors duration-200 hover:border-brand-cyan/35 sm:w-[23.5%] md:w-[18.4%]"
-          >
-            <img
-              src={image.src}
-              alt={image.alt}
-              className="aspect-square w-full object-cover transition-transform duration-200 group-hover:scale-105"
-              decoding="async"
-              loading="lazy"
-            />
-          </button>
-        ))}
-      </div>
-      {showImageRightButton && (
-        <button
-          type="button"
-          onClick={() => scrollImages('right')}
-          className={`${railButtonClass} right-0`}
-          aria-label="Scroll images right"
-          title="Scroll images right"
-        >
-          <ChevronRight size={18} />
-        </button>
-      )}
-    </div>
-  );
-  const renderTrailerGrid = (items: Video[]) => (
-    <div className="relative">
-      {showTrailerLeftButton && (
-        <button
-          type="button"
-          onClick={() => scrollTrailers('left')}
-          className={`${railButtonClass} left-0`}
-          aria-label="Scroll trailers left"
-          title="Scroll trailers left"
-        >
-          <ChevronLeft size={18} />
-        </button>
-      )}
-      <div
-        ref={trailerScrollerRef}
-        onScroll={handleTrailerScroll}
-        className="flex snap-x gap-2 overflow-x-auto scroll-smooth pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {items.map((video) => (
-          <button
-            key={`${video.id}-${video.key}`}
-            type="button"
-            onClick={() => setActiveTrailer({ video, mediaKey })}
-            className="group w-[70%] shrink-0 snap-start cursor-pointer overflow-hidden rounded-xl bg-brand-bg/80 text-left blueprint-border transition-colors duration-200 hover:border-brand-cyan/35 hover:bg-brand-bg sm:w-[46%] md:w-[31%]"
-          >
-            <div className="relative aspect-video bg-white/5">
-              <img
-                src={`https://img.youtube.com/vi/${video.key}/hqdefault.jpg`}
-                alt=""
-                className="h-full w-full object-cover opacity-90 transition-transform duration-200 group-hover:scale-105"
-                decoding="async"
-                loading="lazy"
-              />
-              <span className="absolute inset-0 flex items-center justify-center bg-black/20 transition-colors group-hover:bg-black/10">
-                <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-brand-bg/80 text-brand-cyan backdrop-blur-md transition-colors group-hover:border-brand-cyan/40 group-hover:bg-brand-cyan/20 group-hover:text-white">
-                  <Play size={18} fill="currentColor" />
-                </span>
-              </span>
-            </div>
-            <div className="p-2">
-              <p className="truncate text-xs font-black leading-tight text-white">{video.name || 'Trailer'}</p>
-              <p className="type-micro text-brand-silver">{video.type || 'Video'}</p>
-            </div>
-          </button>
-        ))}
-      </div>
-      {showTrailerRightButton && (
-        <button
-          type="button"
-          onClick={() => scrollTrailers('right')}
-          className={`${railButtonClass} right-0`}
-          aria-label="Scroll trailers right"
-          title="Scroll trailers right"
-        >
-          <ChevronRight size={18} />
-        </button>
-      )}
-    </div>
-  );
-  const runAction = async (action: 'watchlist' | 'watched', commit: () => Promise<void> | void) => {
+  ].filter((link): link is { label: string; url: string } => !!link && !!link.url);  const runAction = async (action: 'watchlist' | 'watched', commit: () => Promise<void> | void) => {
     if (closeActionTimerRef.current) clearTimeout(closeActionTimerRef.current);
 
     setActionPulse({ key: mediaKey, action });
@@ -508,28 +328,55 @@ export const DetailsSheet = () => {
                     <p className="text-sm leading-relaxed text-white/90 line-clamp-6">
                       {selected.overview || 'Overview unavailable.'}
                     </p>
-                    {isGamePriceLoading && (
-                      <div className="h-[4.25rem] max-w-sm rounded-lg skeleton-shimmer animate-shimmer blueprint-border" aria-label="Loading Steam price" />
+                    {isGame && selected.platforms && selected.platforms.length > 0 && (
+                      <p className="text-xs text-brand-silver">
+                        {selected.platforms.slice(0, 8).join(' · ')}
+                      </p>
                     )}
-                    {gamePrice?.lowestCurrent && formattedGamePrice && (
-                      <a
-                        href={gamePrice.url}
-                        target="_blank"
-                        rel="noopener noreferrer sponsored"
-                        className="group flex max-w-sm items-center justify-between gap-4 rounded-lg border border-brand-cyan/25 bg-brand-cyan/[0.06] px-3 py-2 transition-colors hover:border-brand-cyan/45 hover:bg-brand-cyan/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
-                        aria-label={`Lowest Steam price ${formattedGamePrice}; view prices on GG.deals`}
-                      >
-                        <span>
-                          <span className="type-micro block text-brand-silver">Lowest Steam price</span>
-                          <span className="type-readout mt-0.5 block text-xl text-white">{formattedGamePrice}</span>
-                        </span>
-                        <span className="text-right">
-                          <span className="type-micro block text-brand-cyan">
-                            {gamePrice.lowestCurrent.source === 'keyshop' ? 'Keyshop' : 'Retail'}
-                          </span>
-                          <span className="type-label mt-1 block text-brand-silver transition-colors group-hover:text-white">GG.deals ↗</span>
-                        </span>
-                      </a>
+                    {isGame && selected.genres && selected.genres.length > 0 && (
+                      <p className="text-xs text-brand-silver/80">
+                        {selected.genres.slice(0, 6).join(' · ')}
+                      </p>
+                    )}
+                    {(gameTimeItems.length > 0 || isGamePriceLoading || (gamePrice?.lowestCurrent && formattedGamePrice)) && (
+                      <div className={clsx(
+                        'grid items-stretch gap-2',
+                        (isGamePriceLoading || (gamePrice?.lowestCurrent && formattedGamePrice)) && 'sm:grid-cols-[minmax(0,24rem)_16rem]'
+                      )}>
+                        {gameTimeItems.length > 0 && (
+                          <div className="grid w-full max-w-96 grid-cols-3 overflow-hidden rounded-lg border border-brand-cyan/20 bg-brand-cyan/[0.05]">
+                            {gameTimeItems.map((item) => (
+                              <div key={item.label} className="flex flex-col justify-center border-r border-white/10 px-2 py-2 text-center last:border-r-0">
+                                <p className="type-micro truncate text-brand-silver">{item.label}</p>
+                                <p className="type-readout mt-1 text-base leading-none text-white sm:text-xl">{item.value}H</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {isGamePriceLoading && (
+                          <div className="min-h-[4.25rem] rounded-lg skeleton-shimmer animate-shimmer blueprint-border" aria-label="Loading Steam price" />
+                        )}
+                        {gamePrice?.lowestCurrent && formattedGamePrice && (
+                          <a
+                            href={gamePrice.url}
+                            target="_blank"
+                            rel="noopener noreferrer sponsored"
+                            className="group flex min-h-[4.25rem] items-center justify-between gap-3 rounded-lg border border-brand-cyan/25 bg-brand-cyan/[0.06] px-3 py-2 transition-colors hover:border-brand-cyan/45 hover:bg-brand-cyan/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
+                            aria-label={`Lowest Steam price ${formattedGamePrice}; view prices on GG.deals`}
+                          >
+                            <span>
+                              <span className="type-micro block text-brand-silver">Lowest Steam price</span>
+                              <span className="type-readout mt-0.5 block text-xl text-white">{formattedGamePrice}</span>
+                            </span>
+                            <span className="text-right">
+                              <span className="type-micro block text-brand-cyan">
+                                {gamePrice.lowestCurrent.source === 'keyshop' ? 'Keyshop' : 'Retail'}
+                              </span>
+                              <span className="type-label mt-1 block text-brand-silver transition-colors group-hover:text-white">GG.deals ↗</span>
+                            </span>
+                          </a>
+                        )}
+                      </div>
                     )}
                     {gamePriceError && (
                       <div className="flex max-w-sm items-center justify-between gap-3 text-xs text-brand-silver">
@@ -548,15 +395,59 @@ export const DetailsSheet = () => {
                         {watchProviderItems.map((p) => p.provider_name).join(' · ')}
                       </p>
                     )}
-                    {isGame && selected.platforms && selected.platforms.length > 0 && (
-                      <p className="text-xs text-brand-silver">
-                        {selected.platforms.slice(0, 8).join(' · ')}
-                      </p>
+                    {gameTrailers.length > 0 && (
+                      <div>
+                        <p className="type-micro mb-2 text-brand-silver">Trailers</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {gameTrailers.map((video) => (
+                            <button
+                              key={`${video.id}-${video.key}`}
+                              type="button"
+                              onClick={() => setActiveTrailer({ video, mediaKey })}
+                              className="group cursor-pointer overflow-hidden rounded-lg bg-white/5 blueprint-border transition-colors hover:border-brand-cyan/35"
+                              aria-label={`Play ${video.name || 'trailer'}`}
+                            >
+                              <span className="relative block aspect-video overflow-hidden">
+                                <img
+                                  src={`https://img.youtube.com/vi/${video.key}/hqdefault.jpg`}
+                                  alt=""
+                                  className="h-full w-full object-cover opacity-90 transition-transform group-hover:scale-105"
+                                  decoding="async"
+                                  loading="lazy"
+                                />
+                                <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-bg/80 text-brand-cyan backdrop-blur-md">
+                                    <Play size={14} fill="currentColor" />
+                                  </span>
+                                </span>
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     )}
-                    {isGame && selected.genres && selected.genres.length > 0 && (
-                      <p className="text-xs text-brand-silver/80">
-                        {selected.genres.slice(0, 6).join(' · ')}
-                      </p>
+                    {gameImages.length > 0 && (
+                      <div>
+                        <p className="type-micro mb-2 text-brand-silver">Images</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {gameImages.map((image, index) => (
+                            <button
+                              key={image}
+                              type="button"
+                              onClick={() => setActiveImage({ src: image, alt: `${title} screenshot ${index + 1}`, mediaKey })}
+                              className="group cursor-pointer overflow-hidden rounded-lg bg-white/5 blueprint-border transition-colors hover:border-brand-cyan/35"
+                            >
+                              <img
+                                src={image}
+                                alt={`${title} screenshot ${index + 1}`}
+                                className="aspect-video h-full w-full object-cover transition-transform group-hover:scale-105"
+                                decoding="async"
+                                loading="lazy"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     )}
 
                   {initErrorKey === mediaKey && (
@@ -575,17 +466,6 @@ export const DetailsSheet = () => {
               </div>
 
               <div className="mt-3 space-y-4">
-                  {gameTimeItems.length > 0 && (
-                    <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-brand-cyan/20 bg-brand-cyan/[0.05]">
-                      {gameTimeItems.map((item) => (
-                        <div key={item.label} className="border-r border-white/10 px-2 py-2 text-center last:border-r-0">
-                          <p className="type-micro truncate text-brand-silver">{item.label}</p>
-                          <p className="type-readout mt-1 text-base leading-none text-white sm:text-xl">{item.value}H</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
                   {!isGame && (
                     <>
                     {/* Cast */}
@@ -663,46 +543,6 @@ export const DetailsSheet = () => {
                     </>
                   )}
 
-                    {/* Images */}
-                    {showImageSection && (
-                      <div>
-                        {isGame ? (
-                          renderImageGrid(gameScreenshots.map((image, index) => ({
-                            src: image,
-                            alt: `${title} screenshot ${index + 1}`,
-                          })))
-                        ) : sectionErrors.has(`${mediaKey}:images`) ? (
-                          <div className="flex flex-col items-center gap-3 py-10">
-                            <p className="text-sm text-red-200">Failed to load images.</p>
-                            <button
-                              type="button"
-                              onClick={() => handleRetrySection('images')}
-                              className="type-action min-h-11 rounded-lg border border-red-500/40 bg-red-950/40 px-4 py-1.5 text-red-200 transition-colors hover:border-red-400/60 hover:bg-red-900/60"
-                            >
-                              Retry
-                            </button>
-                          </div>
-                        ) : backdropsKey !== mediaKey ? (
-                          <div className="flex gap-2 overflow-hidden">
-                            {[...Array(3)].map((_, index) => (
-                              <div key={index} className="aspect-square w-[31%] shrink-0 rounded-xl skeleton-shimmer animate-shimmer sm:w-[23.5%] md:w-[18.4%]" />
-                            ))}
-                          </div>
-                        ) : (
-                          renderImageGrid(backdropItems.map((image, index) => ({
-                            src: getImageUrl(image.file_path, 'w780'),
-                            alt: `${title} image ${index + 1}`,
-                          })))
-                        )}
-                      </div>
-                    )}
-
-                    {trailerItems.length > 0 && (
-                      <div>
-                        {renderTrailerGrid(trailerItems)}
-                      </div>
-                    )}
-
                 <p className="type-readout text-center text-brand-silver/60">
                   Data provided by {providerLabel}.
                 </p>
@@ -712,45 +552,36 @@ export const DetailsSheet = () => {
               <AnimatePresence>
                 {activeImage?.mediaKey === mediaKey && (
                   <FocusTrap active>
-                  <div
-                    className="fixed inset-0 z-[380] flex items-center justify-center p-4"
-                    onClick={() => setActiveImage(null)}
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label="Image preview"
-                    data-block-details-shortcuts="true"
-                  >
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute inset-0 bg-black/90 backdrop-blur-sm"
-                    />
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.96 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.96 }}
-                      transition={{ duration: 0.16, ease: 'easeOut' }}
-                      className="relative z-10 max-h-full max-w-6xl"
-                      onClick={(e) => e.stopPropagation()}
+                    <div
+                      className="fixed inset-0 z-[380] flex cursor-pointer items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+                      onClick={() => setActiveImage(null)}
+                      role="dialog"
+                      aria-modal="true"
+                      aria-label="Image preview"
+                      data-block-details-shortcuts="true"
                     >
-                      <button
-                        type="button"
-                        onClick={() => setActiveImage(null)}
-                        className="absolute right-2 top-2 z-20 rounded-lg border border-brand-cyan/25 bg-brand-bg/75 p-3 text-brand-cyan backdrop-blur-md transition-colors hover:bg-brand-cyan/15 hover:text-white"
-                        title="Close image"
-                        aria-label="Close image"
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.96 }}
+                        className="relative max-h-full max-w-6xl cursor-default"
+                        onClick={(event) => event.stopPropagation()}
                       >
-                        <X size={18} />
-                      </button>
-                      <img
-                        src={activeImage.src}
-                        alt={activeImage.alt}
-                        className="max-h-[88vh] max-w-full rounded-xl object-contain blueprint-border"
-                        decoding="async"
-                      />
-                    </motion.div>
-                  </div>
+                        <button
+                          type="button"
+                          onClick={() => setActiveImage(null)}
+                          className="absolute right-2 top-2 z-20 cursor-pointer rounded-lg bg-brand-bg/80 p-3 text-brand-cyan backdrop-blur-md"
+                          aria-label="Close image"
+                        >
+                          <X size={18} />
+                        </button>
+                        <img
+                          src={activeImage.src}
+                          alt={activeImage.alt}
+                          className="max-h-[88vh] max-w-full rounded-xl object-contain blueprint-border"
+                        />
+                      </motion.div>
+                    </div>
                   </FocusTrap>
                 )}
               </AnimatePresence>
@@ -758,38 +589,29 @@ export const DetailsSheet = () => {
               <AnimatePresence>
                 {activeTrailer?.mediaKey === mediaKey && (
                   <FocusTrap active>
-                  <div
-                    className="fixed inset-0 z-[380] flex items-center justify-center p-4"
-                    onClick={() => setActiveTrailer(null)}
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label="Trailer player"
-                    data-block-details-shortcuts="true"
-                  >
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute inset-0 bg-black/90 backdrop-blur-sm"
-                    />
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.96 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.96 }}
-                      transition={{ duration: 0.16, ease: 'easeOut' }}
-                      className="relative z-10 w-full max-w-5xl"
-                      onClick={(e) => e.stopPropagation()}
+                    <div
+                      className="fixed inset-0 z-[380] flex cursor-pointer items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+                      onClick={() => setActiveTrailer(null)}
+                      role="dialog"
+                      aria-modal="true"
+                      aria-label="Trailer player"
+                      data-block-details-shortcuts="true"
                     >
-                      <button
-                        type="button"
-                        onClick={() => setActiveTrailer(null)}
-                        className="absolute right-2 top-2 z-20 rounded-lg border border-brand-cyan/25 bg-brand-bg/75 p-3 text-brand-cyan backdrop-blur-md transition-colors hover:bg-brand-cyan/15 hover:text-white"
-                        title="Close trailer"
-                        aria-label="Close trailer"
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.96 }}
+                        className="relative w-full max-w-5xl cursor-default overflow-hidden rounded-xl bg-brand-bg blueprint-border"
+                        onClick={(event) => event.stopPropagation()}
                       >
-                        <X size={18} />
-                      </button>
-                      <div className="overflow-hidden rounded-xl bg-brand-bg blueprint-border">
+                        <button
+                          type="button"
+                          onClick={() => setActiveTrailer(null)}
+                          className="absolute right-2 top-2 z-20 cursor-pointer rounded-lg bg-brand-bg/80 p-3 text-brand-cyan backdrop-blur-md"
+                          aria-label="Close trailer"
+                        >
+                          <X size={18} />
+                        </button>
                         <iframe
                           src={`https://www.youtube.com/embed/${activeTrailer.video.key}?autoplay=1&rel=0`}
                           title={activeTrailer.video.name || `${title} trailer`}
@@ -797,9 +619,8 @@ export const DetailsSheet = () => {
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                           allowFullScreen
                         />
-                      </div>
-                    </motion.div>
-                  </div>
+                      </motion.div>
+                    </div>
                   </FocusTrap>
                 )}
               </AnimatePresence>
