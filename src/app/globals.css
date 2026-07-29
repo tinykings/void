@@ -65,6 +65,12 @@ summary {
   cursor: pointer !important;
 }
 
+@media (hover: none), (pointer: coarse) {
+  .media-card-label {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html:focus-within {
     scroll-behavior: auto;

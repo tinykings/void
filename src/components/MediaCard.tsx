@@ -151,6 +151,7 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, onClick }
   });
 
   const title = media.title || media.name || 'Untitled';
+  const year = (media.release_date || media.first_air_date || '').slice(0, 4);
   const isGame = media.media_type === 'game';
 
   return (
@@ -177,6 +178,14 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, onClick }
               <div className="type-micro rounded-full border border-white/10 bg-brand-bg/90 px-2 py-0.5 text-brand-cyan backdrop-blur-md">
                 {daysUntilRelease === 'now' ? 'now' : `${daysUntilRelease} ${daysUntilRelease === 1 ? 'day' : 'days'}`}
               </div>
+            </div>
+          )}
+
+          {media.poster_path && (
+            <div aria-hidden="true" className="media-card-label pointer-events-none absolute inset-x-0 bottom-0 z-10 translate-y-2 bg-brand-bg/85 px-2.5 py-2 text-left opacity-0 backdrop-blur-md transition-[opacity,transform] duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
+              <p className="type-action truncate text-white">
+                {title}{year && <span className="type-readout text-brand-silver"> · {year}</span>}
+              </p>
             </div>
           )}
 

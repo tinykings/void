@@ -2,7 +2,8 @@ import { create } from 'zustand';
 import { persist, StateStorage, createJSONStorage } from 'zustand/middleware';
 import { get, set, del } from 'idb-keyval';
 import { Media, UserState, FilterType, SortOption } from '@/lib/types';
-import { buildGistPayload, fromGistItem, getGistContent, isEmptyGistPayload, updateGist } from '@/lib/gist';
+import { buildGistPayload, fromGistItem, getGistContent, updateGist, type GistLibraryData } from '@/lib/gist';
+import { mergeGistChanges } from '@/lib/gistMerge';
 import { getMediaDetails } from '@/lib/tmdb';
 import { getIgdbGameDetails } from '@/lib/igdb';
 import { mapWithConcurrency } from '@/lib/concurrency';
@@ -14,12 +15,44 @@ const METADATA_HYDRATION_CONCURRENCY = 1;
 const TV_MIGRATION_WINDOW_DAYS = 7;
 
 let gistQueue: Promise<void> = Promise.resolve();
+const gistBaselines = new Map<string, GistLibraryData>();
+
+const getGistConnectionKey = (gistId: string, githubLogin: string) => `${githubLogin}:${gistId}`;
+const sameGistPayload = (left: GistLibraryData, right: GistLibraryData) =>
+  JSON.stringify(left) === JSON.stringify(right);
+
+const materializeGistPayload = (payload: GistLibraryData, existingItems: Media[]) => {
+  const existingByKey = new Map(existingItems.map((item) => [getMediaKey(item), item]));
+  const favorites = new Set(payload.favorites.map((item) => getMediaKey(fromGistItem(item))));
+  const materialize = (item: GistLibraryData['watchlist'][number]) => {
+    const synced = fromGistItem(item, favorites.has(getMediaKey(fromGistItem(item))));
+    const existing = existingByKey.get(getMediaKey(synced));
+    if (!existing) return synced;
+
+    return {
+      ...synced,
+      ...existing,
+      title: synced.title,
+      name: synced.name,
+      date_added: synced.date_added,
+      release_date: synced.release_date,
+      rating: synced.rating,
+      isFavorite: synced.isFavorite,
+    };
+  };
+
+  return {
+    watchlist: payload.watchlist.map(materialize),
+    watched: payload.watched.map(materialize),
+  };
+};
 
 const enqueueGistOperation = (operation: () => Promise<void>) => {
-  gistQueue = gistQueue.then(operation).catch((error) => {
+  const result = gistQueue.then(operation);
+  gistQueue = result.catch((error) => {
     console.error('Gist sync error:', error);
   });
-  return gistQueue;
+  return result;
 };
 
 // Custom storage object for IndexedDB
@@ -155,6 +188,11 @@ export const useStore = create<StoreState>()(
           const { apiKey, gistId, gistToken, githubLogin, watchlist, watched, playedEpisodes } = get();
           if (!gistId || !gistToken || !githubLogin) return;
 
+          const connectionKey = getGistConnectionKey(gistId, githubLogin);
+          if (!gistBaselines.has(connectionKey)) {
+            gistBaselines.set(connectionKey, buildGistPayload(watchlist, watched, playedEpisodes));
+          }
+
           await enqueueGistOperation(async () => {
             if (showIndicator) set({ isSyncingLibrary: true });
             try {
@@ -165,25 +203,25 @@ export const useStore = create<StoreState>()(
               }
 
               if (gistResult.status === 'missing' || gistResult.status === 'empty') {
-                await updateGist(gistId, gistToken, buildGistPayload(watchlist, watched, playedEpisodes));
+                const latest = get();
+                const payload = buildGistPayload(latest.watchlist, latest.watched, latest.playedEpisodes);
+                await updateGist(gistId, gistToken, payload);
+                gistBaselines.set(connectionKey, payload);
                 return;
               }
 
               const gist = gistResult.data;
-              if (isEmptyGistPayload(gist)) {
-                await updateGist(gistId, gistToken, buildGistPayload(watchlist, watched, playedEpisodes));
-                return;
-              }
-
               const favoriteKeys = new Set(gist.favorites.map((item) => getMediaKey(fromGistItem(item))));
-              const localWatchlist = gist.watchlist.map((item) => fromGistItem(item));
-              const localWatched = gist.watched.map((item) => {
+              const remoteWatchlist = gist.watchlist.map((item) => fromGistItem(item));
+              const remoteWatched = gist.watched.map((item) => {
                 const media = fromGistItem(item);
                 return fromGistItem(item, favoriteKeys.has(getMediaKey(media)));
               });
 
-              const hydrateList = async (items: Media[]) => {
-                const hydrated = await mapWithConcurrency(items, METADATA_HYDRATION_CONCURRENCY, async (item) => {
+              const hydrateList = async (items: Media[]) => mapWithConcurrency(
+                items,
+                METADATA_HYDRATION_CONCURRENCY,
+                async (item) => {
                   try {
                     const source = getMediaSource(item);
                     const details = item.media_type === 'game'
@@ -200,28 +238,38 @@ export const useStore = create<StoreState>()(
                   } catch {
                     return item;
                   }
-                });
-                return hydrated;
-              };
+                },
+              );
 
               const [hydratedWatchlist, hydratedWatched] = await Promise.all([
-                hydrateList(localWatchlist),
-                hydrateList(localWatched),
+                hydrateList(remoteWatchlist),
+                hydrateList(remoteWatched),
               ]);
+              const latest = get();
+              const baseline = gistBaselines.get(connectionKey)
+                ?? buildGistPayload(latest.watchlist, latest.watched, latest.playedEpisodes);
+              const localPayload = buildGistPayload(latest.watchlist, latest.watched, latest.playedEpisodes);
+              const mergedPayload = mergeGistChanges(gist, baseline, localPayload);
+              const mergedLists = materializeGistPayload(
+                mergedPayload,
+                [...latest.watchlist, ...latest.watched, ...hydratedWatchlist, ...hydratedWatched],
+              );
 
-              const restoredPlayedEpisodes = gist.version === 3 ? gist.playedEpisodes ?? {} : playedEpisodes;
               set({
-                watchlist: hydratedWatchlist,
-                watched: hydratedWatched,
-                playedEpisodes: restoredPlayedEpisodes,
+                ...mergedLists,
+                playedEpisodes: mergedPayload.playedEpisodes ?? {},
               });
 
-              if (gist.version < 3) {
-                await updateGist(
-                  gistId,
-                  gistToken,
-                  buildGistPayload(hydratedWatchlist, hydratedWatched, restoredPlayedEpisodes),
+              if (gist.version < 3 || !sameGistPayload(gist, mergedPayload)) {
+                const payload = buildGistPayload(
+                  mergedLists.watchlist,
+                  mergedLists.watched,
+                  mergedPayload.playedEpisodes ?? {},
                 );
+                await updateGist(gistId, gistToken, payload);
+                gistBaselines.set(connectionKey, payload);
+              } else {
+                gistBaselines.set(connectionKey, gist);
               }
             } finally {
               if (showIndicator) set({ isSyncingLibrary: false });
@@ -230,11 +278,32 @@ export const useStore = create<StoreState>()(
         },
 
         syncToGist: async () => {
-          const { gistId, gistToken, githubLogin, watchlist, watched, playedEpisodes } = get();
+          const { gistId, gistToken, githubLogin } = get();
           if (!gistId || !gistToken || !githubLogin) return;
 
+          const connectionKey = getGistConnectionKey(gistId, githubLogin);
           await enqueueGistOperation(async () => {
-            await updateGist(gistId, gistToken, buildGistPayload(watchlist, watched, playedEpisodes));
+            const gistResult = await getGistContent(gistId, gistToken);
+            if (gistResult.status === 'invalid') {
+              throw new Error(`Gist sync stopped: ${gistResult.reason}`);
+            }
+
+            const latest = get();
+            const localPayload = buildGistPayload(latest.watchlist, latest.watched, latest.playedEpisodes);
+            const baseline = gistBaselines.get(connectionKey) ?? localPayload;
+            const mergedPayload = gistResult.status === 'loaded'
+              ? mergeGistChanges(gistResult.data, baseline, localPayload)
+              : localPayload;
+            const mergedLists = materializeGistPayload(
+              mergedPayload,
+              [...latest.watchlist, ...latest.watched],
+            );
+
+            set({ ...mergedLists, playedEpisodes: mergedPayload.playedEpisodes ?? {} });
+            if (gistResult.status !== 'loaded' || !sameGistPayload(gistResult.data, mergedPayload)) {
+              await updateGist(gistId, gistToken, mergedPayload);
+            }
+            gistBaselines.set(connectionKey, mergedPayload);
           });
         },
 

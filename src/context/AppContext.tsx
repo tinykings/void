@@ -222,7 +222,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
-    await store.syncFromGist(showIndicator);
+    try {
+      await store.syncFromGist(showIndicator);
+    } catch (error) {
+      toast.error('Could not sync collection', {
+        description: error instanceof Error ? error.message : 'GitHub sync failed. Your local collection is unchanged.',
+      });
+    }
   }, [isOnline, store.syncFromGist]);
 
   // Service worker registration
@@ -281,9 +287,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     initialGistSyncDone.current = signature;
-    void store.syncFromGist(false).finally(() => {
-      applyInitialView();
-    });
+    void store.syncFromGist(false)
+      .catch((error) => {
+        toast.error('Could not sync collection', {
+          description: error instanceof Error ? error.message : 'GitHub sync failed. Your local collection is unchanged.',
+        });
+      })
+      .finally(() => {
+        applyInitialView();
+      });
   }, [
     store.isLoaded,
     isOnline,
