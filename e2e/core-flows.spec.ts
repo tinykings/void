@@ -111,6 +111,22 @@ test('connected library performs initial and manual Gist sync', async ({ page })
   await expect.poll(() => gistReads).toBeGreaterThan(1);
 });
 
+test('disconnecting GitHub clears persisted connection', async ({ page }) => {
+  await seedConnectedLibrary(page);
+  await mockTmdb(page);
+  await page.route('https://api.github.com/**', (route) => route.fulfill({ status: 503 }));
+  await page.goto('/');
+
+  await page.getByRole('button', { name: /Filter:/ }).click();
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('button', { name: 'Disconnect GitHub' }).click();
+
+  await expect(page.getByText('GitHub disconnected from this browser')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Connect GitHub' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Connect GitHub' })).toBeVisible();
+});
+
 test('cached app shell starts offline and keeps local UI available', async ({ page, context }) => {
   await seedConnectedLibrary(page);
   await mockTmdb(page);

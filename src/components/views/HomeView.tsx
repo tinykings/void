@@ -14,6 +14,7 @@ import { AlertCircle, Bookmark, Film, Gamepad2, Github, Heart, History, LayoutGr
 import type { FilterType } from '@/lib/types';
 import { getMediaKey } from '@/lib/media';
 import { clsx } from 'clsx';
+import { toast } from 'sonner';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 import { FocusTrap } from '@/components/FocusTrap';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
@@ -659,8 +660,9 @@ export const HomeView = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setShowSyncModal(false);
                     disconnectGithub();
+                    setShowSyncModal(false);
+                    toast.success('GitHub disconnected from this browser');
                   }}
                   className="type-action flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-red-200 transition-colors hover:bg-red-500/10"
                 >

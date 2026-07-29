@@ -413,7 +413,12 @@ export const DetailsSheet = () => {
                     (isGamePriceLoading || (gamePrice?.lowestCurrent && formattedGamePrice) || gamePriceError) && 'sm:grid-cols-[minmax(0,2fr)_minmax(14rem,1fr)]'
                   )}>
                     {gameTimeItems.length > 0 && (
-                      <div className="grid min-h-[5rem] w-full grid-cols-3 overflow-hidden rounded-lg border border-brand-cyan/20 bg-brand-cyan/[0.05]">
+                      <div className={clsx(
+                        'grid min-h-[5rem] w-full overflow-hidden rounded-lg border border-brand-cyan/20 bg-brand-cyan/[0.05]',
+                        gameTimeItems.length === 1 && 'grid-cols-1',
+                        gameTimeItems.length === 2 && 'grid-cols-2',
+                        gameTimeItems.length === 3 && 'grid-cols-3',
+                      )}>
                         {gameTimeItems.map((item) => (
                           <div key={item.label} className="flex min-w-0 flex-col justify-center border-r border-white/10 px-2 py-3 text-center last:border-r-0">
                             <p className="type-label truncate text-brand-silver">{item.label}</p>
