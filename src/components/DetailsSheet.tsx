@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getImageUrl, getSeasonDetails } from '@/lib/tmdb';
 import { formatGamePrice, getSteamAppId } from '@/lib/ggDeals';
 import { getImageSrc, getMediaKey, getMediaSource, getMediaTitle } from '@/lib/media';
 import type { SeasonDetails, Video } from '@/lib/types';
-import { Bookmark, ChevronDown, Eye, Heart, Play, X } from 'lucide-react';
+import { ArrowLeft, Bookmark, ChevronDown, Eye, Heart, Play, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { FocusTrap } from '@/components/FocusTrap';
@@ -21,6 +22,9 @@ const episodePlaceholderSrc = `${basePath}/episode-placeholder.svg`;
 
 export const DetailsSheet = () => {
   const isOnline = useOnlineStatus();
+  const pathname = usePathname();
+  const router = useRouter();
+  const isPageMode = pathname.endsWith('/details');
   const {
     activeDetailsMedia,
     closeDetails,
@@ -238,6 +242,11 @@ export const DetailsSheet = () => {
     }, 400);
   };
 
+  const handleClose = () => {
+    closeDetails();
+    if (isPageMode) router.back();
+  };
+
   const handleWatchlistToggle = () => {
     if (inWatchlist) {
       setModalConfig({
@@ -285,31 +294,33 @@ export const DetailsSheet = () => {
     <AnimatePresence>
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-[350] flex items-end justify-center" onClick={closeAllSheets}>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            />
+          <div className={`fixed inset-0 z-[350] flex justify-center ${isPageMode ? 'items-stretch' : 'items-end'}`} onClick={isPageMode ? undefined : closeAllSheets}>
+            {!isPageMode && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              />
+            )}
 
             <motion.div
-              initial={{ y: '100%' }}
+              initial={isPageMode ? false : { y: '100%' }}
               animate={{ y: 0 }}
-              exit={{ y: '100%' }}
+              exit={isPageMode ? undefined : { y: '100%' }}
               transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
               onClick={(e) => e.stopPropagation()}
-              className="sheet-surface will-change-transform"
+              className={`${isPageMode ? 'page-surface' : 'sheet-surface'} will-change-transform`}
             >
-              <FocusTrap active={isOpen}>
+              <FocusTrap active={isOpen && !isPageMode}>
               <button
                 type="button"
-                onClick={closeDetails}
+                onClick={handleClose}
                 className="absolute right-4 top-3 z-30 rounded-lg border border-white/10 bg-brand-bg/80 p-3 text-brand-silver backdrop-blur-md transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
-                aria-label="Close details"
-                title="Close details"
+                aria-label={isPageMode ? 'Back to collection' : 'Close details'}
+                title={isPageMode ? 'Back to collection' : 'Close details'}
               >
-                <X size={20} />
+                {isPageMode ? <ArrowLeft size={20} /> : <X size={20} />}
               </button>
               <div className="relative z-10 flex-1 overflow-y-auto px-4 pb-[calc(7rem+env(safe-area-inset-bottom,0px))]">
                 <div className="flex gap-4 pb-4 pt-4">
@@ -745,7 +756,12 @@ export const DetailsSheet = () => {
               </AnimatePresence>
 
               <div className="absolute bottom-0 left-0 right-0 z-20 border-t border-white/[0.04] bg-brand-bg/75 backdrop-blur-xl px-4 py-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
-                <div className={clsx('grid items-center gap-2', inWatched ? 'grid-cols-[1fr_56px_56px_1fr]' : 'grid-cols-[1fr_56px_1fr]')}>
+                <div className={clsx(
+                  'grid items-center gap-2',
+                  isPageMode
+                    ? inWatched ? 'grid-cols-[1fr_56px_1fr]' : 'grid-cols-2'
+                    : inWatched ? 'grid-cols-[1fr_56px_56px_1fr]' : 'grid-cols-[1fr_56px_1fr]'
+                )}>
                   <motion.button
                     type="button"
                     data-details-action="watched"
@@ -786,15 +802,17 @@ export const DetailsSheet = () => {
                     </motion.button>
                   )}
 
+                  {!isPageMode && (
                   <button
                     type="button"
-                    onClick={closeDetails}
+                    onClick={handleClose}
                     className="flex h-11 w-full cursor-pointer items-center justify-center rounded-lg border border-white/10 text-brand-silver transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/10 hover:text-white"
                     aria-label="Close sheet"
                     title="Tap to close"
                   >
                     <ChevronDown size={18} />
                   </button>
+                  )}
 
                   <motion.button
                     type="button"

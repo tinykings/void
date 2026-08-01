@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { SearchResults } from '@/components/SearchResults';
-import { ArrowRight, LoaderCircle, Search as SearchIcon, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, LoaderCircle, Search as SearchIcon, X } from 'lucide-react';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 import { FocusTrap } from '@/components/FocusTrap';
 import logoPng from '../../public/logo.png';
@@ -13,6 +14,13 @@ import { useMediaSearch } from '@/hooks/useMediaSearch';
 
 export const SearchSheet = () => {
   const isOnline = useOnlineStatus();
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const isPageMode = pathname.endsWith('/search');
+  const initialQuery = isPageMode ? searchParams.get('q') || '' : '';
+  const initialSearchRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const {
     isSearchFocused,
     closeAllSheets,
@@ -21,7 +29,7 @@ export const SearchSheet = () => {
     watchlist,
     watched,
   } = useAppContext();
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
   const {
     clearSearch,
     displayedMedia,
@@ -39,14 +47,35 @@ export const SearchSheet = () => {
     : null;
 
   const closeSheet = () => {
+    if (isPageMode) {
+      closeAllSheets();
+      router.back();
+      return;
+    }
     if (isLibraryEmpty) return;
     closeAllSheets();
   };
+  const submitSearch = (value: string) => {
+    if (value.length < 2 || isSearching) return;
+    if (isPageMode) router.replace(`/search?q=${encodeURIComponent(value)}`, { scroll: false });
+    void runSearch(value);
+  };
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (searchTerm.length < 2 || isSearching) return;
-    void runSearch(searchTerm);
+    submitSearch(searchTerm);
   };
+
+  useEffect(() => {
+    if (!isPageMode || initialSearchRef.current || initialQuery.trim().length < 2) return;
+    initialSearchRef.current = true;
+    void runSearch(initialQuery.trim());
+  }, [initialQuery, isPageMode, runSearch]);
+
+  useEffect(() => {
+    if (isPageMode || !window.matchMedia('(min-width: 768px)').matches) return;
+    const timer = window.setTimeout(() => inputRef.current?.focus(), 160);
+    return () => window.clearTimeout(timer);
+  }, [isPageMode]);
   const searchControls = (
     <form className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3" onSubmit={handleSearchSubmit}>
       <img
@@ -58,15 +87,15 @@ export const SearchSheet = () => {
       <div className="relative min-w-0 flex-1">
         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-cyan" size={16} />
         <input
+          ref={inputRef}
           type="text"
           value={query}
-          autoFocus
           disabled={!isOnline}
           onChange={(e) => {
             setQuery(e.target.value);
           }}
           placeholder={isOnline ? 'Search movies, shows, games...' : 'Search unavailable offline'}
-          className="h-11 w-full rounded-lg border border-white/10 bg-brand-bg/90 py-2.5 pl-10 pr-12 text-sm font-medium text-white outline-none ring-1 ring-transparent placeholder:text-brand-silver/50 focus:border-brand-cyan/25 focus:ring-brand-cyan/30"
+          className="h-11 w-full rounded-lg border border-white/10 bg-brand-bg/90 py-2.5 pl-10 pr-12 text-base font-medium text-white outline-none ring-1 ring-transparent placeholder:text-brand-silver/50 focus:border-brand-cyan/25 focus:ring-brand-cyan/30 sm:text-sm"
         />
         <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
           <button
@@ -93,51 +122,54 @@ export const SearchSheet = () => {
       </button>
     </form>
   );
-  const topBarClassName = isLibraryEmpty
+  const topBarClassName = isLibraryEmpty && !isPageMode
     ? 'flex items-center justify-center gap-2 border-b border-white/5 bg-brand-bg/80 px-3 py-3 sm:px-4'
     : 'flex items-center gap-2 border-b border-white/5 bg-brand-bg/80 px-3 py-3 sm:px-4';
-  const searchWrapperClassName = isLibraryEmpty ? 'flex w-full max-w-2xl items-center' : 'flex w-full items-center';
+  const searchWrapperClassName = isLibraryEmpty && !isPageMode ? 'flex w-full max-w-2xl items-center' : 'flex w-full items-center';
 
   if (!isSearchFocused) return null;
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[340] flex items-end justify-center" onClick={closeSheet}>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        />
+      <div className={`fixed inset-0 z-[340] flex justify-center ${isPageMode ? 'items-stretch' : 'items-end'}`} onClick={closeSheet}>
+        {!isPageMode && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+          />
+        )}
 
         <motion.div
-          initial={{ y: '100%' }}
+          initial={isPageMode ? false : { y: '100%' }}
           animate={{ y: 0 }}
-          exit={{ y: '100%' }}
+          exit={isPageMode ? undefined : { y: '100%' }}
           transition={{ duration: 0.12, ease: 'easeOut' }}
           onClick={(e) => e.stopPropagation()}
-          className="sheet-surface will-change-transform"
-          role="dialog"
+          className={`${isPageMode ? 'page-surface' : 'sheet-surface search-surface'} will-change-transform`}
+          role={isPageMode ? undefined : 'dialog'}
           aria-label="Search"
-          aria-modal="true"
+          aria-modal={isPageMode ? undefined : 'true'}
         >
-          <FocusTrap active={isSearchFocused}>
+          <FocusTrap active={isSearchFocused && !isPageMode} autoFocus={false}>
           <div className={topBarClassName}>
             <div className={searchWrapperClassName}>
               {searchControls}
             </div>
-            {!isLibraryEmpty && (
+            {(!isLibraryEmpty || isPageMode) && (
               <button
                 onClick={closeSheet}
-                className="shrink-0 rounded-lg border border-white/10 p-3 text-brand-silver transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/10 hover:text-white"
-                title="Close search"
+                className="order-first shrink-0 rounded-lg border border-white/10 p-3 text-brand-silver transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/10 hover:text-white sm:order-last"
+                title={isPageMode ? 'Back to collection' : 'Close search'}
+                aria-label={isPageMode ? 'Back to collection' : 'Close search'}
               >
-                <X size={20} />
+                {isPageMode ? <ArrowLeft size={20} /> : <X size={20} />}
               </button>
             )}
           </div>
 
-          {isLibraryEmpty && (
+          {isLibraryEmpty && !isPageMode && (
             <p className="type-body px-4 pb-2 pt-4 text-center text-brand-silver/60">
               Search and add titles to your collection
             </p>
@@ -162,7 +194,7 @@ export const SearchSheet = () => {
             )}
           </div>
 
-          {!isLibraryEmpty && <SheetDragHandle onClose={closeSheet} />}
+          {!isLibraryEmpty && !isPageMode && <SheetDragHandle onClose={closeSheet} />}
           </FocusTrap>
         </motion.div>
 

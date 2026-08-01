@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useTransition, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { ActorSheet } from '@/components/ActorSheet';
@@ -11,8 +12,8 @@ import { SearchSheet } from '@/components/SearchSheet';
 import { sortMedia, sortByAddedDate } from '@/lib/sort';
 
 import { AlertCircle, Bookmark, Film, Gamepad2, Github, Heart, History, LayoutGrid, LoaderCircle, LogOut, Radio, Search, Settings, SlidersHorizontal, Tv, X } from 'lucide-react';
-import type { FilterType } from '@/lib/types';
-import { getMediaKey } from '@/lib/media';
+import type { FilterType, Media } from '@/lib/types';
+import { getDetailsHref, getMediaKey } from '@/lib/media';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
@@ -26,6 +27,7 @@ type LibraryMode = 'library' | 'watchlist';
 
 export const HomeView = () => {
   const isOnline = useOnlineStatus();
+  const router = useRouter();
   const {
     isLoaded, 
     apiKey,
@@ -151,6 +153,24 @@ export const HomeView = () => {
     if (activeLibraryMode === 'library') return 'Move movies, shows, and games to history after finishing them.';
     return 'Search for movies, shows, and games to add them to your playlist.';
   })();
+
+  const showDetails = useCallback((media: Media) => {
+    openDetails(media);
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      sessionStorage.setItem('void_details_media', JSON.stringify(media));
+      router.push(getDetailsHref(media));
+    }
+  }, [openDetails, router]);
+
+  const openSearch = () => {
+    setShowStreamView(false);
+    setShowTypeMenu(false);
+    if (window.matchMedia('(max-width: 767px)').matches) {
+      router.push('/search');
+      return;
+    }
+    setIsSearchFocused(true);
+  };
 
   const selectTypeFilter = (nextFilter: FilterType) => {
     startTransition(() => {
@@ -350,7 +370,7 @@ export const HomeView = () => {
               failureCount={streamFailureCount}
               groups={streamGroups}
               isLoading={isStreamLoading}
-              onSelect={openDetails}
+              onSelect={showDetails}
               playlistCount={streamablePlaylist.length}
             />
           ) : displayMedia.length > 0 ? (
@@ -581,13 +601,7 @@ export const HomeView = () => {
 
               <button
                 type="button"
-                onClick={() => {
-                  startTransition(() => {
-                    setShowStreamView(false);
-                    setIsSearchFocused(true);
-                  });
-                  setShowTypeMenu(false);
-                }}
+                onClick={openSearch}
                 className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-lg text-brand-silver hover:bg-brand-cyan/10 hover:text-white transition-all"
                 aria-label="Search"
                 title="Search"

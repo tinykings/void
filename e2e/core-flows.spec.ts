@@ -81,6 +81,26 @@ test('search opens details and keyboard shortcut uses history action', async ({ 
   await expect(page.getByRole('button', { name: 'In History' })).toBeVisible();
 });
 
+test('mobile search and details use routes without forcing keyboard focus', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await seedConnectedLibrary(page);
+  await mockTmdb(page);
+  await page.route('https://api.github.com/**', (route) => route.fulfill({ status: 503 }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+
+  await expect(page).toHaveURL(/\/search$/);
+  const search = page.getByPlaceholder('Search movies, shows, games...');
+  await expect(search).not.toBeFocused();
+  await search.fill('Test Movie');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.getByRole('button', { name: /Open details for Test Movie/ }).click();
+
+  await expect(page).toHaveURL(/\/details\?/);
+  await expect(page.getByRole('heading', { name: 'Test Movie' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Back to collection' })).toBeVisible();
+});
+
 test('connected library performs initial and manual Gist sync', async ({ page }) => {
   await seedConnectedLibrary(page);
   await mockTmdb(page);

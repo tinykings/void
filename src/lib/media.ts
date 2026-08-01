@@ -16,3 +16,14 @@ export const getImageSrc = (path: string | null, buildTmdbUrl: (path: string) =>
 };
 
 export const getMediaTitle = (media: Pick<Media, 'title' | 'name'>) => media.title || media.name || 'Unknown title';
+
+export const getDetailsHref = (media: Pick<Media, 'id' | 'media_type' | 'source' | 'title' | 'name'>) => {
+  const params = new URLSearchParams({
+    id: String(media.id),
+    type: media.media_type,
+    source: getMediaSource(media),
+    title: getMediaTitle(media),
+  });
+
+  return `/details?${params.toString()}`;
+};

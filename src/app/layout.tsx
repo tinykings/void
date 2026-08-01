@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import { OfflineGuard } from "@/components/OfflineGuard";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { MotionPreferences } from "@/components/MotionPreferences";
+import { PwaZoomGuard } from "@/components/PwaZoomGuard";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const utility = IBM_Plex_Mono({
@@ -47,8 +48,6 @@ export const metadata: Metadata = {
 export const viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: "#030712",
   viewportFit: "cover",
 };
@@ -61,6 +60,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} ${utility.variable} bg-brand-bg text-foreground min-h-screen flex flex-col transition-colors duration-300`}>
+        <PwaZoomGuard />
         <MotionPreferences>
           <AppProvider>
             <KeyboardShortcuts />

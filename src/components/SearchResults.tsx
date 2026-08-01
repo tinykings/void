@@ -23,7 +23,7 @@ export const SearchResults = ({ hasSubmittedSearch, isLoading, media }: SearchRe
     return (
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {media.map((item) => (
-          <MediaCard key={getMediaKey(item)} media={item} showReleaseBadge={false} />
+          <MediaCard key={getMediaKey(item)} media={item} showReleaseBadge={false} showCaption />
         ))}
       </div>
     );

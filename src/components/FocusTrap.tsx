@@ -4,7 +4,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 
 const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export function FocusTrap({ children, active }: { children: ReactNode; active: boolean }) {
+export function FocusTrap({ children, active, autoFocus = true }: { children: ReactNode; active: boolean; autoFocus?: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
@@ -17,7 +17,7 @@ export function FocusTrap({ children, active }: { children: ReactNode; active: b
     if (!container) return;
 
     const focusable = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-    if (focusable.length > 0) {
+    if (autoFocus && focusable.length > 0) {
       focusable[0].focus();
     }
 
@@ -47,7 +47,7 @@ export function FocusTrap({ children, active }: { children: ReactNode; active: b
         previousFocusRef.current.focus();
       }
     };
-  }, [active]);
+  }, [active, autoFocus]);
 
   return <div ref={containerRef} className="contents">{children}</div>;
 }

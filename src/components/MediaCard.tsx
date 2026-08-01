@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useRef, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Media } from '@/lib/types';
 import { getImageUrl } from '@/lib/tmdb';
-import { getImageSrc, getMediaKey } from '@/lib/media';
+import { getDetailsHref, getImageSrc, getMediaKey } from '@/lib/media';
 import { useAppContext } from '@/context/AppContext';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
@@ -15,6 +16,7 @@ const MOVIE_PRIORITY_WINDOW_DAYS = 30;
 interface MediaCardProps {
   media: Media;
   showReleaseBadge?: boolean;
+  showCaption?: boolean;
   onClick?: () => void;
 }
 
@@ -67,7 +69,8 @@ const PosterImage = ({ candidates, title, fit = 'cover' }: PosterImageProps) => 
   );
 };
 
-export const MediaCard = React.memo(({ media, showReleaseBadge = true, onClick }: MediaCardProps) => {
+export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCaption = false, onClick }: MediaCardProps) => {
+  const router = useRouter();
   const {
     sort,
     isSearchFocused,
@@ -159,10 +162,16 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, onClick }
       <div ref={cardRef} className="relative group bg-brand-bg rounded-xl overflow-hidden transition-colors duration-300">
         <button
           type="button"
-          className="relative block aspect-[2/3] shrink-0 cursor-pointer overflow-hidden bg-brand-bg/50 blueprint-border"
+          className="relative block aspect-[2/3] w-full shrink-0 cursor-pointer overflow-hidden bg-brand-bg/50 blueprint-border"
+          aria-label={`Open details for ${title}`}
           onClick={() => {
             openDetails(media);
             onClick?.();
+
+            if (window.matchMedia('(max-width: 767px)').matches) {
+              sessionStorage.setItem('void_details_media', JSON.stringify(media));
+              router.push(getDetailsHref(media));
+            }
           }}
         >
           {imageCandidates.length > 0 ? (
@@ -212,6 +221,19 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, onClick }
           ) : null}
 
         </button>
+
+        {showCaption && (
+          <div className="min-w-0 px-1 pb-2 pt-2">
+            <p className="type-action truncate text-white">{title}</p>
+            <p className="type-readout mt-1 flex items-center gap-1.5 text-brand-silver">
+              <span>{year || 'Year unknown'}</span>
+              <span aria-hidden="true">·</span>
+              <span>{isGame ? 'Game' : media.media_type === 'tv' ? 'Show' : 'Movie'}</span>
+              {inWatched && <span className="ml-auto text-brand-cyan">History</span>}
+              {!inWatched && inWatchlist && <span className="ml-auto text-brand-cyan">Playlist</span>}
+            </p>
+          </div>
+        )}
       </div>
 
       <ConfirmationModal

@@ -51,6 +51,11 @@ html, body {
   padding: 0;
 }
 
+html[data-pwa],
+html[data-pwa] body {
+  touch-action: pan-x pan-y;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
@@ -121,6 +126,32 @@ summary {
 
 .sheet-surface-compact {
   height: min(70dvh, 32rem);
+}
+
+/* Route-backed task surface: page on phones, restrained canvas on wide screens. */
+.page-surface {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--background);
+}
+
+@media (max-width: 767px) {
+  .search-surface {
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+}
+
+@media (min-width: 768px) {
+  .page-surface {
+    max-width: var(--sheet-width);
+    border-inline: 1px solid var(--blueprint);
+  }
 }
 
 /* Embossed edge — active raised surfaces only. */
