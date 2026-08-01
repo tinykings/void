@@ -9,7 +9,7 @@ import { rememberRouteParent, rememberScrollPosition } from '@/lib/clientNavigat
 import { useAppContext } from '@/context/AppContext';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
-import { Bookmark, Check, Gamepad2 } from 'lucide-react';
+import { Bookmark, Check, Gamepad2, Heart } from 'lucide-react';
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 const MOVIE_PRIORITY_WINDOW_DAYS = 30;
@@ -77,6 +77,7 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
     isSearchFocused,
     watchlistIds,
     watchedIds,
+    watchedMap,
     openDetails,
   } = useAppContext();
   
@@ -90,6 +91,7 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
   const mediaKey = getMediaKey(media);
   const inWatchlist = watchlistIds.has(mediaKey);
   const inWatched = watchedIds.has(mediaKey);
+  const isFavorite = Boolean(media.isFavorite || watchedMap.get(mediaKey)?.isFavorite);
 
   const nowTime = useMemo(() => {
     const now = new Date();
@@ -164,7 +166,7 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
         <button
           type="button"
           className="relative block aspect-[2/3] w-full shrink-0 cursor-pointer overflow-hidden bg-brand-bg/50 blueprint-border"
-          aria-label={`Open details for ${title}`}
+          aria-label={`Open details for ${title}${isFavorite ? ', favorite' : ''}`}
           onClick={() => {
             openDetails(media);
             onClick?.();
@@ -186,11 +188,22 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
             </div>
           )}
 
-          {shouldShowReleaseBadge && daysUntilRelease !== null && (
-            <div className="absolute top-2 left-2 z-10">
-              <div className="type-micro rounded-full border border-white/10 bg-brand-bg/90 px-2 py-0.5 text-brand-cyan backdrop-blur-md">
-                {daysUntilRelease === 'now' ? 'now' : `${daysUntilRelease} ${daysUntilRelease === 1 ? 'day' : 'days'}`}
-              </div>
+          {(isFavorite || (shouldShowReleaseBadge && daysUntilRelease !== null)) && (
+            <div className="absolute left-2 top-2 z-10 flex flex-col items-start gap-1.5">
+              {isFavorite && (
+                <div
+                  aria-hidden="true"
+                  className="flex h-7 w-7 items-center justify-center rounded-full border border-brand-cyan/30 bg-brand-bg/85 text-brand-cyan shadow-[0_2px_10px_rgba(0,0,0,0.35)] backdrop-blur-md"
+                >
+                  <Heart size={14} className="fill-current" strokeWidth={2.5} />
+                </div>
+              )}
+
+              {shouldShowReleaseBadge && daysUntilRelease !== null && (
+                <div className="type-micro rounded-full border border-white/10 bg-brand-bg/90 px-2 py-0.5 text-brand-cyan backdrop-blur-md">
+                  {daysUntilRelease === 'now' ? 'now' : `${daysUntilRelease} ${daysUntilRelease === 1 ? 'day' : 'days'}`}
+                </div>
+              )}
             </div>
           )}
 
