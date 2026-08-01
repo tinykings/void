@@ -6,9 +6,10 @@ type SearchResultsProps = {
   hasSubmittedSearch: boolean;
   isLoading: boolean;
   media: Media[];
+  query: string;
 };
 
-export const SearchResults = ({ hasSubmittedSearch, isLoading, media }: SearchResultsProps) => {
+export const SearchResults = ({ hasSubmittedSearch, isLoading, media, query }: SearchResultsProps) => {
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
@@ -30,8 +31,13 @@ export const SearchResults = ({ hasSubmittedSearch, isLoading, media }: SearchRe
   }
 
   return (
-    <p className="py-16 text-center text-sm text-brand-silver">
-      {hasSubmittedSearch ? 'Try a different search term.' : 'No titles to show.'}
-    </p>
+    <div className="rounded-xl border border-dashed border-white/10 px-5 py-14 text-center">
+      <p className="type-title text-white">
+        {hasSubmittedSearch ? `No matches for “${query}”` : 'Nothing trending right now'}
+      </p>
+      <p className="mt-2 text-sm leading-relaxed text-brand-silver">
+        {hasSubmittedSearch ? 'Check spelling, try a shorter title, or change the media filter.' : 'Check your connection and try again.'}
+      </p>
+    </div>
   );
 };

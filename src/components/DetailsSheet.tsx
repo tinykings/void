@@ -6,7 +6,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getImageUrl, getSeasonDetails } from '@/lib/tmdb';
 import { formatGamePrice, getSteamAppId } from '@/lib/ggDeals';
-import { getImageSrc, getMediaKey, getMediaSource, getMediaTitle } from '@/lib/media';
+import { getImageSrc, getMediaKey, getMediaSource, getMediaTitle, getPersonHref } from '@/lib/media';
+import { backOrHome, rememberRouteParent } from '@/lib/clientNavigation';
 import type { SeasonDetails, Video } from '@/lib/types';
 import { ArrowLeft, Bookmark, ChevronDown, Eye, Heart, Play, X } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -24,7 +25,7 @@ export const DetailsSheet = () => {
   const isOnline = useOnlineStatus();
   const pathname = usePathname();
   const router = useRouter();
-  const isPageMode = pathname.endsWith('/details');
+  const isPageMode = pathname.replace(/\/$/, '').endsWith('/details');
   const {
     activeDetailsMedia,
     closeDetails,
@@ -42,6 +43,7 @@ export const DetailsSheet = () => {
 
   const [activeImage, setActiveImage] = useState<{ src: string; alt: string; mediaKey: string } | null>(null);
   const [activeTrailer, setActiveTrailer] = useState<{ video: Video; mediaKey: string } | null>(null);
+  const [overviewExpansion, setOverviewExpansion] = useState<{ key: string; expanded: boolean }>({ key: '', expanded: false });
   const [actionPulse, setActionPulse] = useState<{ key: string; action: 'watchlist' | 'watched' | 'favorite' } | null>(null);
   const [seasonSelection, setSeasonSelection] = useState<{ mediaKey: string; number: number } | null>(null);
   const [seasonData, setSeasonData] = useState<{ key: string; data: SeasonDetails } | null>(null);
@@ -80,6 +82,8 @@ export const DetailsSheet = () => {
     if (!selected) return '';
     return getMediaKey(selected);
   }, [selected]);
+  const title = selected ? getMediaTitle(selected) : 'Details';
+  const isOverviewExpanded = overviewExpansion.key === mediaKey && overviewExpansion.expanded;
   const availableSeasons = useMemo(
     () => selected?.media_type === 'tv'
       ? [...(selected.seasons || [])]
@@ -164,6 +168,13 @@ export const DetailsSheet = () => {
   }, [apiKey, isOnline, mediaKey, seasonData?.key, seasonRetryCount, selected, selectedSeasonNumber]);
 
   useEffect(() => {
+    if (!isPageMode || !activeDetailsMedia) return;
+    const previousTitle = document.title;
+    document.title = `${title} — Void`;
+    return () => { document.title = previousTitle; };
+  }, [activeDetailsMedia, isPageMode, title]);
+
+  useEffect(() => {
     if (!activeDetailsMedia) return;
     if ('overflow' in document.body.style) {
       const previous = document.body.style.overflow;
@@ -178,7 +189,6 @@ export const DetailsSheet = () => {
 
   if (!isOpen || !selected) return null;
 
-  const title = selected.title || selected.name || 'Unknown';
   const isGame = selected.media_type === 'game';
   const formattedGamePrice = gamePrice ? formatGamePrice(gamePrice) : '';
   const source = getMediaSource(selected);
@@ -244,7 +254,7 @@ export const DetailsSheet = () => {
 
   const handleClose = () => {
     closeDetails();
-    if (isPageMode) router.back();
+    if (isPageMode) backOrHome(router, '/details');
   };
 
   const handleWatchlistToggle = () => {
@@ -285,6 +295,15 @@ export const DetailsSheet = () => {
     void runAction('watched', () => toggleWatched(selected));
   };
 
+  const handleOpenActor = (member: typeof castItems[number]) => {
+    openActor(member);
+    if (isPageMode && window.matchMedia('(max-width: 767px)').matches) {
+      sessionStorage.setItem('void_person', JSON.stringify(member));
+      rememberRouteParent('/person');
+      router.push(getPersonHref(member));
+    }
+  };
+
   const handleFavoriteToggle = () => {
     if (!inWatched) return;
     void runAction('favorite' as 'watchlist' | 'watched', () => toggleFavorite(selected));
@@ -316,7 +335,10 @@ export const DetailsSheet = () => {
               <button
                 type="button"
                 onClick={handleClose}
-                className="absolute right-4 top-3 z-30 rounded-lg border border-white/10 bg-brand-bg/80 p-3 text-brand-silver backdrop-blur-md transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
+                className={clsx(
+                  'absolute right-4 z-30 rounded-lg border border-white/10 bg-brand-bg/80 p-3 text-brand-silver backdrop-blur-md transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60',
+                  isPageMode ? 'top-[calc(env(safe-area-inset-top,0px)+0.75rem)]' : 'top-3',
+                )}
                 aria-label={isPageMode ? 'Back to collection' : 'Close details'}
                 title={isPageMode ? 'Back to collection' : 'Close details'}
               >
@@ -335,9 +357,11 @@ export const DetailsSheet = () => {
                   )}
                   <div className="min-w-0 flex-1 space-y-3">
                     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 pr-12">
-                      <h2 className="type-display text-white">
-                        {title}
-                      </h2>
+                      {isPageMode ? (
+                        <h1 className="type-display text-white">{title}</h1>
+                      ) : (
+                        <h2 className="type-display text-white">{title}</h2>
+                      )}
                       {(episodeLabel || movieReleaseLabel) && (
                         <span className="type-label text-brand-cyan">
                           {episodeLabel || movieReleaseLabel}
@@ -381,9 +405,21 @@ export const DetailsSheet = () => {
                       ))}
                     </div>
 
-                    <p className="text-sm leading-relaxed text-white/90 line-clamp-6">
-                      {selected.overview || 'Overview unavailable.'}
-                    </p>
+                    <div>
+                      <p className={clsx('text-sm leading-relaxed text-white/90', !isOverviewExpanded && 'line-clamp-6')}>
+                        {selected.overview || 'Overview unavailable.'}
+                      </p>
+                      {(selected.overview?.length || 0) > 320 && (
+                        <button
+                          type="button"
+                          onClick={() => setOverviewExpansion({ key: mediaKey, expanded: !isOverviewExpanded })}
+                          className="type-action mt-2 min-h-11 text-brand-cyan hover:text-white"
+                          aria-expanded={isOverviewExpanded}
+                        >
+                          {isOverviewExpanded ? 'Less' : 'More'}
+                        </button>
+                      )}
+                    </div>
                     {isGame && selected.platforms && selected.platforms.length > 0 && (
                       <p className="text-xs text-brand-silver">
                         {selected.platforms.slice(0, 8).join(' · ')}
@@ -413,6 +449,17 @@ export const DetailsSheet = () => {
                   )}
                 </div>
               </div>
+
+              {isPageMode && (
+                <nav className="sticky top-0 z-20 -mx-4 mb-4 hidden gap-1 overflow-x-auto border-y border-white/10 bg-brand-bg/90 px-4 py-2 backdrop-blur-xl md:flex" aria-label="Details sections">
+                  <a href="#overview" className="type-action flex min-h-11 shrink-0 items-center rounded-lg px-3 text-brand-silver hover:bg-white/5 hover:text-white">Overview</a>
+                  {(detailTrailers.length > 0 || detailImages.length > 0) && <a href="#media" className="type-action flex min-h-11 shrink-0 items-center rounded-lg px-3 text-brand-silver hover:bg-white/5 hover:text-white">Media</a>}
+                  {selected.media_type === 'tv' && <a href="#episodes" className="type-action flex min-h-11 shrink-0 items-center rounded-lg px-3 text-brand-silver hover:bg-white/5 hover:text-white">Episodes</a>}
+                  {!isGame && <a href="#cast" className="type-action flex min-h-11 shrink-0 items-center rounded-lg px-3 text-brand-silver hover:bg-white/5 hover:text-white">Cast</a>}
+                </nav>
+              )}
+
+              <span id="overview" className="sr-only">Overview</span>
 
               {isGame && (gameTimeItems.length > 0 || isGamePriceLoading || (gamePrice?.lowestCurrent && formattedGamePrice) || gamePriceError) && (
                 <section aria-labelledby="game-metrics-heading" className="space-y-3 border-t border-white/10 pt-4">
@@ -475,7 +522,7 @@ export const DetailsSheet = () => {
               )}
 
               {(detailTrailers.length > 0 || detailImages.length > 0) && (
-                <div className="space-y-4 border-t border-white/10 pt-4">
+                <div id="media" className="scroll-mt-16 space-y-4 border-t border-white/10 pt-4">
                   {detailTrailers.length > 0 && (
                     <div>
                       <p className="type-label mb-2 text-brand-silver">Trailers</p>
@@ -541,7 +588,7 @@ export const DetailsSheet = () => {
                   {!isGame && (
                     <>
                     {selected.media_type === 'tv' && (
-                      <section aria-labelledby="episodes-heading" className="space-y-3 border-t border-white/10 pt-4">
+                      <section id="episodes" aria-labelledby="episodes-heading" className="scroll-mt-16 space-y-3 border-t border-white/10 pt-4">
                         <div className="flex items-center justify-between gap-3">
                           <h3 id="episodes-heading" className="type-label text-brand-silver">
                             {totalSeasons > 0 || totalEpisodes > 0
@@ -626,7 +673,7 @@ export const DetailsSheet = () => {
                     )}
 
                     {/* Cast */}
-                    <section aria-labelledby="cast-heading" className="space-y-3 border-t border-white/10 pt-4">
+                    <section id="cast" aria-labelledby="cast-heading" className="scroll-mt-16 space-y-3 border-t border-white/10 pt-4">
                       <h3 id="cast-heading" className="type-label text-brand-silver">Cast</h3>
                       {sectionErrors.has(`${mediaKey}:cast`) ? (
                         <div className="flex flex-col items-center gap-3 py-10">
@@ -651,12 +698,12 @@ export const DetailsSheet = () => {
                             <button
                               key={`${member.id}-${member.character}`}
                               type="button"
-                              onClick={() => openActor(member)}
+                              onClick={() => handleOpenActor(member)}
                               className="group min-w-0 cursor-pointer overflow-hidden rounded-xl bg-brand-bg/80 text-left blueprint-border transition-colors duration-200 hover:border-brand-cyan/30 hover:bg-brand-bg"
                             >
                               <div className="aspect-square bg-white/5">
                                 {member.profile_path ? (
-                                  <img src={getImageUrl(member.profile_path, 'w342')} alt={member.name} className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]" decoding="async" loading="lazy" />
+                                  <img src={getImageUrl(member.profile_path, 'w185')} alt={member.name} className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]" decoding="async" loading="eager" />
                                 ) : null}
                               </div>
                               <div className="p-2">
@@ -755,7 +802,7 @@ export const DetailsSheet = () => {
                 )}
               </AnimatePresence>
 
-              <div className="absolute bottom-0 left-0 right-0 z-20 border-t border-white/[0.04] bg-brand-bg/75 backdrop-blur-xl px-4 py-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
+              <div className="absolute bottom-0 left-0 right-0 z-20 border-t border-white/[0.04] bg-brand-bg/75 py-3 pl-[calc(env(safe-area-inset-left,0px)+1rem)] pr-[calc(env(safe-area-inset-right,0px)+1rem)] pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] backdrop-blur-xl">
                 <div className={clsx(
                   'grid items-center gap-2',
                   isPageMode
@@ -779,7 +826,7 @@ export const DetailsSheet = () => {
                     )}
                   >
                     <Eye size={14} />
-                    History
+                    {inWatched ? 'In history' : 'Add to history'}
                   </motion.button>
 
                   {inWatched && (
@@ -831,7 +878,7 @@ export const DetailsSheet = () => {
                     )}
                   >
                     <Bookmark size={14} />
-                    Playlist
+                    {inWatchlist ? 'In playlist' : 'Add to playlist'}
                   </motion.button>
                 </div>
               </div>

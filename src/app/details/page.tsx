@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo } from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ActorSheet } from '@/components/ActorSheet';
 import { DetailsSheet } from '@/components/DetailsSheet';
@@ -11,6 +11,25 @@ import type { Media, MediaSource, MediaType } from '@/lib/types';
 
 const mediaTypes = new Set<MediaType>(['movie', 'tv', 'game']);
 const mediaSources = new Set<MediaSource>(['tmdb', 'igdb', 'rawg', 'steam']);
+
+function DetailsPageSkeleton() {
+  return (
+    <div className="page-surface px-4 pb-24 pt-[calc(env(safe-area-inset-top,0px)+1rem)]" aria-label="Loading details">
+      <div className="flex gap-4">
+        <div className="h-36 w-24 shrink-0 rounded-xl skeleton-shimmer animate-shimmer" />
+        <div className="flex-1 space-y-3 pt-1">
+          <div className="h-7 w-4/5 rounded skeleton-shimmer animate-shimmer" />
+          <div className="h-5 w-2/3 rounded skeleton-shimmer animate-shimmer" />
+          <div className="h-4 w-full rounded skeleton-shimmer animate-shimmer" />
+          <div className="h-4 w-5/6 rounded skeleton-shimmer animate-shimmer" />
+        </div>
+      </div>
+      <div className="mt-8 grid grid-cols-3 gap-2">
+        {[0, 1, 2].map((item) => <div key={item} className="aspect-video rounded-lg skeleton-shimmer animate-shimmer" />)}
+      </div>
+    </div>
+  );
+}
 
 function DetailsPageContent() {
   const router = useRouter();
@@ -26,6 +45,11 @@ function DetailsPageContent() {
   } = useAppContext();
   const requiresGithubConnection = process.env.NODE_ENV !== 'development'
     || process.env.NEXT_PUBLIC_REQUIRE_GITHUB_IN_DEV === 'true';
+  const closeAllSheetsRef = useRef(closeAllSheets);
+
+  useEffect(() => {
+    closeAllSheetsRef.current = closeAllSheets;
+  }, [closeAllSheets]);
 
   const requestedMedia = useMemo<Media | null>(() => {
     const id = Number(searchParams.get('id'));
@@ -70,9 +94,9 @@ function DetailsPageContent() {
     }
   }, [activeDetailsMedia, isLoaded, openDetails, requestedMedia, router]);
 
-  useEffect(() => () => closeAllSheets(), [closeAllSheets]);
+  useEffect(() => () => closeAllSheetsRef.current(), []);
 
-  if (!isLoaded || !requestedMedia) return null;
+  if (!isLoaded || !requestedMedia || !activeDetailsMedia) return <DetailsPageSkeleton />;
   if (requiresGithubConnection && !isGithubConnected) return <GithubConnectGate />;
 
   return (
@@ -85,7 +109,7 @@ function DetailsPageContent() {
 
 export default function DetailsPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<DetailsPageSkeleton />}>
       <DetailsPageContent />
     </Suspense>
   );

@@ -1,4 +1,4 @@
-import { Media, MediaSource } from './types';
+import { CastMember, Media, MediaSource } from './types';
 
 export const getMediaSource = (media: Pick<Media, 'media_type' | 'source'>): MediaSource => {
   if (media.source) return media.source;
@@ -16,6 +16,11 @@ export const getImageSrc = (path: string | null, buildTmdbUrl: (path: string) =>
 };
 
 export const getMediaTitle = (media: Pick<Media, 'title' | 'name'>) => media.title || media.name || 'Unknown title';
+
+export const getPersonHref = (person: Pick<CastMember, 'id' | 'name'>) => {
+  const params = new URLSearchParams({ id: String(person.id), name: person.name });
+  return `/person?${params.toString()}`;
+};
 
 export const getDetailsHref = (media: Pick<Media, 'id' | 'media_type' | 'source' | 'title' | 'name'>) => {
   const params = new URLSearchParams({

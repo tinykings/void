@@ -1,17 +1,23 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getImageUrl, getPersonCredits, getPersonDetails } from '@/lib/tmdb';
+import { getDetailsHref } from '@/lib/media';
+import { backOrHome, rememberRouteParent } from '@/lib/clientNavigation';
 import { Media, PersonDetails } from '@/lib/types';
-import { X, User } from 'lucide-react';
+import { ArrowLeft, X, User } from 'lucide-react';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 import { FocusTrap } from '@/components/FocusTrap';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 export const ActorSheet = () => {
   const isOnline = useOnlineStatus();
+  const pathname = usePathname();
+  const router = useRouter();
+  const isPageMode = pathname.replace(/\/$/, '').endsWith('/person');
   const { activeActorMedia, closeActor, closeAllSheets, apiKey, openDetails } = useAppContext();
   const [actorCredits, setActorCredits] = useState<{ actorId: number; credits: Media[] } | null>(null);
   const [personDetails, setPersonDetails] = useState<{ actorId: number; details: PersonDetails } | null>(null);
@@ -115,6 +121,13 @@ export const ActorSheet = () => {
   }, [actor, apiKey, isOnline]);
 
   useEffect(() => {
+    if (!isPageMode || !actor) return;
+    const previousTitle = document.title;
+    document.title = `${actorName} — Void`;
+    return () => { document.title = previousTitle; };
+  }, [actor, actorName, isPageMode]);
+
+  useEffect(() => {
     if (!actor) return;
     if ('overflow' in document.body.style) {
       const previous = document.body.style.overflow;
@@ -127,37 +140,57 @@ export const ActorSheet = () => {
 
   if (!actor) return null;
 
+  const handleClose = () => {
+    closeActor();
+    if (isPageMode) backOrHome(router, '/person');
+  };
+
+  const handleMediaOpen = (media: Media) => {
+    openDetails(media);
+    if (isPageMode) {
+      sessionStorage.setItem('void_details_media', JSON.stringify(media));
+      rememberRouteParent('/details');
+      router.push(getDetailsHref(media));
+    }
+  };
+
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[345] flex items-end justify-center" onClick={closeAllSheets}>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-        />
+      <div className={`fixed inset-0 z-[345] flex justify-center ${isPageMode ? 'items-stretch' : 'items-end'}`} onClick={isPageMode ? undefined : closeAllSheets}>
+        {!isPageMode && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+          />
+        )}
 
         <motion.div
-          initial={{ y: '100%' }}
+          initial={isPageMode ? false : { y: '100%' }}
           animate={{ y: 0 }}
-          exit={{ y: '100%' }}
+          exit={isPageMode ? undefined : { y: '100%' }}
           transition={{ duration: 0.12, ease: 'easeOut' }}
           onClick={(e) => e.stopPropagation()}
-          className="sheet-surface will-change-transform"
+          className={`${isPageMode ? 'page-surface' : 'sheet-surface'} will-change-transform`}
         >
-          <FocusTrap active={!!actor}>
+          <FocusTrap active={!!actor && !isPageMode}>
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-brand-bg/80">
             <div className="min-w-0">
-              <h2 className="type-title min-w-0 truncate text-white">
-                {actorName}
-              </h2>
+              {isPageMode ? (
+                <h1 className="type-title min-w-0 truncate text-white">{actorName}</h1>
+              ) : (
+                <h2 className="type-title min-w-0 truncate text-white">{actorName}</h2>
+              )}
             </div>
 
             <button
-              onClick={closeActor}
+              onClick={handleClose}
+              aria-label={isPageMode ? 'Back to details' : 'Close person details'}
+              title={isPageMode ? 'Back to details' : 'Close person details'}
               className="rounded-lg border border-white/10 p-3 text-brand-silver transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/10 hover:text-white"
             >
-              <X size={20} />
+              {isPageMode ? <ArrowLeft size={20} /> : <X size={20} />}
             </button>
           </div>
 
@@ -208,7 +241,7 @@ export const ActorSheet = () => {
                     <button
                       key={`${media.media_type}-${media.id}`}
                       type="button"
-                      onClick={() => openDetails(media)}
+                      onClick={() => handleMediaOpen(media)}
                       className="group aspect-[2/3] rounded-xl overflow-hidden blueprint-border bg-brand-bg/50 text-left"
                     >
                       {media.poster_path || media.backdrop_path ? (
@@ -230,7 +263,7 @@ export const ActorSheet = () => {
             </div>
           </div>
 
-          <SheetDragHandle onClose={closeActor} />
+          {!isPageMode && <SheetDragHandle onClose={closeActor} />}
           </FocusTrap>
         </motion.div>
       </div>

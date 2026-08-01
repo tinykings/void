@@ -14,6 +14,7 @@ import { sortMedia, sortByAddedDate } from '@/lib/sort';
 import { AlertCircle, Bookmark, Film, Gamepad2, Github, Heart, History, LayoutGrid, LoaderCircle, LogOut, Radio, Search, Settings, SlidersHorizontal, Tv, X } from 'lucide-react';
 import type { FilterType, Media } from '@/lib/types';
 import { getDetailsHref, getMediaKey } from '@/lib/media';
+import { rememberRouteParent, rememberScrollPosition, restoreScrollPosition } from '@/lib/clientNavigation';
 import { clsx } from 'clsx';
 import { toast } from 'sonner';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
@@ -158,6 +159,8 @@ export const HomeView = () => {
     openDetails(media);
     if (window.matchMedia('(max-width: 767px)').matches) {
       sessionStorage.setItem('void_details_media', JSON.stringify(media));
+      rememberScrollPosition(`${location.pathname}${location.search}`, window.scrollY);
+      rememberRouteParent('/details');
       router.push(getDetailsHref(media));
     }
   }, [openDetails, router]);
@@ -166,6 +169,8 @@ export const HomeView = () => {
     setShowStreamView(false);
     setShowTypeMenu(false);
     if (window.matchMedia('(max-width: 767px)').matches) {
+      rememberScrollPosition(`${location.pathname}${location.search}`, window.scrollY);
+      rememberRouteParent('/search');
       router.push('/search');
       return;
     }
@@ -334,6 +339,9 @@ export const HomeView = () => {
     if ('scrollRestoration' in history) {
       history.scrollRestoration = 'manual';
     }
+
+    const savedScroll = restoreScrollPosition(`${location.pathname}${location.search}`);
+    if (savedScroll !== null) requestAnimationFrame(() => window.scrollTo({ top: savedScroll }));
 
     // Set default theme color for Home
     const meta = document.querySelector('meta[name="theme-color"]');

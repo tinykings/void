@@ -19,7 +19,7 @@ const mockTmdb = async (page: Page) => {
 
     if (path.includes('/search/multi') || path.includes('/trending/')) body = { results: [movie] };
     else if (path === '/3/movie/101') body = { ...movie, videos: { results: [] } };
-    else if (path.endsWith('/credits')) body = { id: 101, cast: [] };
+    else if (path.endsWith('/credits')) body = { id: 101, cast: [{ id: 501, name: 'Test Actor', character: 'Lead', profile_path: null, order: 0 }] };
     else if (path.endsWith('/images')) body = { id: 101, backdrops: [] };
     else if (path.endsWith('/watch/providers')) body = { results: {} };
     else if (path.endsWith('/release_dates')) body = { id: 101, results: [] };
@@ -89,16 +89,17 @@ test('mobile search and details use routes without forcing keyboard focus', asyn
   await page.goto('/');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
 
-  await expect(page).toHaveURL(/\/search$/);
+  await expect(page).toHaveURL(/\/search\/?$/);
   const search = page.getByPlaceholder('Search movies, shows, games...');
   await expect(search).not.toBeFocused();
   await search.fill('Test Movie');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await page.getByRole('button', { name: /Open details for Test Movie/ }).click();
 
-  await expect(page).toHaveURL(/\/details\?/);
+  await expect(page).toHaveURL(/\/details\/?\?/);
   await expect(page.getByRole('heading', { name: 'Test Movie' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Back to collection' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Test Actor/ })).toBeVisible();
 });
 
 test('connected library performs initial and manual Gist sync', async ({ page }) => {
@@ -160,6 +161,11 @@ test('cached app shell starts offline and keeps local UI available', async ({ pa
   });
   await context.setOffline(true);
   await page.reload();
-
   await expect(page.getByText('Test Movie')).toBeVisible();
+
+  await page.goto('/search');
+  await expect(page.getByRole('textbox', { name: /Search movies, shows, games/ })).toBeVisible();
+
+  await page.goto('/details?id=101&type=movie&source=tmdb&title=Test+Movie');
+  await expect(page.getByRole('heading', { name: 'Test Movie', exact: true })).toBeVisible();
 });

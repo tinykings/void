@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Media } from '@/lib/types';
 import { getImageUrl } from '@/lib/tmdb';
 import { getDetailsHref, getImageSrc, getMediaKey } from '@/lib/media';
+import { rememberRouteParent, rememberScrollPosition } from '@/lib/clientNavigation';
 import { useAppContext } from '@/context/AppContext';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
@@ -170,6 +171,9 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
 
             if (window.matchMedia('(max-width: 767px)').matches) {
               sessionStorage.setItem('void_details_media', JSON.stringify(media));
+              const scrollContainer = cardRef.current?.closest<HTMLElement>('[data-route-scroll]');
+              rememberScrollPosition(`${location.pathname}${location.search}`, scrollContainer?.scrollTop || window.scrollY);
+              rememberRouteParent('/details');
               router.push(getDetailsHref(media));
             }
           }}

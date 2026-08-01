@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
@@ -11,18 +11,23 @@ import { FocusTrap } from '@/components/FocusTrap';
 import logoPng from '../../public/logo.png';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useMediaSearch } from '@/hooks/useMediaSearch';
+import { backOrHome, rememberScrollPosition, restoreScrollPosition } from '@/lib/clientNavigation';
+import type { MediaType } from '@/lib/types';
 
 export const SearchSheet = () => {
   const isOnline = useOnlineStatus();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isPageMode = pathname.endsWith('/search');
+  const isPageMode = pathname.replace(/\/$/, '').endsWith('/search');
   const initialQuery = isPageMode ? searchParams.get('q') || '' : '';
-  const initialSearchRef = useRef(false);
+  const lastSearchRef = useRef('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
   const {
     isSearchFocused,
+    activeDetailsMedia,
+    activeActorMedia,
     closeAllSheets,
     apiKey,
     isLoaded,
@@ -30,6 +35,9 @@ export const SearchSheet = () => {
     watched,
   } = useAppContext();
   const [query, setQuery] = useState(initialQuery);
+  const [submittedQuery, setSubmittedQuery] = useState(initialQuery);
+  const [mediaFilter, setMediaFilter] = useState<'all' | MediaType>('all');
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const {
     clearSearch,
     displayedMedia,
@@ -41,6 +49,10 @@ export const SearchSheet = () => {
   } = useMediaSearch({ apiKey, enabled: isSearchFocused, isLoaded, isOnline });
 
   const searchTerm = query.trim();
+  const filteredMedia = useMemo(
+    () => mediaFilter === 'all' ? displayedMedia : displayedMedia.filter((item) => item.media_type === mediaFilter),
+    [displayedMedia, mediaFilter],
+  );
   const isLibraryEmpty = watchlist.length === 0 && watched.length === 0;
   const displayError = isSearchFocused
     ? isOnline ? error : 'Search is unavailable offline. Your saved collection remains available.'
@@ -49,7 +61,7 @@ export const SearchSheet = () => {
   const closeSheet = () => {
     if (isPageMode) {
       closeAllSheets();
-      router.back();
+      backOrHome(router, '/search');
       return;
     }
     if (isLibraryEmpty) return;
@@ -57,7 +69,20 @@ export const SearchSheet = () => {
   };
   const submitSearch = (value: string) => {
     if (value.length < 2 || isSearching) return;
-    if (isPageMode) router.replace(`/search?q=${encodeURIComponent(value)}`, { scroll: false });
+    setSubmittedQuery(value);
+    const recent = [value, ...recentSearches.filter((item) => item.toLowerCase() !== value.toLowerCase())].slice(0, 5);
+    setRecentSearches(recent);
+    localStorage.setItem('void_recent_searches', JSON.stringify(recent));
+
+    if (isPageMode) {
+      if (initialQuery === value) {
+        lastSearchRef.current = value;
+        void runSearch(value);
+      } else {
+        router.replace(`/search?q=${encodeURIComponent(value)}`, { scroll: false });
+      }
+      return;
+    }
     void runSearch(value);
   };
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -66,10 +91,41 @@ export const SearchSheet = () => {
   };
 
   useEffect(() => {
-    if (!isPageMode || initialSearchRef.current || initialQuery.trim().length < 2) return;
-    initialSearchRef.current = true;
-    void runSearch(initialQuery.trim());
-  }, [initialQuery, isPageMode, runSearch]);
+    const timer = window.setTimeout(() => {
+      try {
+        setRecentSearches(JSON.parse(localStorage.getItem('void_recent_searches') || '[]'));
+      } catch {
+        setRecentSearches([]);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!isPageMode) return;
+    const timer = window.setTimeout(() => {
+      setQuery(initialQuery);
+      const value = initialQuery.trim();
+      if (value.length < 2) {
+        lastSearchRef.current = '';
+        setSubmittedQuery('');
+        setMediaFilter('all');
+        clearSearch();
+        return;
+      }
+      if (lastSearchRef.current === value) return;
+      lastSearchRef.current = value;
+      setSubmittedQuery(value);
+      void runSearch(value);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [clearSearch, initialQuery, isPageMode, runSearch]);
+
+  useEffect(() => {
+    if (!isPageMode || isSearching || trendingLoading) return;
+    const savedScroll = restoreScrollPosition(`${location.pathname}${location.search}`);
+    if (savedScroll !== null) requestAnimationFrame(() => resultsRef.current?.scrollTo({ top: savedScroll }));
+  }, [isPageMode, isSearching, trendingLoading]);
 
   useEffect(() => {
     if (isPageMode || !window.matchMedia('(min-width: 768px)').matches) return;
@@ -81,7 +137,7 @@ export const SearchSheet = () => {
       <img
         src={logoPng.src}
         alt="Void"
-        className="h-10 w-10 rounded-lg object-cover blueprint-border bg-brand-bg shrink-0"
+        className="hidden h-10 w-10 shrink-0 rounded-lg bg-brand-bg object-cover blueprint-border sm:block"
         decoding="async"
       />
       <div className="relative min-w-0 flex-1">
@@ -102,9 +158,12 @@ export const SearchSheet = () => {
             type="button"
             onClick={() => {
               setQuery('');
+              setSubmittedQuery('');
+              setMediaFilter('all');
               clearSearch();
+              if (isPageMode) router.replace('/search', { scroll: false });
             }}
-            className="flex h-11 w-11 items-center justify-center text-brand-silver transition-colors hover:text-white"
+            className={`${query ? 'flex' : 'hidden'} h-11 w-11 items-center justify-center text-brand-silver transition-colors hover:text-white`}
             title="Clear search"
           >
             <X size={16} />
@@ -131,7 +190,12 @@ export const SearchSheet = () => {
 
   return (
     <AnimatePresence>
-      <div className={`fixed inset-0 z-[340] flex justify-center ${isPageMode ? 'items-stretch' : 'items-end'}`} onClick={closeSheet}>
+      <div
+        className={`fixed inset-0 z-[340] flex justify-center ${isPageMode ? 'items-stretch' : 'items-end'}`}
+        onClick={closeSheet}
+        inert={Boolean(activeDetailsMedia || activeActorMedia)}
+        aria-hidden={activeDetailsMedia || activeActorMedia ? 'true' : undefined}
+      >
         {!isPageMode && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -175,16 +239,54 @@ export const SearchSheet = () => {
             </p>
           )}
 
-          <div className="flex-1 overflow-y-auto px-4 pb-[calc(6rem+env(safe-area-inset-bottom,0px))]">
+          <div
+            ref={resultsRef}
+            data-route-scroll
+            className="flex-1 overflow-y-auto px-4 pb-[calc(6rem+env(safe-area-inset-bottom,0px))]"
+            onScroll={(event) => {
+              if (isPageMode) rememberScrollPosition(`${location.pathname}${location.search}`, event.currentTarget.scrollTop);
+            }}
+          >
 
             {displayError && (
               <p className="text-sm text-red-400 mb-4">{displayError}</p>
             )}
 
+            {!hasSubmittedSearch && recentSearches.length > 0 && (
+              <section className="mb-5 pt-4" aria-labelledby="recent-searches-heading">
+                <h2 id="recent-searches-heading" className="type-label mb-2 text-brand-silver">Recent searches</h2>
+                <div className="flex flex-wrap gap-2">
+                  {recentSearches.map((item) => (
+                    <button key={item} type="button" onClick={() => { setQuery(item); submitSearch(item); }} className="min-h-11 rounded-lg border border-white/10 px-3 text-sm text-brand-silver hover:border-brand-cyan/30 hover:text-white">
+                      {item}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <div className="mb-3 flex items-center justify-between gap-3 pt-4">
+              <h2 className="type-label text-brand-silver">
+                {hasSubmittedSearch ? `Results for “${submittedQuery}”` : 'Trending now'}
+              </h2>
+              {!isSearching && <span className="type-readout text-brand-silver/70">{filteredMedia.length}</span>}
+            </div>
+
+            {hasSubmittedSearch && (
+              <div className="mb-4 flex gap-2 overflow-x-auto" aria-label="Filter search results">
+                {(['all', 'movie', 'tv', 'game'] as const).map((filter) => (
+                  <button key={filter} type="button" onClick={() => setMediaFilter(filter)} className={`type-action min-h-11 shrink-0 rounded-lg border px-3 ${mediaFilter === filter ? 'border-brand-cyan/40 bg-brand-cyan/10 text-brand-cyan' : 'border-white/10 text-brand-silver'}`}>
+                    {filter === 'all' ? 'All' : filter === 'tv' ? 'Shows' : `${filter[0].toUpperCase()}${filter.slice(1)}s`}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <SearchResults
               hasSubmittedSearch={hasSubmittedSearch}
               isLoading={isSearching || (trendingLoading && !hasSubmittedSearch)}
-              media={displayedMedia}
+              media={filteredMedia}
+              query={submittedQuery}
             />
 
             {isLibraryEmpty && (

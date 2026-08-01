@@ -1,4 +1,4 @@
-const CACHE_VERSION = '6.0';
+const CACHE_VERSION = '8.0';
 const APP_SHELL_CACHE = `void-app-shell-${CACHE_VERSION}`;
 const CACHE_PREFIX = 'void-';
 const scopeUrl = new URL(self.registration.scope);
@@ -8,6 +8,12 @@ const scopedUrl = (path = '') => new URL(path, scopeUrl).toString();
 const CORE_ASSETS = [
   '',
   'index.html',
+  'search/',
+  'search/index.html',
+  'details/',
+  'details/index.html',
+  'person/',
+  'person/index.html',
   'manifest.json',
   'favicon.png',
   'logo.png',
@@ -40,30 +46,34 @@ const cacheResponse = async (cache, request, response) => {
 };
 
 const discoverShellAssets = async () => {
-  const response = await fetch(scopeUrl.toString(), { cache: 'reload' });
-  if (!response.ok) return [];
-
   const cache = await caches.open(APP_SHELL_CACHE);
-  await Promise.all([
-    cache.put(scopeUrl.toString(), response.clone()),
-    cache.put(scopedUrl('index.html'), response.clone()),
-  ]);
-
-  const html = await response.text();
   const discovered = new Set();
-  const attributePattern = /(?:src|href)=["']([^"']+)["']/gi;
-  let match;
+  const shellPages = [
+    { request: scopeUrl.toString(), cacheAs: [scopeUrl.toString(), scopedUrl('index.html')] },
+    { request: scopedUrl('search/'), cacheAs: [scopedUrl('search/'), scopedUrl('search/index.html')] },
+    { request: scopedUrl('details/'), cacheAs: [scopedUrl('details/'), scopedUrl('details/index.html')] },
+    { request: scopedUrl('person/'), cacheAs: [scopedUrl('person/'), scopedUrl('person/index.html')] },
+  ];
 
-  while ((match = attributePattern.exec(html))) {
-    try {
-      const assetUrl = new URL(match[1], scopeUrl);
-      if (assetUrl.origin === scopeUrl.origin && assetUrl.pathname.startsWith(scopeUrl.pathname)) {
-        discovered.add(assetUrl.toString());
+  await Promise.all(shellPages.map(async ({ request, cacheAs }) => {
+    const response = await fetch(request, { cache: 'reload' });
+    if (!response.ok) return;
+    await Promise.all(cacheAs.map((url) => cache.put(url, response.clone())));
+
+    const html = await response.text();
+    const attributePattern = /(?:src|href)=["']([^"']+)["']/gi;
+    let match;
+    while ((match = attributePattern.exec(html))) {
+      try {
+        const assetUrl = new URL(match[1], scopeUrl);
+        if (assetUrl.origin === scopeUrl.origin && assetUrl.pathname.startsWith(scopeUrl.pathname)) {
+          discovered.add(assetUrl.toString());
+        }
+      } catch {
+        // Ignore malformed or non-URL attributes.
       }
-    } catch {
-      // Ignore malformed or non-URL attributes.
     }
-  }
+  }));
 
   return [...discovered];
 };
@@ -92,8 +102,18 @@ const networkFirstNavigation = async (request) => {
     const response = await fetch(request);
     return await cacheResponse(cache, request, response);
   } catch {
+    const url = new URL(request.url);
+    const relativePath = url.pathname.slice(scopeUrl.pathname.length).replace(/^\//, '');
+    const routeFallback = relativePath.startsWith('search')
+      ? scopedUrl('search/index.html')
+      : relativePath.startsWith('details')
+        ? scopedUrl('details/index.html')
+        : relativePath.startsWith('person')
+          ? scopedUrl('person/index.html')
+          : null;
     const cachedResponse =
       (await cache.match(request))
+      || (routeFallback ? await cache.match(routeFallback) : null)
       || (await cache.match(scopeUrl.toString()))
       || (await cache.match(scopedUrl('index.html')));
 
