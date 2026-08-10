@@ -24,7 +24,7 @@ const withBasePath = (path: string) => `${basePath}${path}`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Void - Track your movies, shows, and games",
+  title: "Void",
   description: "Mobile-first media playlist and history tracker",
   manifest: withBasePath("/manifest.json"),
   alternates: {
