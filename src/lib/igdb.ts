@@ -53,4 +53,10 @@ export const getSteamGamePrice = async (appId: number, signal?: AbortSignal): Pr
   return fetchFromGameApi<GamePrice | null>(`/api/prices/steam/${appId}?region=us`, signal);
 };
 
+export const getSteamGamePrices = async (appIds: number[], signal?: AbortSignal): Promise<GamePrice[]> => {
+  if (appIds.length === 0) return [];
+  const params = new URLSearchParams({ ids: appIds.join(','), region: 'us' });
+  return fetchFromGameApi<GamePrice[]>(`/api/prices/steam?${params}`, signal);
+};
+
 export const hasGameApi = () => !!GAME_API_BASE_URL;

@@ -44,6 +44,7 @@ Local requests must include an allowed `Origin` header unless originless request
 ```sh
 curl -H 'Origin: http://localhost:3000' 'http://localhost:8787/api/games/search?q=halo'
 curl -H 'Origin: http://localhost:3000' 'http://localhost:8787/api/prices/steam/620?region=us'
+curl -H 'Origin: http://localhost:3000' 'http://localhost:8787/api/prices/steam?ids=620,1245620&region=us'
 ```
 
-Price endpoint accepts GG.deals-supported regions and caches successful responses for one hour. It returns `null` when GG.deals has no Steam App ID match. GG.deals key remains Worker-only; never expose it through a `NEXT_PUBLIC_*` variable.
+Price endpoints accept GG.deals-supported regions and cache successful responses for one hour. Batch requests accept up to 50 unique Steam App IDs. Single requests return `null` when GG.deals has no match; batch requests omit unmatched IDs. GG.deals key remains Worker-only; never expose it through a `NEXT_PUBLIC_*` variable.

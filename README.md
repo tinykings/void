@@ -36,8 +36,9 @@ Data lives entirely in your browser (IndexedDB).
 - **Trending** — Browse weekly trending content from TMDB when opening search.
 - **Media Details** — Full detail pages with cast, trailers, watch providers, season/episode info, content ratings, and next episode data.
 
-### Streaming Integration
+### Streaming & Deals Integration
 - **Watch Providers** — Click provider icons to open JustWatch search results for that title.
+- **Playlist Game Deals** — Browse current GG.deals prices for playlist games, sorted lowest first.
 
 ### App Experience
 - **PWA** — Installable as a standalone app on mobile and desktop.
@@ -129,6 +130,7 @@ GitHub Actions builds and deploys to GitHub Pages on every push to `main`. The s
 | GitHub Connection | Required Gist OAuth connection for app access and sync |
 | Local Cache | Playlist, history, and favorites cached in IndexedDB |
 | Watch Providers | Open JustWatch search from provider icons |
+| Game Deals | Show lowest current GG.deals prices for playlist games |
 
 ## License
 

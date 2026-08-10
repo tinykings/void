@@ -128,6 +128,7 @@ const PRICE_CACHE_SECONDS = 60 * 60;
 const CACHE_VERSION = 'gg-prices-v2-game-media';
 const MAX_URL_LENGTH = 2048;
 const MAX_SEARCH_QUERY_LENGTH = 100;
+const MAX_PRICE_IDS = 50;
 const RATE_LIMIT_RETRY_SECONDS = 60;
 const STEAM_EXTERNAL_GAME_CATEGORY = 1;
 const GG_DEALS_REGIONS = new Set([
@@ -318,11 +319,11 @@ const getGgDealsRetryAfter = (response: Response) => {
   return response.headers.get('Retry-After') || String(RATE_LIMIT_RETRY_SECONDS);
 };
 
-const fetchSteamGamePrice = async (env: Env, steamAppId: number, region: string) => {
+const fetchSteamGamePrices = async (env: Env, steamAppIds: number[], region: string) => {
   if (!env.GG_DEALS_API_KEY) throw new Error('GG.deals API key is not configured');
 
   const url = new URL(GG_DEALS_PRICES_URL);
-  url.searchParams.set('ids', String(steamAppId));
+  url.searchParams.set('ids', steamAppIds.join(','));
   url.searchParams.set('key', env.GG_DEALS_API_KEY);
   url.searchParams.set('region', region);
 
@@ -333,7 +334,14 @@ const fetchSteamGamePrice = async (env: Env, steamAppId: number, region: string)
 
   const data = await response.json() as GgDealsResponse;
   if (!data.success || !data.data) throw new Error('GG.deals response was incomplete');
-  return normalizeGgDealsGamePrice(steamAppId, data.data[String(steamAppId)]);
+  return steamAppIds
+    .map((steamAppId) => normalizeGgDealsGamePrice(steamAppId, data.data?.[String(steamAppId)]))
+    .filter((price) => price !== null);
+};
+
+const fetchSteamGamePrice = async (env: Env, steamAppId: number, region: string) => {
+  const [price] = await fetchSteamGamePrices(env, [steamAppId], region);
+  return price || null;
 };
 
 const normalizeSearchText = (value: string) =>
@@ -823,7 +831,7 @@ const worker = {
       ? 'search'
       : url.pathname.startsWith('/api/games/')
         ? 'details'
-        : url.pathname.startsWith('/api/prices/steam/')
+        : (url.pathname === '/api/prices/steam' || url.pathname.startsWith('/api/prices/steam/'))
           ? 'prices'
           : 'other';
 
@@ -852,6 +860,30 @@ const worker = {
         return withCache(request, env, ctx, SEARCH_CACHE_SECONDS, async () => {
           const results = await searchGames(env, query);
           return jsonResponse(request, env, results);
+        });
+      }
+
+      if (url.pathname === '/api/prices/steam') {
+        const unexpectedParameters = [...url.searchParams.keys()].filter((key) => key !== 'ids' && key !== 'region');
+        if (unexpectedParameters.length > 0) {
+          return errorResponse(request, env, 400, 'Unsupported query parameter');
+        }
+
+        const rawIds = url.searchParams.get('ids') || '';
+        const idParts = rawIds.split(',');
+        if (!rawIds || idParts.some((id) => !/^\d+$/.test(id))) {
+          return errorResponse(request, env, 400, 'Invalid Steam App IDs');
+        }
+        const steamAppIds = [...new Set(idParts.map(parsePositiveInteger))];
+        if (steamAppIds.some((id) => !id) || steamAppIds.length > MAX_PRICE_IDS) {
+          return errorResponse(request, env, 400, `Provide between 1 and ${MAX_PRICE_IDS} Steam App IDs`);
+        }
+        const region = (url.searchParams.get('region') || 'us').toLowerCase();
+        if (!GG_DEALS_REGIONS.has(region)) return errorResponse(request, env, 400, 'Unsupported GG.deals region');
+
+        return withCache(request, env, ctx, PRICE_CACHE_SECONDS, async () => {
+          const prices = await fetchSteamGamePrices(env, steamAppIds as number[], region);
+          return jsonResponse(request, env, prices);
         });
       }
 

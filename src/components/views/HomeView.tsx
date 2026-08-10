@@ -11,7 +11,7 @@ import { DetailsSheet } from '@/components/DetailsSheet';
 import { SearchSheet } from '@/components/SearchSheet';
 import { sortMedia, sortByAddedDate } from '@/lib/sort';
 
-import { AlertCircle, Bookmark, Film, Gamepad2, Github, Heart, History, LayoutGrid, LoaderCircle, LogOut, Radio, Search, Settings, SlidersHorizontal, Tv, X } from 'lucide-react';
+import { AlertCircle, BadgeDollarSign, Bookmark, Film, Gamepad2, Github, Heart, History, LayoutGrid, LoaderCircle, LogOut, Radio, Search, Settings, SlidersHorizontal, Tv, X } from 'lucide-react';
 import type { FilterType, Media } from '@/lib/types';
 import { getDetailsHref, getMediaKey } from '@/lib/media';
 import { rememberRouteParent, rememberScrollPosition, restoreScrollPosition } from '@/lib/clientNavigation';
@@ -23,6 +23,8 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useStreamProviders } from '@/hooks/useStreamProviders';
 import type { StreamableMedia } from '@/lib/streamProviders';
 import { HomeStreamSection } from '@/components/HomeStreamSection';
+import { HomeDealsSection } from '@/components/HomeDealsSection';
+import { useGameDeals } from '@/hooks/useGameDeals';
 
 type LibraryMode = 'library' | 'watchlist';
 
@@ -61,19 +63,29 @@ export const HomeView = () => {
   const activeFilter = filter || 'all';
   const activeLibraryMode: LibraryMode = showWatched ? 'library' : 'watchlist';
   const streamablePlaylist = useMemo(() => watchlist.filter((item): item is StreamableMedia => item.media_type === 'movie' || item.media_type === 'tv'), [watchlist]);
+  const gamePlaylist = useMemo(() => watchlist.filter((item) => item.media_type === 'game'), [watchlist]);
   const [showStreamView, setShowStreamView] = useState(false);
+  const [showDealsView, setShowDealsView] = useState(false);
   const {
     failureCount: streamFailureCount,
     groups: streamGroups,
     isLoading: isStreamLoading,
   } = useStreamProviders({ apiKey, enabled: showStreamView, isOnline, playlist: streamablePlaylist });
-  const activeModeLabel = showStreamView ? 'Stream' : showFavoritesOnly ? 'Favorites' : activeLibraryMode === 'library' ? 'History' : 'Playlist';
+  const {
+    deals,
+    failureCount: dealsFailureCount,
+    isLoading: isDealsLoading,
+    unavailableCount: dealsUnavailableCount,
+  } = useGameDeals({ enabled: showDealsView, isOnline, playlist: gamePlaylist });
+  const showSpecialView = showStreamView || showDealsView;
+  const activeModeLabel = showStreamView ? 'Stream' : showDealsView ? 'Deals' : showFavoritesOnly ? 'Favorites' : activeLibraryMode === 'library' ? 'History' : 'Playlist';
   const activeFilterLabel = activeFilter === 'all' ? 'All' : activeFilter === 'movie' ? 'Movies' : activeFilter === 'tv' ? 'Shows' : 'Games';
 
   const persistentStatus = useMemo(() => {
     if (showStreamView) return 'Stream · Playlist';
+    if (showDealsView) return 'Deals · Playlist';
     return `${activeModeLabel} · ${activeFilterLabel}`;
-  }, [activeFilterLabel, activeModeLabel, showStreamView]);
+  }, [activeFilterLabel, activeModeLabel, showDealsView, showStreamView]);
 
   const showStatus = useCallback((label: string) => {
     // If it matches a persistent state, we don't need a timer
@@ -135,6 +147,10 @@ export const HomeView = () => {
       if (!isOnline) return 'Streaming availability is offline';
       return streamablePlaylist.length === 0 ? 'Your playlist has no streamable titles' : 'No streaming providers found';
     }
+    if (showDealsView) {
+      if (!isOnline) return 'Game deals are offline';
+      return gamePlaylist.length === 0 ? 'Your playlist has no games' : 'No current game prices found';
+    }
     if (showFavoritesOnly) return 'No favorites yet';
     if (activeLibraryMode === 'library') return 'Your history is empty';
     return 'Your playlist is empty';
@@ -144,6 +160,11 @@ export const HomeView = () => {
       if (!isOnline) return 'Reconnect to refresh provider information. Your playlist remains available.';
       if (streamablePlaylist.length === 0) return 'Add movies or shows to your playlist to see streaming options.';
       return 'No US free or subscription providers were found for your playlist.';
+    }
+    if (showDealsView) {
+      if (!isOnline) return 'Reconnect to refresh prices. Your playlist remains available.';
+      if (gamePlaylist.length === 0) return 'Add games to your playlist to see current prices.';
+      return 'GG.deals has no current prices for games with Steam listings in your playlist.';
     }
 
     if (activeFilter !== 'all') {
@@ -167,6 +188,7 @@ export const HomeView = () => {
 
   const openSearch = () => {
     setShowStreamView(false);
+    setShowDealsView(false);
     setShowTypeMenu(false);
     if (window.matchMedia('(max-width: 767px)').matches) {
       rememberScrollPosition(`${location.pathname}${location.search}`, window.scrollY);
@@ -180,6 +202,7 @@ export const HomeView = () => {
   const selectTypeFilter = (nextFilter: FilterType) => {
     startTransition(() => {
       setShowStreamView(false);
+      setShowDealsView(false);
       setFilter(nextFilter);
     });
 
@@ -191,6 +214,7 @@ export const HomeView = () => {
   const selectFavoritesFilter = () => {
     startTransition(() => {
       setShowStreamView(false);
+      setShowDealsView(false);
       setShowWatched(true);
       setShowFavoritesOnly(!showFavoritesOnly);
       setIsSearchFocused(false);
@@ -204,6 +228,7 @@ export const HomeView = () => {
   const selectStreamView = () => {
     startTransition(() => {
       setShowStreamView(true);
+      setShowDealsView(false);
       setShowWatched(false);
       setShowFavoritesOnly(false);
       setIsSearchFocused(false);
@@ -214,9 +239,24 @@ export const HomeView = () => {
     window.scrollTo(0, 0);
   };
 
+  const selectDealsView = () => {
+    startTransition(() => {
+      setShowStreamView(false);
+      setShowDealsView(true);
+      setShowWatched(false);
+      setShowFavoritesOnly(false);
+      setIsSearchFocused(false);
+    });
+
+    showStatus('Deals');
+    setShowTypeMenu(false);
+    window.scrollTo(0, 0);
+  };
+
   const selectLibraryMode = (mode: LibraryMode) => {
     startTransition(() => {
       setShowStreamView(false);
+      setShowDealsView(false);
       setShowWatched(mode !== 'watchlist');
       setShowFavoritesOnly(false);
       setIsSearchFocused(false);
@@ -230,6 +270,7 @@ export const HomeView = () => {
   const clearActiveFilterView = () => {
     startTransition(() => {
       setShowStreamView(false);
+      setShowDealsView(false);
       setShowFavoritesOnly(false);
       setIsSearchFocused(false);
     });
@@ -363,7 +404,7 @@ export const HomeView = () => {
         </div>
       )}
 
-      {isLoading && !showStreamView ? (
+      {isLoading && !showSpecialView ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
           {[...Array(12)].map((_, i) => (
             <MediaCardSkeleton key={i} />
@@ -380,6 +421,17 @@ export const HomeView = () => {
               isLoading={isStreamLoading}
               onSelect={showDetails}
               playlistCount={streamablePlaylist.length}
+            />
+          ) : showDealsView ? (
+            <HomeDealsSection
+              deals={deals}
+              emptyDescription={emptyDescription}
+              emptyTitle={emptyTitle}
+              failureCount={dealsFailureCount}
+              isLoading={isDealsLoading}
+              onSelect={showDetails}
+              playlistCount={gamePlaylist.length}
+              unavailableCount={dealsUnavailableCount}
             />
           ) : displayMedia.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
@@ -459,7 +511,7 @@ export const HomeView = () => {
             <div className="grid grid-cols-[56px_1fr_auto] items-center gap-2 rounded-[28px] bg-brand-bg/70 backdrop-blur-xl blueprint-border p-2 shadow-2xl shadow-black/35">
               <div className="relative">
                 {showTypeMenu && (
-                  <div className="absolute bottom-full left-0 mb-3 w-44 rounded-xl bg-brand-bg blueprint-border overflow-hidden">
+                  <div className="absolute bottom-full left-0 mb-3 max-h-[calc(100dvh-7rem)] w-44 overflow-y-auto rounded-xl bg-brand-bg blueprint-border">
                     {[
                       { id: 'all' as const, label: 'All', icon: LayoutGrid },
                       { id: 'movie' as const, label: 'Movies', icon: Film },
@@ -467,7 +519,7 @@ export const HomeView = () => {
                       { id: 'game' as const, label: 'Games', icon: Gamepad2 },
                     ].map((item) => {
                       const Icon = item.icon;
-                      const isActive = !showStreamView && activeFilter === item.id;
+                      const isActive = !showSpecialView && activeFilter === item.id;
 
                       return (
                         <button
@@ -519,6 +571,20 @@ export const HomeView = () => {
                       Stream
                     </button>
 
+                    <button
+                      type="button"
+                      onClick={selectDealsView}
+                      className={clsx(
+                        'type-filter flex min-h-11 w-full items-center gap-2 px-3 py-3 text-left transition-colors',
+                        showDealsView
+                          ? 'text-brand-cyan bg-brand-cyan/5'
+                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
+                      )}
+                    >
+                      <BadgeDollarSign size={15} />
+                      Deals
+                    </button>
+
                     <div className="h-px bg-white/5" />
 
                     <button
@@ -538,7 +604,7 @@ export const HomeView = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    if (showStreamView || showFavoritesOnly) {
+                    if (showSpecialView || showFavoritesOnly) {
                       clearActiveFilterView();
                       return;
                     }
@@ -547,17 +613,19 @@ export const HomeView = () => {
                   }}
                   className={clsx(
                     'flex h-12 w-12 cursor-pointer items-center justify-center rounded-lg transition-all',
-                    showStreamView || showFavoritesOnly || showTypeMenu || activeFilter !== 'all'
+                    showSpecialView || showFavoritesOnly || showTypeMenu || activeFilter !== 'all'
                       ? 'bg-brand-cyan/12 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.16)] hover:bg-brand-cyan/20 hover:text-white'
                       : 'text-brand-silver hover:bg-brand-cyan/10 hover:text-white'
                   )}
-                  aria-label={showStreamView ? 'Clear Stream view' : showFavoritesOnly ? 'Clear Favorites view' : `Filter: ${activeFilterLabel}`}
-                  aria-haspopup={showStreamView || showFavoritesOnly ? undefined : 'menu'}
-                  aria-expanded={showStreamView || showFavoritesOnly ? undefined : showTypeMenu}
-                  title={showStreamView ? 'Clear Stream view' : showFavoritesOnly ? 'Clear Favorites view' : `Filter: ${activeFilterLabel}`}
+                  aria-label={showStreamView ? 'Clear Stream view' : showDealsView ? 'Clear Deals view' : showFavoritesOnly ? 'Clear Favorites view' : `Filter: ${activeFilterLabel}`}
+                  aria-haspopup={showSpecialView || showFavoritesOnly ? undefined : 'menu'}
+                  aria-expanded={showSpecialView || showFavoritesOnly ? undefined : showTypeMenu}
+                  title={showStreamView ? 'Clear Stream view' : showDealsView ? 'Clear Deals view' : showFavoritesOnly ? 'Clear Favorites view' : `Filter: ${activeFilterLabel}`}
                 >
                   {showStreamView ? (
                     <Radio size={19} />
+                  ) : showDealsView ? (
+                    <BadgeDollarSign size={19} />
                   ) : showFavoritesOnly ? (
                     <Heart size={19} className="fill-current" />
                   ) : activeFilter === 'movie' ? (
@@ -576,7 +644,7 @@ export const HomeView = () => {
                 <div
                   className={clsx(
                     'absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-brand-cyan/15 shadow-[0_0_22px_rgba(34,211,238,0.14)] transition-transform duration-300 ease-out',
-                    activeLibraryMode === 'watchlist' && !showFavoritesOnly && !showStreamView ? 'translate-x-full' : 'translate-x-0'
+                    activeLibraryMode === 'watchlist' && !showFavoritesOnly && !showSpecialView ? 'translate-x-full' : 'translate-x-0'
                   )}
                 />
 
@@ -585,7 +653,7 @@ export const HomeView = () => {
                   onClick={() => selectLibraryMode('library')}
                   className={clsx(
                     'relative z-10 flex h-11 cursor-pointer items-center justify-center rounded-full transition-colors',
-                    activeLibraryMode === 'library' && !showFavoritesOnly && !showStreamView ? 'text-brand-cyan' : 'text-brand-silver hover:text-white'
+                    activeLibraryMode === 'library' && !showFavoritesOnly && !showSpecialView ? 'text-brand-cyan' : 'text-brand-silver hover:text-white'
                   )}
                   aria-label="History"
                   title="History"
@@ -598,7 +666,7 @@ export const HomeView = () => {
                   onClick={() => selectLibraryMode('watchlist')}
                   className={clsx(
                     'relative z-10 flex h-11 cursor-pointer items-center justify-center rounded-full transition-colors',
-                    activeLibraryMode === 'watchlist' && !showFavoritesOnly && !showStreamView ? 'text-brand-cyan' : 'text-brand-silver hover:text-white'
+                    activeLibraryMode === 'watchlist' && !showFavoritesOnly && !showSpecialView ? 'text-brand-cyan' : 'text-brand-silver hover:text-white'
                   )}
                   aria-label="Playlist"
                   title="Playlist"
