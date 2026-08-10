@@ -8,7 +8,7 @@ import { getMediaDetails } from '@/lib/tmdb';
 import { getIgdbGameDetails } from '@/lib/igdb';
 import { mapWithConcurrency } from '@/lib/concurrency';
 import { getMediaKey, getMediaSource } from '@/lib/media';
-import { isDateInLocalDayWindow, toggleFavoriteInLibrary, toggleWatchedInLibrary, toggleWatchlistInLibrary } from '@/lib/library';
+import { isDateInLocalDayWindow, toggleFavoriteInLibrary, togglePurchasedInLibrary, toggleWatchedInLibrary, toggleWatchlistInLibrary } from '@/lib/library';
 
 const DEFAULT_TMDB_ACCESS_TOKEN = process.env.NEXT_PUBLIC_TMDB_READ_ACCESS_TOKEN || '';
 const METADATA_HYDRATION_CONCURRENCY = 1;
@@ -38,6 +38,7 @@ const materializeGistPayload = (payload: GistLibraryData, existingItems: Media[]
       release_date: synced.release_date,
       rating: synced.rating,
       isFavorite: synced.isFavorite,
+      isPurchased: synced.isPurchased,
     };
   };
 
@@ -96,6 +97,7 @@ interface StoreState extends UserState {
   toggleWatchlist: (media: Media) => Promise<void>;
   toggleWatched: (media: Media, rating?: number) => Promise<void>;
   toggleFavorite: (media: Media) => Promise<void>;
+  togglePurchased: (media: Media) => Promise<void>;
   setShowFavoritesOnly: (show: boolean) => void;
   
   setLists: (watchlist: Media[], watched: Media[], playedEpisodes?: Record<string, boolean>) => void;
@@ -233,6 +235,7 @@ export const useStore = create<StoreState>()(
                       ...details,
                       date_added: item.date_added,
                       isFavorite: item.isFavorite,
+                      isPurchased: item.isPurchased,
                       rating: item.rating,
                     } as Media;
                   } catch {
@@ -260,7 +263,7 @@ export const useStore = create<StoreState>()(
                 playedEpisodes: mergedPayload.playedEpisodes ?? {},
               });
 
-              if (gist.version < 3 || !sameGistPayload(gist, mergedPayload)) {
+              if (gist.version < 4 || !sameGistPayload(gist, mergedPayload)) {
                 const payload = buildGistPayload(
                   mergedLists.watchlist,
                   mergedLists.watched,
@@ -323,6 +326,15 @@ export const useStore = create<StoreState>()(
           const { watchlist, watched } = get();
           const updated = toggleFavoriteInLibrary(watchlist, watched, media);
           if (updated.watchlist === watchlist && updated.watched === watched) return;
+
+          set(updated);
+          void get().syncToGist();
+        },
+
+        togglePurchased: async (media) => {
+          const { watchlist, watched } = get();
+          const updated = togglePurchasedInLibrary(watchlist, watched, media);
+          if (updated.watchlist === watchlist) return;
 
           set(updated);
           void get().syncToGist();

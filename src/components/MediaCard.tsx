@@ -9,7 +9,7 @@ import { rememberRouteParent, rememberScrollPosition } from '@/lib/clientNavigat
 import { useAppContext } from '@/context/AppContext';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
-import { Bookmark, Check, Gamepad2, Heart } from 'lucide-react';
+import { Bookmark, Check, DollarSign, Gamepad2, Heart } from 'lucide-react';
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 const MOVIE_PRIORITY_WINDOW_DAYS = 30;
@@ -97,6 +97,9 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
     || watchlistMap.get(mediaKey)?.isFavorite
     || watchedMap.get(mediaKey)?.isFavorite
   );
+  const isPurchased = media.media_type === 'game'
+    && inWatchlist
+    && Boolean(watchlistMap.get(mediaKey)?.isPurchased ?? media.isPurchased);
 
   const nowTime = useMemo(() => {
     const now = new Date();
@@ -171,7 +174,7 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
         <button
           type="button"
           className="relative block aspect-[2/3] w-full shrink-0 cursor-pointer overflow-hidden bg-brand-bg/50 blueprint-border"
-          aria-label={`Open details for ${title}${isFavorite ? ', favorite' : ''}`}
+          aria-label={`Open details for ${title}${isFavorite ? ', favorite' : ''}${isPurchased ? ', purchased' : ''}`}
           onClick={() => {
             openDetails(media);
             onClick?.();
@@ -193,7 +196,7 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
             </div>
           )}
 
-          {(isFavorite || (shouldShowReleaseBadge && daysUntilRelease !== null)) && (
+          {(isFavorite || isPurchased || (shouldShowReleaseBadge && daysUntilRelease !== null)) && (
             <div className="absolute left-2 top-2 z-10 flex flex-col items-start gap-1.5">
               {isFavorite && (
                 <div
@@ -201,6 +204,15 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
                   className="flex h-7 w-7 items-center justify-center rounded-full border border-rose-400/35 bg-brand-bg/85 text-rose-400 shadow-[0_2px_10px_rgba(0,0,0,0.35)] backdrop-blur-md"
                 >
                   <Heart size={14} className="fill-current" strokeWidth={2.5} />
+                </div>
+              )}
+
+              {isPurchased && (
+                <div
+                  aria-hidden="true"
+                  className="flex h-7 w-7 items-center justify-center rounded-full border border-emerald-400/35 bg-brand-bg/85 text-emerald-300 shadow-[0_2px_10px_rgba(0,0,0,0.35)] backdrop-blur-md"
+                >
+                  <DollarSign size={14} strokeWidth={3} />
                 </div>
               )}
 

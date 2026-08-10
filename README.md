@@ -29,6 +29,7 @@ Data lives entirely in your browser (IndexedDB).
 
 ### Core Tracking
 - **Playlist & History** — Add movies, shows, and games to your playlist or move them to history. Items are mutually exclusive between the two lists.
+- **Purchased Games** — Mark playlist games as purchased from game details; purchased titles are excluded from Deals.
 - **TV Show Auto-Migration** — Shows in your history automatically move back to the playlist when a new episode airs within 7 days. Ended or canceled shows are excluded.
 
 ### Discovery

@@ -48,6 +48,7 @@ interface AppContextType extends UserState {
   showFavoritesOnly: boolean;
   setShowFavoritesOnly: (show: boolean) => void;
   toggleFavorite: (media: Media) => void;
+  togglePurchased: (media: Media) => void;
   updateMediaMetadata: (id: number, type: 'movie' | 'tv' | 'game', metadata: Partial<Media>, source?: Media['source']) => void;
   isSearchFocused: boolean;
   setIsSearchFocused: (focused: boolean) => void;
@@ -103,6 +104,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setShowWatched: s.setShowWatched,
     setShowFavoritesOnly: s.setShowFavoritesOnly,
     toggleFavorite: s.toggleFavorite,
+    togglePurchased: s.togglePurchased,
     updateMediaMetadata: s.updateMediaMetadata,
     setIsSearchFocused: s.setIsSearchFocused,
     processTVMigrations: s.processTVMigrations,
@@ -341,6 +343,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ...details,
           date_added: item.date_added,
           isFavorite: item.isFavorite,
+          isPurchased: item.isPurchased,
           lastChecked: Date.now(),
         }, source);
         hydratedMediaKeys.current.add(key);
@@ -420,6 +423,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setShowWatched: store.setShowWatched,
     setShowFavoritesOnly: store.setShowFavoritesOnly,
     toggleFavorite: store.toggleFavorite,
+    togglePurchased: store.togglePurchased,
     updateMediaMetadata: store.updateMediaMetadata,
     setIsSearchFocused: store.setIsSearchFocused,
     activeDetailsMedia,

@@ -64,6 +64,7 @@ export const HomeView = () => {
   const activeLibraryMode: LibraryMode = showWatched ? 'library' : 'watchlist';
   const streamablePlaylist = useMemo(() => watchlist.filter((item): item is StreamableMedia => item.media_type === 'movie' || item.media_type === 'tv'), [watchlist]);
   const gamePlaylist = useMemo(() => watchlist.filter((item) => item.media_type === 'game'), [watchlist]);
+  const unpurchasedGamePlaylist = useMemo(() => gamePlaylist.filter((item) => !item.isPurchased), [gamePlaylist]);
   const [showStreamView, setShowStreamView] = useState(false);
   const [showDealsView, setShowDealsView] = useState(false);
   const {
@@ -76,7 +77,7 @@ export const HomeView = () => {
     failureCount: dealsFailureCount,
     isLoading: isDealsLoading,
     unavailableCount: dealsUnavailableCount,
-  } = useGameDeals({ enabled: showDealsView, isOnline, playlist: gamePlaylist });
+  } = useGameDeals({ enabled: showDealsView, isOnline, playlist: unpurchasedGamePlaylist });
   const showSpecialView = showStreamView || showDealsView;
   const activeModeLabel = showStreamView ? 'Stream' : showDealsView ? 'Deals' : showFavoritesOnly ? 'Favorites' : activeLibraryMode === 'library' ? 'History' : 'Playlist';
   const activeFilterLabel = activeFilter === 'all' ? 'All' : activeFilter === 'movie' ? 'Movies' : activeFilter === 'tv' ? 'Shows' : 'Games';
@@ -149,7 +150,8 @@ export const HomeView = () => {
     }
     if (showDealsView) {
       if (!isOnline) return 'Game deals are offline';
-      return gamePlaylist.length === 0 ? 'Your playlist has no games' : 'No current game prices found';
+      if (gamePlaylist.length === 0) return 'Your playlist has no games';
+      return unpurchasedGamePlaylist.length === 0 ? 'All playlist games are purchased' : 'No current game prices found';
     }
     if (showFavoritesOnly) return 'No favorites yet';
     if (activeLibraryMode === 'library') return 'Your history is empty';
@@ -164,6 +166,7 @@ export const HomeView = () => {
     if (showDealsView) {
       if (!isOnline) return 'Reconnect to refresh prices. Your playlist remains available.';
       if (gamePlaylist.length === 0) return 'Add games to your playlist to see current prices.';
+      if (unpurchasedGamePlaylist.length === 0) return 'Purchased games are hidden from Deals.';
       return 'GG.deals has no current prices for games with Steam listings in your playlist.';
     }
 
@@ -430,7 +433,7 @@ export const HomeView = () => {
               failureCount={dealsFailureCount}
               isLoading={isDealsLoading}
               onSelect={showDetails}
-              playlistCount={gamePlaylist.length}
+              playlistCount={unpurchasedGamePlaylist.length}
               unavailableCount={dealsUnavailableCount}
             />
           ) : displayMedia.length > 0 ? (

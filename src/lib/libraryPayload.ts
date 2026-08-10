@@ -15,6 +15,7 @@ const ITEM_KEYS = new Set([
   'image',
   'poster_source',
   'rating',
+  'isPurchased',
 ]);
 const PAYLOAD_KEYS = new Set(['version', 'watchlist', 'watched', 'favorites', 'playedEpisodes']);
 
@@ -28,10 +29,11 @@ export type LibraryPayloadItem = {
   image?: string | null;
   poster_source?: Media['poster_source'];
   rating?: number;
+  isPurchased?: boolean;
 };
 
 export interface LibraryPayload {
-  version: 1 | 2 | 3;
+  version: 1 | 2 | 3 | 4;
   watchlist: LibraryPayloadItem[];
   watched: LibraryPayloadItem[];
   favorites: LibraryPayloadItem[];
@@ -96,6 +98,10 @@ const validateItem = (value: unknown, path: string): string | null => {
     && (!Number.isInteger(value.rating) || (value.rating as number) < 1 || (value.rating as number) > 5)) {
     return `${path}.rating must be an integer from 1 to 5`;
   }
+  if (value.isPurchased !== undefined
+    && (typeof value.isPurchased !== 'boolean' || value.media_type !== 'game')) {
+    return `${path}.isPurchased must be a boolean for games`;
+  }
   return null;
 };
 
@@ -123,8 +129,8 @@ export const validateLibraryPayload = (value: unknown): LibraryPayloadValidation
   if (!hasOnlyKeys(value, PAYLOAD_KEYS)) {
     return { success: false, error: 'library payload contains unsupported fields' };
   }
-  if (value.version !== 1 && value.version !== 2 && value.version !== 3) {
-    return { success: false, error: 'version must be 1, 2, or 3' };
+  if (value.version !== 1 && value.version !== 2 && value.version !== 3 && value.version !== 4) {
+    return { success: false, error: 'version must be 1, 2, 3, or 4' };
   }
 
   for (const list of ['watchlist', 'watched', 'favorites'] as const) {
@@ -132,10 +138,10 @@ export const validateLibraryPayload = (value: unknown): LibraryPayloadValidation
     if (error) return { success: false, error };
   }
 
-  if (value.version === 3 && !isPlayedEpisodesData(value.playedEpisodes)) {
+  if ((value.version === 3 || value.version === 4) && !isPlayedEpisodesData(value.playedEpisodes)) {
     return { success: false, error: 'playedEpisodes must contain episode keys mapped to true' };
   }
-  if (value.version !== 3 && value.playedEpisodes !== undefined && !isPlayedEpisodesData(value.playedEpisodes)) {
+  if (value.version !== 3 && value.version !== 4 && value.playedEpisodes !== undefined && !isPlayedEpisodesData(value.playedEpisodes)) {
     return { success: false, error: 'playedEpisodes must contain episode keys mapped to true' };
   }
 

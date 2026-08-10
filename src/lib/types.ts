@@ -53,6 +53,7 @@ export interface Media {
   date_added?: string;
   lastChecked?: number;
   isFavorite?: boolean;
+  isPurchased?: boolean;
   platforms?: string[];
   genres?: string[];
   metacritic?: number | null;

@@ -24,6 +24,7 @@ export const toggleWatchlistInLibrary = (
     watchlist: [...watchlist, {
       ...media,
       ...(watchedItem?.isFavorite !== undefined ? { isFavorite: watchedItem.isFavorite } : {}),
+      ...(media.media_type === 'game' && watchedItem ? { isPurchased: true } : {}),
       date_added: addedAt,
     }],
     watched: watched.filter((item) => getMediaKey(item) !== mediaKey),
@@ -71,6 +72,25 @@ export const toggleWatchedInLibrary = (
       date_added: addedAt,
       lastChecked: checkedAt,
     }],
+  };
+};
+
+export const togglePurchasedInLibrary = (
+  watchlist: Media[],
+  watched: Media[],
+  media: Media,
+): LibraryLists => {
+  if (media.media_type !== 'game') return { watchlist, watched };
+
+  const mediaKey = getMediaKey(media);
+  const watchlistItem = watchlist.find((item) => getMediaKey(item) === mediaKey);
+  if (!watchlistItem) return { watchlist, watched };
+
+  return {
+    watchlist: watchlist.map((item) => getMediaKey(item) === mediaKey
+      ? { ...item, isPurchased: !item.isPurchased }
+      : item),
+    watched,
   };
 };
 

@@ -9,7 +9,7 @@ import { formatGamePrice, getSteamAppId } from '@/lib/ggDeals';
 import { getImageSrc, getMediaKey, getMediaSource, getMediaTitle, getPersonHref } from '@/lib/media';
 import { backOrHome, rememberRouteParent } from '@/lib/clientNavigation';
 import type { SeasonDetails, Video } from '@/lib/types';
-import { ArrowLeft, Bookmark, ChevronDown, Eye, Heart, Play, X } from 'lucide-react';
+import { ArrowLeft, Bookmark, ChevronDown, DollarSign, Eye, Heart, Play, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { FocusTrap } from '@/components/FocusTrap';
@@ -39,13 +39,14 @@ export const DetailsSheet = () => {
     toggleWatchlist,
     toggleWatched,
     toggleFavorite,
+    togglePurchased,
     updateMediaMetadata,
   } = useAppContext();
 
   const [activeImage, setActiveImage] = useState<{ src: string; alt: string; mediaKey: string } | null>(null);
   const [activeTrailer, setActiveTrailer] = useState<{ video: Video; mediaKey: string } | null>(null);
   const [overviewExpansion, setOverviewExpansion] = useState<{ key: string; expanded: boolean }>({ key: '', expanded: false });
-  const [actionPulse, setActionPulse] = useState<{ key: string; action: 'watchlist' | 'watched' | 'favorite' } | null>(null);
+  const [actionPulse, setActionPulse] = useState<{ key: string; action: 'watchlist' | 'watched' | 'favorite' | 'purchased' } | null>(null);
   const [seasonSelection, setSeasonSelection] = useState<{ mediaKey: string; number: number } | null>(null);
   const [seasonData, setSeasonData] = useState<{ key: string; data: SeasonDetails } | null>(null);
   const [seasonErrorKey, setSeasonErrorKey] = useState<string | null>(null);
@@ -104,6 +105,8 @@ export const DetailsSheet = () => {
     ? watchedMap.get(mediaKey)?.isFavorite ?? watchlistMap.get(mediaKey)?.isFavorite ?? false
     : false;
   const showFavoriteButton = inWatched || (inWatchlist && isFavorited);
+  const isPurchased = watchlistMap.get(mediaKey)?.isPurchased ?? false;
+  const showPurchasedButton = selected?.media_type === 'game' && inWatchlist;
   const {
     castItems,
     castKey,
@@ -245,7 +248,9 @@ export const DetailsSheet = () => {
     && seasonErrorKey !== seasonRequestKey;
   const externalLinks = [
     selected.source_url && source !== 'igdb' ? { label: providerLabel, url: selected.source_url } : null,
-  ].filter((link): link is { label: string; url: string } => !!link && !!link.url);  const runAction = async (action: 'watchlist' | 'watched' | 'favorite', commit: () => Promise<void> | void) => {
+  ].filter((link): link is { label: string; url: string } => !!link && !!link.url);
+  const utilityButtonCount = Number(showFavoriteButton) + Number(showPurchasedButton) + Number(!isPageMode);
+  const runAction = async (action: 'watchlist' | 'watched' | 'favorite' | 'purchased', commit: () => Promise<void> | void) => {
     if (closeActionTimerRef.current) clearTimeout(closeActionTimerRef.current);
 
     setActionPulse({ key: mediaKey, action });
@@ -311,6 +316,11 @@ export const DetailsSheet = () => {
   const handleFavoriteToggle = () => {
     if (!showFavoriteButton) return;
     void runAction('favorite', () => toggleFavorite(selected));
+  };
+
+  const handlePurchasedToggle = () => {
+    if (!showPurchasedButton) return;
+    void runAction('purchased', () => togglePurchased(selected));
   };
 
   return (
@@ -807,12 +817,10 @@ export const DetailsSheet = () => {
               </AnimatePresence>
 
               <div className="absolute bottom-0 left-0 right-0 z-20 border-t border-white/[0.04] bg-brand-bg/75 py-3 pl-[calc(env(safe-area-inset-left,0px)+1rem)] pr-[calc(env(safe-area-inset-right,0px)+1rem)] pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] backdrop-blur-xl">
-                <div className={clsx(
-                  'grid items-center gap-2',
-                  isPageMode
-                    ? showFavoriteButton ? 'grid-cols-[1fr_56px_1fr]' : 'grid-cols-2'
-                    : showFavoriteButton ? 'grid-cols-[1fr_56px_56px_1fr]' : 'grid-cols-[1fr_56px_1fr]'
-                )}>
+                <div
+                  className="grid items-center gap-2"
+                  style={{ gridTemplateColumns: utilityButtonCount > 0 ? `1fr repeat(${utilityButtonCount}, 56px) 1fr` : '1fr 1fr' }}
+                >
                   <motion.button
                     type="button"
                     data-details-action="watched"
@@ -850,6 +858,27 @@ export const DetailsSheet = () => {
                       )}
                     >
                       <Heart size={16} className={isFavorited ? 'fill-current' : ''} />
+                    </motion.button>
+                  )}
+
+                  {showPurchasedButton && (
+                    <motion.button
+                      type="button"
+                      onClick={handlePurchasedToggle}
+                      title="Purchased"
+                      aria-label={isPurchased ? 'Mark as not purchased' : 'Mark as purchased'}
+                      aria-pressed={isPurchased}
+                      disabled={!!currentActionPulse}
+                      animate={currentActionPulse === 'purchased' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      className={clsx(
+                        'flex h-11 w-full cursor-pointer items-center justify-center rounded-lg border transition-colors duration-200 disabled:cursor-wait',
+                        isPurchased
+                          ? 'border-emerald-400/45 bg-emerald-500/15 text-emerald-300 shadow-[0_0_18px_rgba(52,211,153,0.14)] hover:border-emerald-300/60 hover:bg-emerald-500/25'
+                          : 'border-emerald-400/25 bg-emerald-500/[0.06] text-emerald-300 hover:border-emerald-300/50 hover:bg-emerald-500/15'
+                      )}
+                    >
+                      <DollarSign size={16} strokeWidth={isPurchased ? 3 : 2} />
                     </motion.button>
                   )}
 

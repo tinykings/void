@@ -177,7 +177,7 @@ test('payload preserves favorites after they move to playlist', () => {
   assert.equal(payload.favorites[0].id, favorite.id);
 });
 
-test('version 3 payload preserves ratings and played episodes', () => {
+test('version 4 payload preserves ratings, purchases, and played episodes', () => {
   const watched: Media = {
     id: 42,
     title: 'Rated movie',
@@ -191,16 +191,23 @@ test('version 3 payload preserves ratings and played episodes', () => {
     date_added: '2026-01-01T00:00:00.000Z',
     rating: 4,
     isFavorite: true,
+    isPurchased: true,
   };
   const playedEpisodes = { '99-2-3': true };
 
   const payload = buildGistPayload([], [watched], playedEpisodes);
 
-  assert.equal(payload.version, 3);
+  assert.equal(payload.version, 4);
   assert.equal(payload.watched[0].rating, 4);
+  assert.equal(payload.watched[0].isPurchased, undefined);
   assert.deepEqual(payload.playedEpisodes, playedEpisodes);
   assert.equal(isEmptyGistPayload(payload), false);
   assert.equal(fromGistItem(payload.watched[0], true).rating, 4);
+
+  const purchasedGame: Media = { ...watched, id: 43, media_type: 'game', source: 'igdb', isPurchased: true };
+  const gamePayload = buildGistPayload([purchasedGame], []);
+  assert.equal(gamePayload.watchlist[0].isPurchased, true);
+  assert.equal(fromGistItem(gamePayload.watchlist[0]).isPurchased, true);
 });
 
 test('version 3 Gist content requires valid played episode data', async () => {

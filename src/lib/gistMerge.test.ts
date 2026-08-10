@@ -11,7 +11,7 @@ const item = (id: number, title: string): GistLibraryItem => ({
   date_added: '2026-01-01T00:00:00.000Z',
 });
 const payload = (watchlist: GistLibraryItem[] = [], watched: GistLibraryItem[] = []): GistLibraryData => ({
-  version: 3,
+  version: 4,
   watchlist,
   watched,
   favorites: [],
