@@ -50,6 +50,17 @@ test('mergeGistChanges applies local removals without removing unrelated remote 
   assert.deepEqual(merged.watched, [remoteHistory]);
 });
 
+test('mergeGistChanges keeps favorite state when item moves to playlist', () => {
+  const favorite = item(3, 'Returning favorite');
+  const baseline = { ...payload([], [favorite]), favorites: [favorite] };
+  const local = { ...payload([favorite]), favorites: [favorite] };
+
+  const merged = mergeGistChanges(baseline, baseline, local);
+
+  assert.deepEqual(merged.watchlist, [favorite]);
+  assert.deepEqual(merged.favorites, [favorite]);
+});
+
 test('mergeGistChanges merges favorite and episode changes', () => {
   const watched = item(1, 'Favorite');
   const baseline = payload([], [watched]);

@@ -8,7 +8,7 @@ import { getMediaDetails } from '@/lib/tmdb';
 import { getIgdbGameDetails } from '@/lib/igdb';
 import { mapWithConcurrency } from '@/lib/concurrency';
 import { getMediaKey, getMediaSource } from '@/lib/media';
-import { isDateInLocalDayWindow, toggleWatchedInLibrary, toggleWatchlistInLibrary } from '@/lib/library';
+import { isDateInLocalDayWindow, toggleFavoriteInLibrary, toggleWatchedInLibrary, toggleWatchlistInLibrary } from '@/lib/library';
 
 const DEFAULT_TMDB_ACCESS_TOKEN = process.env.NEXT_PUBLIC_TMDB_READ_ACCESS_TOKEN || '';
 const METADATA_HYDRATION_CONCURRENCY = 1;
@@ -320,20 +320,11 @@ export const useStore = create<StoreState>()(
         },
 
         toggleFavorite: async (media) => {
-          const { watched } = get();
-          const mediaKey = getMediaKey(media);
-          const item = watched.find((m) => getMediaKey(m) === mediaKey);
-          if (!item) return;
+          const { watchlist, watched } = get();
+          const updated = toggleFavoriteInLibrary(watchlist, watched, media);
+          if (updated.watchlist === watchlist && updated.watched === watched) return;
 
-          const newIsFavorite = !item.isFavorite;
-          set({
-            watched: watched.map((m) =>
-              getMediaKey(m) === mediaKey
-                ? { ...m, isFavorite: newIsFavorite }
-                : m
-            ),
-          });
-
+          set(updated);
           void get().syncToGist();
         },
 

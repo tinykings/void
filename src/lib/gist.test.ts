@@ -156,6 +156,27 @@ test('legacy Gist imports restore media defaults and favorites', () => {
   assert.equal(imported.backdrop_path, null);
 });
 
+test('payload preserves favorites after they move to playlist', () => {
+  const favorite: Media = {
+    id: 41,
+    title: 'Returning show',
+    poster_path: null,
+    backdrop_path: null,
+    overview: '',
+    vote_average: 8,
+    popularity: 10,
+    media_type: 'tv',
+    source: 'tmdb',
+    date_added: '2026-01-01T00:00:00.000Z',
+    isFavorite: true,
+  };
+
+  const payload = buildGistPayload([favorite], []);
+
+  assert.equal(payload.favorites.length, 1);
+  assert.equal(payload.favorites[0].id, favorite.id);
+});
+
 test('version 3 payload preserves ratings and played episodes', () => {
   const watched: Media = {
     id: 42,

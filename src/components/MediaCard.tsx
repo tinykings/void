@@ -77,6 +77,7 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
     isSearchFocused,
     watchlistIds,
     watchedIds,
+    watchlistMap,
     watchedMap,
     openDetails,
   } = useAppContext();
@@ -91,7 +92,11 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
   const mediaKey = getMediaKey(media);
   const inWatchlist = watchlistIds.has(mediaKey);
   const inWatched = watchedIds.has(mediaKey);
-  const isFavorite = Boolean(media.isFavorite || watchedMap.get(mediaKey)?.isFavorite);
+  const isFavorite = Boolean(
+    media.isFavorite
+    || watchlistMap.get(mediaKey)?.isFavorite
+    || watchedMap.get(mediaKey)?.isFavorite
+  );
 
   const nowTime = useMemo(() => {
     const now = new Date();
@@ -193,7 +198,7 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
               {isFavorite && (
                 <div
                   aria-hidden="true"
-                  className="flex h-7 w-7 items-center justify-center rounded-full border border-brand-cyan/30 bg-brand-bg/85 text-brand-cyan shadow-[0_2px_10px_rgba(0,0,0,0.35)] backdrop-blur-md"
+                  className="flex h-7 w-7 items-center justify-center rounded-full border border-rose-400/35 bg-brand-bg/85 text-rose-400 shadow-[0_2px_10px_rgba(0,0,0,0.35)] backdrop-blur-md"
                 >
                   <Heart size={14} className="fill-current" strokeWidth={2.5} />
                 </div>

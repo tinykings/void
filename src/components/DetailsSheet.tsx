@@ -32,6 +32,7 @@ export const DetailsSheet = () => {
     apiKey,
     watchlistIds,
     watchedIds,
+    watchlistMap,
     watchedMap,
     openActor,
     closeAllSheets,
@@ -99,7 +100,10 @@ export const DetailsSheet = () => {
 
   const inWatchlist = mediaKey ? watchlistIds.has(mediaKey) : false;
   const inWatched = mediaKey ? watchedIds.has(mediaKey) : false;
-  const isFavorited = inWatched && selected ? watchedMap.get(mediaKey)?.isFavorite ?? false : false;
+  const isFavorited = selected
+    ? watchedMap.get(mediaKey)?.isFavorite ?? watchlistMap.get(mediaKey)?.isFavorite ?? false
+    : false;
+  const showFavoriteButton = inWatched || (inWatchlist && isFavorited);
   const {
     castItems,
     castKey,
@@ -241,7 +245,7 @@ export const DetailsSheet = () => {
     && seasonErrorKey !== seasonRequestKey;
   const externalLinks = [
     selected.source_url && source !== 'igdb' ? { label: providerLabel, url: selected.source_url } : null,
-  ].filter((link): link is { label: string; url: string } => !!link && !!link.url);  const runAction = async (action: 'watchlist' | 'watched', commit: () => Promise<void> | void) => {
+  ].filter((link): link is { label: string; url: string } => !!link && !!link.url);  const runAction = async (action: 'watchlist' | 'watched' | 'favorite', commit: () => Promise<void> | void) => {
     if (closeActionTimerRef.current) clearTimeout(closeActionTimerRef.current);
 
     setActionPulse({ key: mediaKey, action });
@@ -305,8 +309,8 @@ export const DetailsSheet = () => {
   };
 
   const handleFavoriteToggle = () => {
-    if (!inWatched) return;
-    void runAction('favorite' as 'watchlist' | 'watched', () => toggleFavorite(selected));
+    if (!showFavoriteButton) return;
+    void runAction('favorite', () => toggleFavorite(selected));
   };
 
   return (
@@ -806,8 +810,8 @@ export const DetailsSheet = () => {
                 <div className={clsx(
                   'grid items-center gap-2',
                   isPageMode
-                    ? inWatched ? 'grid-cols-[1fr_56px_1fr]' : 'grid-cols-2'
-                    : inWatched ? 'grid-cols-[1fr_56px_56px_1fr]' : 'grid-cols-[1fr_56px_1fr]'
+                    ? showFavoriteButton ? 'grid-cols-[1fr_56px_1fr]' : 'grid-cols-2'
+                    : showFavoriteButton ? 'grid-cols-[1fr_56px_56px_1fr]' : 'grid-cols-[1fr_56px_1fr]'
                 )}>
                   <motion.button
                     type="button"
@@ -829,20 +833,20 @@ export const DetailsSheet = () => {
                     {inWatched ? 'In history' : 'Add to history'}
                   </motion.button>
 
-                  {inWatched && (
+                  {showFavoriteButton && (
                     <motion.button
                       type="button"
                       onClick={handleFavoriteToggle}
-                      title={isFavorited ? 'Favorited' : 'Mark Favorite'}
-                      aria-label={isFavorited ? 'Favorited' : 'Mark Favorite'}
+                      title={isFavorited ? 'Remove favorite' : 'Mark favorite'}
+                      aria-label={isFavorited ? 'Remove favorite' : 'Mark favorite'}
                       disabled={!!currentActionPulse}
                       animate={currentActionPulse === 'favorite' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
                       transition={{ duration: 0.2, ease: 'easeOut' }}
                       className={clsx(
                         'flex h-11 w-full cursor-pointer items-center justify-center rounded-lg border transition-colors duration-200 disabled:cursor-wait',
                         isFavorited
-                          ? 'border-brand-cyan/40 bg-brand-cyan/15 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.12)] hover:border-brand-cyan/60 hover:bg-brand-cyan/25'
-                          : 'border-white/15 bg-brand-bg/80 text-white hover:border-brand-cyan/30 hover:bg-brand-cyan/10 hover:text-brand-cyan'
+                          ? 'border-rose-400/45 bg-rose-500/15 text-rose-300 shadow-[0_0_18px_rgba(251,113,133,0.14)] hover:border-rose-300/60 hover:bg-rose-500/25'
+                          : 'border-rose-400/25 bg-rose-500/[0.06] text-rose-300 hover:border-rose-300/50 hover:bg-rose-500/15'
                       )}
                     >
                       <Heart size={16} className={isFavorited ? 'fill-current' : ''} />

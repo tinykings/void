@@ -11,6 +11,7 @@ export const toggleWatchlistInLibrary = (
 ): LibraryLists => {
   const mediaKey = getMediaKey(media);
   const inWatchlist = watchlist.some((item) => getMediaKey(item) === mediaKey);
+  const watchedItem = watched.find((item) => getMediaKey(item) === mediaKey);
 
   if (inWatchlist) {
     return {
@@ -20,7 +21,11 @@ export const toggleWatchlistInLibrary = (
   }
 
   return {
-    watchlist: [...watchlist, { ...media, date_added: addedAt }],
+    watchlist: [...watchlist, {
+      ...media,
+      ...(watchedItem?.isFavorite !== undefined ? { isFavorite: watchedItem.isFavorite } : {}),
+      date_added: addedAt,
+    }],
     watched: watched.filter((item) => getMediaKey(item) !== mediaKey),
   };
 };
@@ -35,6 +40,7 @@ export const toggleWatchedInLibrary = (
 ): LibraryLists => {
   const mediaKey = getMediaKey(media);
   const inWatched = watched.some((item) => getMediaKey(item) === mediaKey);
+  const watchlistItem = watchlist.find((item) => getMediaKey(item) === mediaKey);
 
   if (inWatched && rating === undefined) {
     return {
@@ -60,10 +66,39 @@ export const toggleWatchedInLibrary = (
     watchlist: watchlist.filter((item) => getMediaKey(item) !== mediaKey),
     watched: [...watched, {
       ...media,
+      ...(watchlistItem?.isFavorite !== undefined ? { isFavorite: watchlistItem.isFavorite } : {}),
       ...(rating === undefined ? {} : { rating }),
       date_added: addedAt,
       lastChecked: checkedAt,
     }],
+  };
+};
+
+export const toggleFavoriteInLibrary = (
+  watchlist: Media[],
+  watched: Media[],
+  media: Media,
+): LibraryLists => {
+  const mediaKey = getMediaKey(media);
+  const watchedItem = watched.find((item) => getMediaKey(item) === mediaKey);
+
+  if (watchedItem) {
+    return {
+      watchlist,
+      watched: watched.map((item) => getMediaKey(item) === mediaKey
+        ? { ...item, isFavorite: !item.isFavorite }
+        : item),
+    };
+  }
+
+  const watchlistItem = watchlist.find((item) => getMediaKey(item) === mediaKey);
+  if (!watchlistItem?.isFavorite) return { watchlist, watched };
+
+  return {
+    watchlist: watchlist.map((item) => getMediaKey(item) === mediaKey
+      ? { ...item, isFavorite: false }
+      : item),
+    watched,
   };
 };
 

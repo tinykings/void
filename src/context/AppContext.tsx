@@ -68,6 +68,7 @@ interface AppContextType extends UserState {
   // O(1) lookup helpers
   watchlistIds: Set<string>;
   watchedIds: Set<string>;
+  watchlistMap: Map<string, Media>;
   watchedMap: Map<string, Media>;
 }
 
@@ -376,6 +377,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // O(1) lookup Maps for membership checks
   const watchlistIds = useMemo(() => new Set(store.watchlist.map(m => getMediaKey(m))), [store.watchlist]);
   const watchedIds = useMemo(() => new Set(store.watched.map(m => getMediaKey(m))), [store.watched]);
+  const watchlistMap = useMemo(() => {
+    const map = new Map<string, Media>();
+    store.watchlist.forEach(m => map.set(getMediaKey(m), m));
+    return map;
+  }, [store.watchlist]);
   const watchedMap = useMemo(() => {
     const map = new Map<string, Media>();
     store.watched.forEach(m => map.set(getMediaKey(m), m));
@@ -429,11 +435,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     watchlistIds,
     watchedIds,
+    watchlistMap,
     watchedMap,
   }), [
     store,
     watchlistIds,
     watchedIds,
+    watchlistMap,
     watchedMap,
     activeDetailsMedia,
     activeActorMedia,

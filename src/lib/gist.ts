@@ -51,7 +51,7 @@ export const buildGistPayload = (
   version: 3,
   watchlist: watchlist.map(toGistItem),
   watched: watched.map(toGistItem),
-  favorites: watched.filter((item) => item.isFavorite).map(toGistItem),
+  favorites: [...watchlist, ...watched].filter((item) => item.isFavorite).map(toGistItem),
   playedEpisodes,
 });
 

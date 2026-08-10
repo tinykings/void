@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isDateInLocalDayWindow, toggleWatchedInLibrary, toggleWatchlistInLibrary } from './library';
+import { isDateInLocalDayWindow, toggleFavoriteInLibrary, toggleWatchedInLibrary, toggleWatchlistInLibrary } from './library';
 import type { Media } from './types';
 
 const media = (id: number, media_type: Media['media_type'] = 'movie', source?: Media['source']): Media => ({
@@ -24,6 +24,15 @@ test('adding to playlist removes matching item from history only', () => {
   assert.deepEqual(result.watched, [sameNumericIdDifferentType]);
 });
 
+test('moving a favorite to playlist preserves favorite state', () => {
+  const selected = media(11);
+  const favorite = { ...selected, isFavorite: true };
+  const result = toggleWatchlistInLibrary([], [favorite], selected, '2026-01-02T00:00:00.000Z');
+
+  assert.equal(result.watchlist[0].isFavorite, true);
+  assert.deepEqual(result.watched, []);
+});
+
 test('adding to history removes matching item from playlist', () => {
   const selected = media(8);
   const result = toggleWatchedInLibrary([selected], [], selected, 5, '2026-01-02T00:00:00.000Z', 1234);
@@ -35,6 +44,15 @@ test('adding to history removes matching item from playlist', () => {
     date_added: '2026-01-02T00:00:00.000Z',
     lastChecked: 1234,
   }]);
+});
+
+test('moving a favorite back to history preserves favorite state', () => {
+  const selected = media(12);
+  const favorite = { ...selected, isFavorite: true };
+  const result = toggleWatchedInLibrary([favorite], [], selected, undefined, '2026-01-02T00:00:00.000Z', 1234);
+
+  assert.equal(result.watched[0].isFavorite, true);
+  assert.deepEqual(result.watchlist, []);
 });
 
 test('rating update preserves metadata and collapses legacy duplicates', () => {
@@ -50,6 +68,26 @@ test('rating update preserves metadata and collapses legacy duplicates', () => {
 test('history toggle without rating removes existing item', () => {
   const selected = media(10);
   assert.deepEqual(toggleWatchedInLibrary([], [selected], selected).watched, []);
+});
+
+test('favorite toggle can remove favorite from playlist but cannot add one there', () => {
+  const selected = media(13);
+  const favorite = { ...selected, isFavorite: true };
+
+  assert.equal(toggleFavoriteInLibrary([favorite], [], selected).watchlist[0].isFavorite, false);
+  const playlist = [selected];
+  const unchanged = toggleFavoriteInLibrary(playlist, [], selected);
+  assert.equal(unchanged.watchlist, playlist);
+  assert.equal(unchanged.watchlist[0].isFavorite, undefined);
+});
+
+test('favorite toggle still adds and removes favorites in history', () => {
+  const selected = media(14);
+  const added = toggleFavoriteInLibrary([], [selected], selected);
+  const removed = toggleFavoriteInLibrary([], added.watched, selected);
+
+  assert.equal(added.watched[0].isFavorite, true);
+  assert.equal(removed.watched[0].isFavorite, false);
 });
 
 test('TV migration window includes today and day seven only', () => {

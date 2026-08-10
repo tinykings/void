@@ -47,7 +47,7 @@ export const mergeGistChanges = (
     }
 
     if (baselineFavorites.has(key) !== localFavorites.has(key)) {
-      if (localFavorites.has(key) && after?.list === 'watched') mergedFavorites.add(key);
+      if (localFavorites.has(key) && after) mergedFavorites.add(key);
       else mergedFavorites.delete(key);
     }
   }
@@ -69,9 +69,9 @@ export const mergeGistChanges = (
     else watched.push(item);
   }
 
-  const watchedByKey = new Map(watched.map((item) => [itemKey(item), item]));
+  const libraryByKey = new Map([...watchlist, ...watched].map((item) => [itemKey(item), item]));
   const favorites = [...mergedFavorites]
-    .map((key) => watchedByKey.get(key))
+    .map((key) => libraryByKey.get(key))
     .filter((item): item is GistLibraryItem => !!item);
 
   return { version: 3, watchlist, watched, favorites, playedEpisodes };
