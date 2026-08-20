@@ -5,6 +5,7 @@ import { useAppContext } from '@/context/AppContext';
 import { Download, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { buildGistPayload } from '@/lib/gist';
+import { MediaTypeSettings } from '@/components/MediaTypeSettings';
 
 export const SettingsView = () => {
   const router = useRouter();
@@ -40,6 +41,8 @@ export const SettingsView = () => {
       </div>
 
       <div className="space-y-6">
+        <MediaTypeSettings />
+
         {!hasGistSync && (
           <section className="bg-brand-bg/50 p-4 rounded-xl blueprint-border">
             <div className="flex items-center gap-2 mb-4">

@@ -31,6 +31,8 @@ export interface SeasonDetails {
 
 export type MediaType = 'movie' | 'tv' | 'game';
 
+export type EnabledMediaTypes = Record<MediaType, boolean>;
+
 export type MediaSource = 'tmdb' | 'igdb' | 'rawg' | 'steam';
 
 export interface Media {

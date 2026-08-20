@@ -33,6 +33,7 @@ export const SearchSheet = () => {
     isLoaded,
     watchlist,
     watched,
+    enabledMediaTypes,
   } = useAppContext();
   const [query, setQuery] = useState(initialQuery);
   const [submittedQuery, setSubmittedQuery] = useState(initialQuery);
@@ -49,10 +50,12 @@ export const SearchSheet = () => {
   } = useMediaSearch({ apiKey, enabled: isSearchFocused, isLoaded, isOnline });
 
   const searchTerm = query.trim();
-  const filteredMedia = useMemo(
-    () => mediaFilter === 'all' ? displayedMedia : displayedMedia.filter((item) => item.media_type === mediaFilter),
-    [displayedMedia, mediaFilter],
-  );
+  const availableFilters = useMemo(() => (['movie', 'tv', 'game'] as const).filter((type) => enabledMediaTypes[type]), [enabledMediaTypes]);
+  const activeMediaFilter = mediaFilter === 'all' || enabledMediaTypes[mediaFilter] ? mediaFilter : 'all';
+  const filteredMedia = useMemo(() => {
+    const visibleMedia = displayedMedia.filter((item) => enabledMediaTypes[item.media_type]);
+    return activeMediaFilter === 'all' ? visibleMedia : visibleMedia.filter((item) => item.media_type === activeMediaFilter);
+  }, [activeMediaFilter, displayedMedia, enabledMediaTypes]);
   const isLibraryEmpty = watchlist.length === 0 && watched.length === 0;
   const displayError = isSearchFocused
     ? isOnline ? error : 'Search is unavailable offline. Your saved collection remains available.'
@@ -274,8 +277,8 @@ export const SearchSheet = () => {
 
             {hasSubmittedSearch && (
               <div className="mb-4 flex gap-2 overflow-x-auto" aria-label="Filter search results">
-                {(['all', 'movie', 'tv', 'game'] as const).map((filter) => (
-                  <button key={filter} type="button" onClick={() => setMediaFilter(filter)} className={`type-action min-h-11 shrink-0 rounded-lg border px-3 ${mediaFilter === filter ? 'border-brand-cyan/40 bg-brand-cyan/10 text-brand-cyan' : 'border-white/10 text-brand-silver'}`}>
+                {(['all', ...availableFilters] as Array<'all' | MediaType>).map((filter) => (
+                  <button key={filter} type="button" onClick={() => setMediaFilter(filter)} className={`type-action min-h-11 shrink-0 rounded-lg border px-3 ${activeMediaFilter === filter ? 'border-brand-cyan/40 bg-brand-cyan/10 text-brand-cyan' : 'border-white/10 text-brand-silver'}`}>
                     {filter === 'all' ? 'All' : filter === 'tv' ? 'Shows' : `${filter[0].toUpperCase()}${filter.slice(1)}s`}
                   </button>
                 ))}

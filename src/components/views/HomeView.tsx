@@ -25,6 +25,7 @@ import type { StreamableMedia } from '@/lib/streamProviders';
 import { HomeStreamSection } from '@/components/HomeStreamSection';
 import { HomeDealsSection } from '@/components/HomeDealsSection';
 import { useGameDeals } from '@/hooks/useGameDeals';
+import { MediaTypeSettings } from '@/components/MediaTypeSettings';
 
 type LibraryMode = 'library' | 'watchlist';
 
@@ -43,6 +44,7 @@ export const HomeView = () => {
     setShowWatched,
     showFavoritesOnly,
     setShowFavoritesOnly,
+    enabledMediaTypes,
     githubLogin,
     disconnectGithub,
     syncFromGist,
@@ -62,8 +64,10 @@ export const HomeView = () => {
 
   const activeFilter = filter || 'all';
   const activeLibraryMode: LibraryMode = showWatched ? 'library' : 'watchlist';
-  const streamablePlaylist = useMemo(() => watchlist.filter((item): item is StreamableMedia => item.media_type === 'movie' || item.media_type === 'tv'), [watchlist]);
-  const gamePlaylist = useMemo(() => watchlist.filter((item) => item.media_type === 'game'), [watchlist]);
+  const streamablePlaylist = useMemo(() => watchlist.filter((item): item is StreamableMedia =>
+    (item.media_type === 'movie' || item.media_type === 'tv') && enabledMediaTypes[item.media_type]
+  ), [enabledMediaTypes, watchlist]);
+  const gamePlaylist = useMemo(() => watchlist.filter((item) => item.media_type === 'game' && enabledMediaTypes.game), [enabledMediaTypes.game, watchlist]);
   const unpurchasedGamePlaylist = useMemo(() => gamePlaylist.filter((item) => !item.isPurchased), [gamePlaylist]);
   const [showStreamView, setShowStreamView] = useState(false);
   const [showDealsView, setShowDealsView] = useState(false);
@@ -128,10 +132,10 @@ export const HomeView = () => {
 
   // Combine and process library media
   const baseLibraryMedia = useMemo(() => {
-    const combined = showWatched ? watched : watchlist;
+    const combined = (showWatched ? watched : watchlist).filter((item) => enabledMediaTypes[item.media_type]);
     if (activeFilter === 'all') return combined;
     return combined.filter(m => m.media_type === activeFilter);
-  }, [watchlist, watched, activeFilter, showWatched]);
+  }, [watchlist, watched, activeFilter, enabledMediaTypes, showWatched]);
 
   const libraryMedia = useMemo(() => {
     let filtered = [...baseLibraryMedia];
@@ -364,6 +368,12 @@ export const HomeView = () => {
     sessionStorage.removeItem('void_home_count');
   }, [filter, sort, showWatched, showFavoritesOnly]);
 
+  useEffect(() => {
+    if (activeFilter !== 'all' && !enabledMediaTypes[activeFilter]) setFilter('all');
+    if (showStreamView && !enabledMediaTypes.movie && !enabledMediaTypes.tv) setShowStreamView(false);
+    if (showDealsView && !enabledMediaTypes.game) setShowDealsView(false);
+  }, [activeFilter, enabledMediaTypes, setFilter, showDealsView, showStreamView]);
+
   // Reset favorites filter when leaving watched view
   useEffect(() => {
     if (isInitialMount.current) return;
@@ -517,9 +527,9 @@ export const HomeView = () => {
                   <div className="absolute bottom-full left-0 mb-3 max-h-[calc(100dvh-7rem)] w-44 overflow-y-auto rounded-xl bg-brand-bg blueprint-border">
                     {[
                       { id: 'all' as const, label: 'All', icon: LayoutGrid },
-                      { id: 'movie' as const, label: 'Movies', icon: Film },
-                      { id: 'tv' as const, label: 'Shows', icon: Tv },
-                      { id: 'game' as const, label: 'Games', icon: Gamepad2 },
+                      ...(enabledMediaTypes.movie ? [{ id: 'movie' as const, label: 'Movies', icon: Film }] : []),
+                      ...(enabledMediaTypes.tv ? [{ id: 'tv' as const, label: 'Shows', icon: Tv }] : []),
+                      ...(enabledMediaTypes.game ? [{ id: 'game' as const, label: 'Games', icon: Gamepad2 }] : []),
                     ].map((item) => {
                       const Icon = item.icon;
                       const isActive = !showSpecialView && activeFilter === item.id;
@@ -560,7 +570,7 @@ export const HomeView = () => {
 
                     <div className="h-px bg-white/5" />
 
-                    <button
+                    {(enabledMediaTypes.movie || enabledMediaTypes.tv) && <button
                       type="button"
                       onClick={selectStreamView}
                       className={clsx(
@@ -572,9 +582,9 @@ export const HomeView = () => {
                     >
                       <Radio size={15} />
                       Stream
-                    </button>
+                    </button>}
 
-                    <button
+                    {enabledMediaTypes.game && <button
                       type="button"
                       onClick={selectDealsView}
                       className={clsx(
@@ -586,7 +596,7 @@ export const HomeView = () => {
                     >
                       <BadgeDollarSign size={15} />
                       Deals
-                    </button>
+                    </button>}
 
                     <div className="h-px bg-white/5" />
 
@@ -724,6 +734,8 @@ export const HomeView = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-5 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] space-y-4">
+              <MediaTypeSettings />
+
               <div className="rounded-xl bg-white/[0.03] blueprint-border p-4 space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-cyan/10 text-brand-cyan">

@@ -18,7 +18,7 @@ export const ActorSheet = () => {
   const pathname = usePathname();
   const router = useRouter();
   const isPageMode = pathname.replace(/\/$/, '').endsWith('/person');
-  const { activeActorMedia, closeActor, closeAllSheets, apiKey, openDetails } = useAppContext();
+  const { activeActorMedia, closeActor, closeAllSheets, apiKey, enabledMediaTypes, openDetails } = useAppContext();
   const [actorCredits, setActorCredits] = useState<{ actorId: number; credits: Media[] } | null>(null);
   const [personDetails, setPersonDetails] = useState<{ actorId: number; details: PersonDetails } | null>(null);
 
@@ -28,8 +28,8 @@ export const ActorSheet = () => {
 
   const topCredits = useMemo(() => {
     if (!actor || actorCredits?.actorId !== actor.id) return [];
-    return actorCredits.credits.slice(0, 20);
-  }, [actor, actorCredits]);
+    return actorCredits.credits.filter((item) => enabledMediaTypes[item.media_type]).slice(0, 20);
+  }, [actor, actorCredits, enabledMediaTypes]);
 
   const loading = isOnline && !!actor && !!apiKey && actorCredits?.actorId !== actor.id;
 
