@@ -4,12 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "worker:dev": "npx wrangler@latest dev --config worker/wrangler.toml",
-    "worker:deploy": "npx wrangler@latest deploy --config worker/wrangler.toml",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test --test-concurrency=1 src/**/*.test.ts worker/src/*.test.ts",
+    "test": "tsx --test --test-concurrency=1 src/**/*.test.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

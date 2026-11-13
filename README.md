@@ -93,8 +93,6 @@ src/
 │   ├── types.ts          # Core TypeScript interfaces
 ├── context/
     └── AppContext.tsx     # React context wrapper around Zustand store
-├── worker/
-    └── src/index.ts       # Cloudflare Worker proxy for IGDB
 ```
 
 **Data flow:** Components → `useAppContext()` → Zustand store → persisted to IndexedDB (`void_user_state`) and synced through `void-data.json` in GitHub Gists. TMDB is called directly for movies/shows; games are fetched through the IGDB Worker.
@@ -104,12 +102,11 @@ src/
 ```bash
 npm install
 npm run dev      # Start dev server at localhost:3000
-npm run worker:dev  # Start game API Worker at localhost:8787
 npm run build    # Production static export to out/
 npm run lint     # Run ESLint
 ```
 
-For local game search, copy `worker/.dev.vars.example` to `worker/.dev.vars`, fill in the Twitch/IGDB credentials, and set `NEXT_PUBLIC_GAME_API_BASE_URL=http://localhost:8787` in `.env.local`.
+The game API Worker (`void-game-api`) lives in [tinykings/Void-iOS](https://github.com/tinykings/Void-iOS/tree/main/worker), which serves this site and the iPhone app. Deploy it only from there: its config allows this site's origin and the iPhone app's requests. For local game search, run `npx wrangler dev` in that repo's `worker/` folder and set `NEXT_PUBLIC_GAME_API_BASE_URL=http://localhost:8787` in `.env.local`.
 
 GitHub connection is bypassed by default under `npm run dev`; local changes remain in IndexedDB and Gist writes are skipped. To test OAuth locally, set both values in `.env.local`:
 
