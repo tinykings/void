@@ -8,7 +8,7 @@ import { getImageUrl, getSeasonDetails } from '@/lib/tmdb';
 import { getImageSrc, getMediaKey, getMediaTitle, getPersonHref } from '@/lib/media';
 import { backOrHome, rememberRouteParent } from '@/lib/clientNavigation';
 import type { SeasonDetails, Video } from '@/lib/types';
-import { ArrowLeft, Bookmark, ChevronDown, Eye, Heart, Pin, Play, X } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, Heart, Pin, Play, Plus, SquareCheck, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { FocusTrap } from '@/components/FocusTrap';
@@ -700,22 +700,22 @@ export const DetailsSheet = () => {
                 >
                   <motion.button
                     type="button"
-                    data-details-action="watched"
-                    onClick={handleWatchedToggle}
-                    title={inWatched ? 'In History' : 'Add to History'}
-                    aria-label={inWatched ? 'In History' : 'Add to History'}
+                    data-details-action="watchlist"
+                    onClick={handleWatchlistToggle}
+                    title={inWatchlist ? 'On Playlist' : 'Playlist'}
+                    aria-label={inWatchlist ? 'On Playlist' : 'Playlist'}
                     disabled={!!currentActionPulse}
-                    animate={currentActionPulse === 'watched' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
+                    animate={currentActionPulse === 'watchlist' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
                     transition={{ duration: 0.2, ease: 'easeOut' }}
                     className={clsx(
                       'type-action flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 transition-colors duration-200 disabled:cursor-wait',
-                      inWatched
-                        ? 'border-green-400/40 bg-green-500/15 text-green-200 hover:border-green-300/60 hover:bg-green-500/25'
+                      inWatchlist
+                        ? 'border-brand-cyan/40 bg-brand-cyan/15 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.12)] hover:border-brand-cyan/60 hover:bg-brand-cyan/25'
                         : 'border-white/15 bg-brand-bg/80 text-white hover:border-brand-cyan/30 hover:bg-brand-cyan/10 hover:text-brand-cyan'
                     )}
                   >
-                    <Eye size={14} />
-                    {inWatched ? 'In history' : 'Add to history'}
+                    {inWatchlist ? <Check size={14} aria-hidden="true" /> : <Plus size={14} aria-hidden="true" />}
+                    {inWatchlist ? 'On Playlist' : 'Playlist'}
                   </motion.button>
 
                   {showFavoriteButton && (
@@ -752,22 +752,22 @@ export const DetailsSheet = () => {
 
                   <motion.button
                     type="button"
-                    data-details-action="watchlist"
-                    onClick={handleWatchlistToggle}
-                    title={inWatchlist ? 'In Playlist' : 'Add to Playlist'}
-                    aria-label={inWatchlist ? 'In Playlist' : 'Add to Playlist'}
+                    data-details-action="watched"
+                    onClick={handleWatchedToggle}
+                    title={inWatched ? 'Played' : 'Mark Played'}
+                    aria-label={inWatched ? 'Played' : 'Mark Played'}
                     disabled={!!currentActionPulse}
-                    animate={currentActionPulse === 'watchlist' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
+                    animate={currentActionPulse === 'watched' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
                     transition={{ duration: 0.2, ease: 'easeOut' }}
                     className={clsx(
                       'type-action flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 transition-colors duration-200 disabled:cursor-wait',
-                      inWatchlist
-                        ? 'border-brand-cyan/40 bg-brand-cyan/15 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.12)] hover:border-brand-cyan/60 hover:bg-brand-cyan/25'
+                      inWatched
+                        ? 'border-green-400/40 bg-green-500/15 text-green-200 hover:border-green-300/60 hover:bg-green-500/25'
                         : 'border-white/15 bg-brand-bg/80 text-white hover:border-brand-cyan/30 hover:bg-brand-cyan/10 hover:text-brand-cyan'
                     )}
                   >
-                    <Bookmark size={14} />
-                    {inWatchlist ? 'In playlist' : 'Add to playlist'}
+                    {inWatched ? <Check size={14} aria-hidden="true" /> : <SquareCheck size={14} aria-hidden="true" />}
+                    {inWatched ? 'Played' : 'Mark Played'}
                   </motion.button>
                 </div>
               </div>
