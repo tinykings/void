@@ -30,7 +30,7 @@ const mockTmdb = async (page: Page) => {
   });
 };
 
-const seedConnectedLibrary = async (page: Page, library: { watchlist?: object[]; watched?: object[]; filter?: string } = {}) => {
+const seedConnectedLibrary = async (page: Page, library: { watchlist?: object[]; watched?: object[]; filter?: string; legacyShowTitles?: boolean } = {}) => {
   await page.goto('/favicon.png');
   await page.evaluate(({ seedMovie, library }) => new Promise<void>((resolve, reject) => {
     const request = indexedDB.open('keyval-store', 1);
@@ -52,6 +52,7 @@ const seedConnectedLibrary = async (page: Page, library: { watchlist?: object[];
           showWatched: false,
           showFavoritesOnly: false,
           isSearchFocused: false,
+          ...(library.legacyShowTitles ? { showTitles: true } : {}),
         },
         version: 5,
       }), 'void_user_state');
@@ -333,8 +334,8 @@ const mockLibraryGist = async (page: Page, watchlist: object[], watched: object[
 
 const gistMovie = (id: number, title: string) => ({ id, title, media_type: 'movie', source: 'tmdb', date_added: '2026-01-01T00:00:00.000Z' });
 
-test('pin syncs to Gist and survives reload; Show Titles stays local', async ({ page }, testInfo) => {
-  await seedConnectedLibrary(page, { watchlist: [movie, { ...movie, id: 102, title: 'Other Movie', date_added: '2026-02-01T00:00:00.000Z' }] });
+test('pin survives Gist sync and reload; obsolete Show Titles settings are ignored', async ({ page }) => {
+  await seedConnectedLibrary(page, { watchlist: [movie, { ...movie, id: 102, title: 'Other Movie', date_added: '2026-02-01T00:00:00.000Z' }], legacyShowTitles: true });
   await mockTmdb(page);
   const getGist = await mockLibraryGist(page, [gistMovie(101, 'Test Movie'), gistMovie(102, 'Other Movie')]);
   await page.goto('/');
@@ -345,25 +346,12 @@ test('pin syncs to Gist and survives reload; Show Titles stays local', async ({ 
   await page.reload();
   await expect(page.getByRole('button', { name: /Open details for/ }).first()).toHaveAccessibleName(/Test Movie/);
   await expect(page.getByLabel('Pinned', { exact: true })).toBeVisible();
+  const posterCard = page.getByRole('button', { name: /Open details for Test Movie/ });
+  await expect(posterCard.locator('xpath=following-sibling::div')).toHaveCount(0);
   await page.getByRole('button', { name: /Filter:/ }).click();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  await page.getByText('Show Titles', { exact: true }).click();
-  await expect(page.getByRole('checkbox', { name: 'Show Titles', exact: true })).toBeChecked();
-  // IndexedDB persistence is asynchronous; wait for the transaction before navigating.
-  await expect.poll(() => page.evaluate(() => new Promise<boolean>((resolve) => {
-    const request = indexedDB.open('keyval-store', 1);
-    request.onsuccess = () => {
-      const read = request.result.transaction('keyval').objectStore('keyval').get('void_user_state');
-      read.onsuccess = () => { resolve(!!JSON.parse(read.result).state.showTitles); request.result.close(); };
-    };
-  }))).toBe(true);
-  await page.reload();
-  await expect(page.locator('.type-action').filter({ hasText: /^Test Movie$/ }).last()).toBeVisible();
-  await page.getByRole('button', { name: /Filter:/ }).click();
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  await expect(page.getByRole('checkbox', { name: 'Show Titles', exact: true })).toBeChecked();
+  await expect(page.getByText('Show Titles', { exact: true })).toHaveCount(0);
   expect(JSON.stringify(getGist())).not.toContain('showTitles');
-  await page.locator('section').filter({ has: page.getByRole('checkbox', { name: 'Show Titles', exact: true }) }).screenshot({ path: testInfo.outputPath('display-settings.png') });
   await page.reload();
   await page.getByRole('button', { name: /Open details for Test Movie/ }).click();
   await page.getByRole('button', { name: 'Unpin', exact: true }).click();
@@ -773,6 +761,7 @@ for (const mobile of [false, true]) {
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await expect(page.getByText('@e2e-user', { exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Media types', exact: true })).toHaveCount(0);
+    await expect(page.getByText('Show Titles', { exact: true })).toHaveCount(0);
     const exportButton = page.getByRole('button', { name: 'Export library as text', exact: true });
     const textDownload = page.waitForEvent('download');
     await exportButton.click();

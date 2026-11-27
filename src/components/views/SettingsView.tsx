@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import { DisplaySettings } from '@/components/DisplaySettings';
 import { LibraryBackupSettings } from '@/components/LibraryBackupSettings';
 
 export const SettingsView = () => {
@@ -16,7 +15,6 @@ export const SettingsView = () => {
         <h1 className="type-display text-white">Settings</h1>
       </div>
       <div className="space-y-6">
-        <DisplaySettings />
         <LibraryBackupSettings />
         <section className="text-center pt-4">
           <p className="type-readout text-brand-silver/50">Data provided by TMDB.</p>
