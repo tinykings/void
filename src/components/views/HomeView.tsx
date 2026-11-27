@@ -24,7 +24,6 @@ import { useStreamProviders } from '@/hooks/useStreamProviders';
 import type { StreamableMedia } from '@/lib/streamProviders';
 import { HomeStreamSection } from '@/components/HomeStreamSection';
 import { LibraryBackupSettings } from '@/components/LibraryBackupSettings';
-import { DisplaySettings } from '@/components/DisplaySettings';
 import { HomeRecommendationsSection } from '@/components/HomeRecommendationsSection';
 
 type LibraryMode = 'library' | 'watchlist';
@@ -44,7 +43,6 @@ export const HomeView = () => {
     setShowWatched,
     showFavoritesOnly,
     setShowFavoritesOnly,
-    showTitles,
     githubLogin,
     disconnectGithub,
     syncFromGist,
@@ -406,7 +404,6 @@ export const HomeView = () => {
                 >
                   <MediaCard
                     media={item}
-                    showCaption={!!showTitles}
                     showCaptionDetails={false}
                     showReleaseBadge={!showWatched}
                     onClick={() => {
@@ -683,7 +680,6 @@ export const HomeView = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-5 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] space-y-4">
-              <DisplaySettings />
               <LibraryBackupSettings />
 
               <div className="rounded-xl bg-white/[0.03] blueprint-border p-4 space-y-4">

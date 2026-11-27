@@ -200,7 +200,6 @@ export type FilterType = 'all' | MediaType;
 export type SortOption = 'added';
 
 export interface UserState {
-  showTitles?: boolean;
   apiKey: string;
   watchlist: Media[];
   watched: Media[];

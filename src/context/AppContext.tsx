@@ -27,7 +27,6 @@ type SheetSnapshot = {
 };
 
 interface AppContextType extends UserState {
-  setShowTitles: (show: boolean) => void;
   togglePin: (media: Media) => void;
   setApiKey: (key: string) => void;
   setGistId: (id: string) => void;
@@ -75,8 +74,6 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isOnline = useOnlineStatus();
   const store = useStore(useShallow((s) => ({
-    showTitles: s.showTitles,
-    setShowTitles: s.setShowTitles,
     togglePin: s.togglePin,
     apiKey: s.apiKey,
     gistId: s.gistId,
@@ -339,7 +336,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     watched: store.watched,
     filter: store.filter,
     sort: store.sort,
-    showTitles: store.showTitles || false,
     showWatched: store.showWatched || false,
     showFavoritesOnly: store.showFavoritesOnly || false,
     isSearchFocused: store.isSearchFocused || false,
@@ -361,7 +357,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSort: store.setSort,
     setShowWatched: store.setShowWatched,
     setShowFavoritesOnly: store.setShowFavoritesOnly,
-    setShowTitles: store.setShowTitles,
     togglePin: store.togglePin,
     toggleFavorite: store.toggleFavorite,
     updateMediaMetadata: store.updateMediaMetadata,

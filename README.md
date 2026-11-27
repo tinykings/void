@@ -47,7 +47,7 @@ Your library is cached in your browser (IndexedDB) and synced through your priva
 ### App Experience
 - **Episode Spoiler Protection** — Unaired or undated episode summaries are scrambled and stills blurred until you choose Reveal spoilers; you can hide them again.
 - **Poster Indicators** — Library pins have thick cyan borders; History favorites are pink. Search/discovery/recommendations prioritize pink Favorites, cyan Playlist, green History, then amber upcoming releases. Badges and accessible saved-state labels remain available alongside the colors.
-- **Show Titles** — Settings → Display controls captions beneath Playlist/History posters on this device. Search and Recommendations always show titles.
+- **Poster Grid** — Playlist and History use poster-only cards. Search and Recommendations always show titles.
 - **PWA** — Installable as a standalone app on mobile and desktop.
 - **Offline Support** — Works offline with cached data via service worker.
 - **Responsive** — Mobile-first grid layout (2–6 columns depending on screen size).
@@ -130,7 +130,6 @@ GitHub Actions builds and deploys to GitHub Pages on every push to `main`. The s
 | GitHub Connection | Required Gist OAuth connection for app access and sync |
 | Local Cache | Playlist, history, and favorites cached in IndexedDB |
 | Watch Providers | Open JustWatch search from provider icons |
-| Show Titles | Show names beneath Playlist/History posters on this device |
 | Text Export | Download `void-library.txt` with Favorites first, then alphabetical Playlist/History; includes hidden types, years, personal ratings, and source IDs. Works locally/offline; text is a readable report, not a restore format. |
 | JSON Backup | Download the full library, including hidden legacy records, with or without Gist connected |
 

@@ -77,7 +77,6 @@ const storage: StateStorage = {
 interface StoreState extends UserState {
   isLoaded: boolean;
   isSyncingLibrary: boolean;
-  setShowTitles: (show: boolean) => void;
   togglePin: (media: Media) => void;
   setIsLoaded: (loaded: boolean) => void;
   setIsSyncingLibrary: (syncing: boolean) => void;
@@ -144,8 +143,6 @@ export const useStore = create<StoreState>()(
       });
       return {
         // Initial State
-        showTitles: false,
-        setShowTitles: (showTitles) => set({ showTitles }),
         togglePin: (media) => {
           const key = getMediaKey(media);
           set((state) => ({ watchlist: state.watchlist.map((item) => getMediaKey(item) === key
