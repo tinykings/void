@@ -15,6 +15,20 @@ export const getImageSrc = (path: string | null, buildTmdbUrl: (path: string) =>
   return buildTmdbUrl(path);
 };
 
+/** Try the normal artwork first, then a different TMDB CDN size if an image fails. */
+export const getPosterCandidates = (
+  posterPath: string | null, backdropPath: string | null,
+  buildTmdbUrl: (path: string, size: 'w342' | 'w185') => string,
+) => {
+  const paths = [posterPath, backdropPath];
+  const candidates = [
+    ...paths.map((path) => getImageSrc(path, (value) => buildTmdbUrl(value, 'w342'))),
+    ...paths.filter((path): path is string => !!path && /^\/(?!\/)/.test(path))
+      .map((path) => buildTmdbUrl(path, 'w185')),
+  ];
+  return [...new Set(candidates.filter(Boolean))];
+};
+
 export const getMediaTitle = (media: Pick<Media, 'title' | 'name'>) => media.title || media.name || 'Unknown title';
 
 export const getPersonHref = (person: Pick<CastMember, 'id' | 'name'>) => {
