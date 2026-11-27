@@ -67,7 +67,7 @@ const seedConnectedLibrary = async (page: Page, library: { watchlist?: object[];
 test('search opens details and keyboard shortcut uses history action', async ({ page }) => {
   await seedConnectedLibrary(page);
   await mockTmdb(page);
-  await page.route('https://api.github.com/**', (route) => route.fulfill({ status: 503 }));
+  await mockLibraryGist(page, [gistMovie(movie.id, movie.title)]);
   await page.goto('/');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
 
