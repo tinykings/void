@@ -11,7 +11,7 @@ import { DetailsSheet } from '@/components/DetailsSheet';
 import { SearchSheet } from '@/components/SearchSheet';
 import { sortMedia, sortByAddedDate } from '@/lib/sort';
 
-import { AlertCircle, BadgeDollarSign, Bookmark, Film, Gamepad2, Github, Heart, History, LayoutGrid, LoaderCircle, LogOut, Radio, Search, Settings, SlidersHorizontal, Tv, X } from 'lucide-react';
+import { AlertCircle, Bookmark, Film, Github, Heart, History, LayoutGrid, LoaderCircle, LogOut, Radio, Search, Settings, SlidersHorizontal, Sparkles, Tv, X } from 'lucide-react';
 import type { FilterType, Media } from '@/lib/types';
 import { getDetailsHref, getMediaKey } from '@/lib/media';
 import { rememberRouteParent, rememberScrollPosition, restoreScrollPosition } from '@/lib/clientNavigation';
@@ -23,8 +23,9 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useStreamProviders } from '@/hooks/useStreamProviders';
 import type { StreamableMedia } from '@/lib/streamProviders';
 import { HomeStreamSection } from '@/components/HomeStreamSection';
-import { HomeDealsSection } from '@/components/HomeDealsSection';
-import { useGameDeals } from '@/hooks/useGameDeals';
+import { LibraryBackupSettings } from '@/components/LibraryBackupSettings';
+import { DisplaySettings } from '@/components/DisplaySettings';
+import { HomeRecommendationsSection } from '@/components/HomeRecommendationsSection';
 import { MediaTypeSettings } from '@/components/MediaTypeSettings';
 
 type LibraryMode = 'library' | 'watchlist';
@@ -45,6 +46,7 @@ export const HomeView = () => {
     showFavoritesOnly,
     setShowFavoritesOnly,
     enabledMediaTypes,
+    showTitles,
     githubLogin,
     disconnectGithub,
     syncFromGist,
@@ -67,30 +69,22 @@ export const HomeView = () => {
   const streamablePlaylist = useMemo(() => watchlist.filter((item): item is StreamableMedia =>
     (item.media_type === 'movie' || item.media_type === 'tv') && enabledMediaTypes[item.media_type]
   ), [enabledMediaTypes, watchlist]);
-  const gamePlaylist = useMemo(() => watchlist.filter((item) => item.media_type === 'game' && enabledMediaTypes.game), [enabledMediaTypes.game, watchlist]);
-  const unpurchasedGamePlaylist = useMemo(() => gamePlaylist.filter((item) => !item.isPurchased), [gamePlaylist]);
   const [showStreamView, setShowStreamView] = useState(false);
-  const [showDealsView, setShowDealsView] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(false);
   const {
     failureCount: streamFailureCount,
     groups: streamGroups,
     isLoading: isStreamLoading,
   } = useStreamProviders({ apiKey, enabled: showStreamView, isOnline, playlist: streamablePlaylist });
-  const {
-    deals,
-    failureCount: dealsFailureCount,
-    isLoading: isDealsLoading,
-    unavailableCount: dealsUnavailableCount,
-  } = useGameDeals({ enabled: showDealsView, isOnline, playlist: unpurchasedGamePlaylist });
-  const showSpecialView = showStreamView || showDealsView;
-  const activeModeLabel = showStreamView ? 'Stream' : showDealsView ? 'Deals' : showFavoritesOnly ? 'Favorites' : activeLibraryMode === 'library' ? 'History' : 'Playlist';
-  const activeFilterLabel = activeFilter === 'all' ? 'All' : activeFilter === 'movie' ? 'Movies' : activeFilter === 'tv' ? 'Shows' : 'Games';
+  const showSpecialView = showStreamView || showRecommendations;
+  const activeModeLabel = showRecommendations ? 'Recommendations' : showStreamView ? 'Stream' : showFavoritesOnly ? 'Favorites' : activeLibraryMode === 'library' ? 'History' : 'Playlist';
+  const activeFilterLabel = activeFilter === 'all' ? 'All' : activeFilter === 'movie' ? 'Movies' : 'Shows';
 
   const persistentStatus = useMemo(() => {
+    if (showRecommendations) return 'Recommendations · Favorites';
     if (showStreamView) return 'Stream · Playlist';
-    if (showDealsView) return 'Deals · Playlist';
     return `${activeModeLabel} · ${activeFilterLabel}`;
-  }, [activeFilterLabel, activeModeLabel, showDealsView, showStreamView]);
+  }, [activeFilterLabel, activeModeLabel, showStreamView, showRecommendations]);
 
   const showStatus = useCallback((label: string) => {
     // If it matches a persistent state, we don't need a timer
@@ -152,11 +146,6 @@ export const HomeView = () => {
       if (!isOnline) return 'Streaming availability is offline';
       return streamablePlaylist.length === 0 ? 'Your playlist has no streamable titles' : 'No streaming providers found';
     }
-    if (showDealsView) {
-      if (!isOnline) return 'Game deals are offline';
-      if (gamePlaylist.length === 0) return 'Your playlist has no games';
-      return unpurchasedGamePlaylist.length === 0 ? 'All playlist games are purchased' : 'No current game prices found';
-    }
     if (showFavoritesOnly) return 'No favorites yet';
     if (activeLibraryMode === 'library') return 'Your history is empty';
     return 'Your playlist is empty';
@@ -167,20 +156,14 @@ export const HomeView = () => {
       if (streamablePlaylist.length === 0) return 'Add movies or shows to your playlist to see streaming options.';
       return 'No US free or subscription providers were found for your playlist.';
     }
-    if (showDealsView) {
-      if (!isOnline) return 'Reconnect to refresh prices. Your playlist remains available.';
-      if (gamePlaylist.length === 0) return 'Add games to your playlist to see current prices.';
-      if (unpurchasedGamePlaylist.length === 0) return 'Purchased games are hidden from Deals.';
-      return 'GG.deals has no current prices for games with Steam listings in your playlist.';
-    }
 
     if (activeFilter !== 'all') {
       return `No ${activeFilterLabel.toLowerCase()} found in ${activeModeLabel.toLowerCase()}.`;
     }
 
     if (showFavoritesOnly) return 'Mark history items as favorites to see them here.';
-    if (activeLibraryMode === 'library') return 'Move movies, shows, and games to history after finishing them.';
-    return 'Search for movies, shows, and games to add them to your playlist.';
+    if (activeLibraryMode === 'library') return 'Move movies and shows to history after finishing them.';
+    return 'Search for movies and shows to add them to your playlist.';
   })();
 
   const showDetails = useCallback((media: Media) => {
@@ -194,8 +177,8 @@ export const HomeView = () => {
   }, [openDetails, router]);
 
   const openSearch = () => {
+    setShowRecommendations(false);
     setShowStreamView(false);
-    setShowDealsView(false);
     setShowTypeMenu(false);
     if (window.matchMedia('(max-width: 767px)').matches) {
       rememberScrollPosition(`${location.pathname}${location.search}`, window.scrollY);
@@ -209,11 +192,11 @@ export const HomeView = () => {
   const selectTypeFilter = (nextFilter: FilterType) => {
     startTransition(() => {
       setShowStreamView(false);
-      setShowDealsView(false);
+      setShowRecommendations(false);
       setFilter(nextFilter);
     });
 
-    showStatus(nextFilter === 'all' ? 'All' : nextFilter === 'movie' ? 'Movies' : nextFilter === 'tv' ? 'Shows' : 'Games');
+    showStatus(nextFilter === 'all' ? 'All' : nextFilter === 'movie' ? 'Movies' : 'Shows');
     setShowTypeMenu(false);
     window.scrollTo(0, 0);
   };
@@ -221,7 +204,7 @@ export const HomeView = () => {
   const selectFavoritesFilter = () => {
     startTransition(() => {
       setShowStreamView(false);
-      setShowDealsView(false);
+      setShowRecommendations(false);
       setShowWatched(true);
       setShowFavoritesOnly(!showFavoritesOnly);
       setIsSearchFocused(false);
@@ -234,8 +217,8 @@ export const HomeView = () => {
 
   const selectStreamView = () => {
     startTransition(() => {
+      setShowRecommendations(false);
       setShowStreamView(true);
-      setShowDealsView(false);
       setShowWatched(false);
       setShowFavoritesOnly(false);
       setIsSearchFocused(false);
@@ -246,24 +229,10 @@ export const HomeView = () => {
     window.scrollTo(0, 0);
   };
 
-  const selectDealsView = () => {
-    startTransition(() => {
-      setShowStreamView(false);
-      setShowDealsView(true);
-      setShowWatched(false);
-      setShowFavoritesOnly(false);
-      setIsSearchFocused(false);
-    });
-
-    showStatus('Deals');
-    setShowTypeMenu(false);
-    window.scrollTo(0, 0);
-  };
-
   const selectLibraryMode = (mode: LibraryMode) => {
     startTransition(() => {
       setShowStreamView(false);
-      setShowDealsView(false);
+      setShowRecommendations(false);
       setShowWatched(mode !== 'watchlist');
       setShowFavoritesOnly(false);
       setIsSearchFocused(false);
@@ -277,7 +246,7 @@ export const HomeView = () => {
   const clearActiveFilterView = () => {
     startTransition(() => {
       setShowStreamView(false);
-      setShowDealsView(false);
+      setShowRecommendations(false);
       setShowFavoritesOnly(false);
       setIsSearchFocused(false);
     });
@@ -371,8 +340,8 @@ export const HomeView = () => {
   useEffect(() => {
     if (activeFilter !== 'all' && !enabledMediaTypes[activeFilter]) setFilter('all');
     if (showStreamView && !enabledMediaTypes.movie && !enabledMediaTypes.tv) setShowStreamView(false);
-    if (showDealsView && !enabledMediaTypes.game) setShowDealsView(false);
-  }, [activeFilter, enabledMediaTypes, setFilter, showDealsView, showStreamView]);
+    if (showRecommendations && !enabledMediaTypes.movie && !enabledMediaTypes.tv) setShowRecommendations(false);
+  }, [activeFilter, enabledMediaTypes, setFilter, showStreamView, showRecommendations]);
 
   // Reset favorites filter when leaving watched view
   useEffect(() => {
@@ -425,7 +394,7 @@ export const HomeView = () => {
         </div>
       ) : (
         <>
-          {showStreamView ? (
+          {showRecommendations ? <HomeRecommendationsSection /> : showStreamView ? (
             <HomeStreamSection
               emptyDescription={emptyDescription}
               emptyTitle={emptyTitle}
@@ -435,17 +404,7 @@ export const HomeView = () => {
               onSelect={showDetails}
               playlistCount={streamablePlaylist.length}
             />
-          ) : showDealsView ? (
-            <HomeDealsSection
-              deals={deals}
-              emptyDescription={emptyDescription}
-              emptyTitle={emptyTitle}
-              failureCount={dealsFailureCount}
-              isLoading={isDealsLoading}
-              onSelect={showDetails}
-              playlistCount={unpurchasedGamePlaylist.length}
-              unavailableCount={dealsUnavailableCount}
-            />
+
           ) : displayMedia.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
               {displayMedia.map((item, index) => (
@@ -455,6 +414,8 @@ export const HomeView = () => {
                 >
                   <MediaCard
                     media={item}
+                    showCaption={!!showTitles}
+                    showCaptionDetails={false}
                     showReleaseBadge={!showWatched}
                     onClick={() => {
                       sessionStorage.setItem('void_home_count', String(visibleItemsCount));
@@ -529,7 +490,6 @@ export const HomeView = () => {
                       { id: 'all' as const, label: 'All', icon: LayoutGrid },
                       ...(enabledMediaTypes.movie ? [{ id: 'movie' as const, label: 'Movies', icon: Film }] : []),
                       ...(enabledMediaTypes.tv ? [{ id: 'tv' as const, label: 'Shows', icon: Tv }] : []),
-                      ...(enabledMediaTypes.game ? [{ id: 'game' as const, label: 'Games', icon: Gamepad2 }] : []),
                     ].map((item) => {
                       const Icon = item.icon;
                       const isActive = !showSpecialView && activeFilter === item.id;
@@ -568,6 +528,19 @@ export const HomeView = () => {
                       Favorites
                     </button>
 
+                    {(enabledMediaTypes.movie || enabledMediaTypes.tv) && <button
+                      type="button"
+                      onClick={() => {
+                        setShowRecommendations(true);
+                        setShowStreamView(false);
+                        setShowFavoritesOnly(false);
+                        setIsSearchFocused(false);
+                        setShowTypeMenu(false);
+                        window.scrollTo(0, 0);
+                      }}
+                      className="type-filter flex min-h-11 w-full items-center gap-2 px-3 py-3 text-left text-brand-silver transition-colors hover:bg-brand-bg/50 hover:text-white"
+                    ><Sparkles size={15} />Recommendations</button>}
+
                     <div className="h-px bg-white/5" />
 
                     {(enabledMediaTypes.movie || enabledMediaTypes.tv) && <button
@@ -582,20 +555,6 @@ export const HomeView = () => {
                     >
                       <Radio size={15} />
                       Stream
-                    </button>}
-
-                    {enabledMediaTypes.game && <button
-                      type="button"
-                      onClick={selectDealsView}
-                      className={clsx(
-                        'type-filter flex min-h-11 w-full items-center gap-2 px-3 py-3 text-left transition-colors',
-                        showDealsView
-                          ? 'text-brand-cyan bg-brand-cyan/5'
-                          : 'text-brand-silver hover:text-white hover:bg-brand-bg/50'
-                      )}
-                    >
-                      <BadgeDollarSign size={15} />
-                      Deals
                     </button>}
 
                     <div className="h-px bg-white/5" />
@@ -630,23 +589,21 @@ export const HomeView = () => {
                       ? 'bg-brand-cyan/12 text-brand-cyan shadow-[0_0_18px_rgba(34,211,238,0.16)] hover:bg-brand-cyan/20 hover:text-white'
                       : 'text-brand-silver hover:bg-brand-cyan/10 hover:text-white'
                   )}
-                  aria-label={showStreamView ? 'Clear Stream view' : showDealsView ? 'Clear Deals view' : showFavoritesOnly ? 'Clear Favorites view' : `Filter: ${activeFilterLabel}`}
+                  aria-label={showRecommendations ? 'Clear Recommendations view' : showStreamView ? 'Clear Stream view' : showFavoritesOnly ? 'Clear Favorites view' : `Filter: ${activeFilterLabel}`}
                   aria-haspopup={showSpecialView || showFavoritesOnly ? undefined : 'menu'}
                   aria-expanded={showSpecialView || showFavoritesOnly ? undefined : showTypeMenu}
-                  title={showStreamView ? 'Clear Stream view' : showDealsView ? 'Clear Deals view' : showFavoritesOnly ? 'Clear Favorites view' : `Filter: ${activeFilterLabel}`}
+                  title={showRecommendations ? 'Clear Recommendations view' : showStreamView ? 'Clear Stream view' : showFavoritesOnly ? 'Clear Favorites view' : `Filter: ${activeFilterLabel}`}
                 >
-                  {showStreamView ? (
+                  {showRecommendations ? <Sparkles size={19} /> : showStreamView ? (
                     <Radio size={19} />
-                  ) : showDealsView ? (
-                    <BadgeDollarSign size={19} />
+
                   ) : showFavoritesOnly ? (
                     <Heart size={19} className="fill-current" />
                   ) : activeFilter === 'movie' ? (
                     <Film size={19} />
                   ) : activeFilter === 'tv' ? (
                     <Tv size={19} />
-                  ) : activeFilter === 'game' ? (
-                    <Gamepad2 size={19} />
+
                   ) : (
                     <SlidersHorizontal size={19} />
                   )}
@@ -735,6 +692,8 @@ export const HomeView = () => {
 
               <div className="flex-1 overflow-y-auto p-5 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] space-y-4">
               <MediaTypeSettings />
+              <DisplaySettings />
+              <LibraryBackupSettings />
 
               <div className="rounded-xl bg-white/[0.03] blueprint-border p-4 space-y-4">
                 <div className="flex items-center gap-3">
@@ -777,7 +736,7 @@ export const HomeView = () => {
               </div>
 
               <div className="pt-2 text-center space-y-1">
-                <p className="type-readout text-brand-silver/50">Data provided by TMDB and IGDB.</p>
+                <p className="type-readout text-brand-silver/50">Data provided by TMDB.</p>
                 <a
                   href="https://github.com/tinykings/void"
                   target="_blank"

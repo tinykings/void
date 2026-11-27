@@ -7,7 +7,9 @@ import { useAppContext } from '@/context/AppContext';
 import { getImageUrl, getPersonCredits, getPersonDetails } from '@/lib/tmdb';
 import { getDetailsHref } from '@/lib/media';
 import { backOrHome, rememberRouteParent } from '@/lib/clientNavigation';
-import { Media, PersonDetails } from '@/lib/types';
+import { Media, PersonDetails, TmdbResult } from '@/lib/types';
+import { curatePersonCredits } from '@/lib/personCredits';
+import { ActorBiography } from '@/components/ActorBiography';
 import { ArrowLeft, X, User } from 'lucide-react';
 import { SheetDragHandle } from '@/components/SheetDragHandle';
 import { FocusTrap } from '@/components/FocusTrap';
@@ -19,7 +21,9 @@ export const ActorSheet = () => {
   const router = useRouter();
   const isPageMode = pathname.replace(/\/$/, '').endsWith('/person');
   const { activeActorMedia, closeActor, closeAllSheets, apiKey, enabledMediaTypes, openDetails } = useAppContext();
-  const [actorCredits, setActorCredits] = useState<{ actorId: number; credits: Media[] } | null>(null);
+  const [actorCredits, setActorCredits] = useState<{ actorId: number; credits: TmdbResult[] } | null>(null);
+  const [creditsErrorActorId, setCreditsErrorActorId] = useState<number | null>(null);
+  const [creditsRetry, setCreditsRetry] = useState(0);
   const [personDetails, setPersonDetails] = useState<{ actorId: number; details: PersonDetails } | null>(null);
 
   const actor = activeActorMedia;
@@ -28,7 +32,7 @@ export const ActorSheet = () => {
 
   const topCredits = useMemo(() => {
     if (!actor || actorCredits?.actorId !== actor.id) return [];
-    return actorCredits.credits.filter((item) => enabledMediaTypes[item.media_type]).slice(0, 20);
+    return curatePersonCredits(actorCredits.credits, enabledMediaTypes);
   }, [actor, actorCredits, enabledMediaTypes]);
 
   const loading = isOnline && !!actor && !!apiKey && actorCredits?.actorId !== actor.id;
@@ -38,10 +42,7 @@ export const ActorSheet = () => {
     return personDetails.details;
   }, [actor, personDetails]);
 
-  const biography = (() => {
-    const text = details?.biography?.trim() || '';
-    return text.split(/\n\s*\n/)[0] || '';
-  })();
+  const biography = details?.biography?.trim() || '';
 
   const bornLabel = (() => {
     if (!details?.birthday) return 'Unknown';
@@ -60,64 +61,40 @@ export const ActorSheet = () => {
       return;
     }
 
-    let cancelled = false;
+    const controller = new AbortController();
 
-    getPersonCredits(actor.id, apiKey)
+    getPersonCredits(actor.id, apiKey, controller.signal)
       .then((data) => {
-        if (cancelled) return;
-
-        const deduped = data.cast
-          .filter((item) => item.poster_path || item.backdrop_path)
-          .filter((item) => !(item.genre_ids || []).includes(10767))
-          .sort((a, b) => {
-            const countDiff = (b.vote_count || 0) - (a.vote_count || 0);
-            if (countDiff !== 0) return countDiff;
-
-            return (b.popularity || 0) - (a.popularity || 0);
-          })
-          .reduce((acc, item) => {
-            const key = `${item.media_type}-${item.id}`;
-            if (acc.some((existing) => `${existing.media_type}-${existing.id}` === key)) return acc;
-
-            acc.push({
-              ...item,
-              title: item.title,
-              name: item.name,
-            } as Media);
-            return acc;
-          }, [] as Media[])
-          .slice(0, 20);
-
-        setActorCredits({ actorId: actor.id, credits: deduped });
+        if (controller.signal.aborted) return;
+        setCreditsErrorActorId(null);
+        setActorCredits({ actorId: actor.id, credits: data.cast || [] });
       })
       .catch(() => {
-        if (!cancelled) setActorCredits({ actorId: actor.id, credits: [] });
+        if (controller.signal.aborted) return;
+        setCreditsErrorActorId(actor.id);
+        setActorCredits({ actorId: actor.id, credits: [] });
       });
 
-    return () => {
-      cancelled = true;
-    };
-  }, [actor, apiKey, isOnline]);
+    return () => controller.abort();
+  }, [actor, apiKey, isOnline, creditsRetry]);
 
   useEffect(() => {
     if (!isOnline || !actor || !apiKey) {
       return;
     }
 
-    let cancelled = false;
+    const controller = new AbortController();
 
-    getPersonDetails(actor.id, apiKey)
+    getPersonDetails(actor.id, apiKey, controller.signal)
       .then((data) => {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         setPersonDetails({ actorId: actor.id, details: data });
       })
       .catch(() => {
-        if (!cancelled) setPersonDetails({ actorId: actor.id, details: { id: actor.id, name: actor.name, biography: '', birthday: null, place_of_birth: null, profile_path: actor.profile_path } });
+        if (!controller.signal.aborted) setPersonDetails({ actorId: actor.id, details: { id: actor.id, name: actor.name, biography: '', birthday: null, place_of_birth: null, profile_path: actor.profile_path } });
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [actor, apiKey, isOnline]);
 
   useEffect(() => {
@@ -222,15 +199,22 @@ export const ActorSheet = () => {
                     <p className="font-medium text-white">{details?.place_of_birth || 'Unknown'}</p>
                   </div>
 
-                  <div className="mt-5">
-                    <p className="type-label text-brand-silver/60">Biography</p>
-                    <p className="mt-2 text-sm leading-relaxed text-brand-silver">
-                      {biography || 'No biography available.'}
-                    </p>
-                  </div>
+                  <ActorBiography key={actor.id} biography={biography} />
                 </div>
               </div>
 
+              <section aria-label="Filmography" className="space-y-3">
+              <h3 className="type-label text-brand-silver/60">Filmography</h3>
+              {!isOnline && <p role="status" className="text-sm text-brand-silver">Reconnect to load this filmography.</p>}
+              {creditsErrorActorId === actor.id && <div role="status" className="text-sm text-brand-silver">
+                Couldn’t load filmography.
+                <button type="button" disabled={!isOnline} onClick={() => {
+                  setActorCredits(null);
+                  setCreditsErrorActorId(null);
+                  setCreditsRetry((value) => value + 1);
+                }} className="type-action ml-2 min-h-11 rounded-lg px-3 text-brand-cyan hover:bg-brand-cyan/10 disabled:opacity-40">Try again</button>
+              </div>}
+              {!loading && isOnline && creditsErrorActorId !== actor.id && actorCredits?.actorId === actor.id && topCredits.length === 0 && <p className="text-sm text-brand-silver">No movies or shows found for your enabled media types.</p>}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                 {loading ? (
                   [...Array(20)].map((_, index) => (
@@ -241,8 +225,9 @@ export const ActorSheet = () => {
                     <button
                       key={`${media.media_type}-${media.id}`}
                       type="button"
+                      aria-label={`Open details for ${media.title || media.name || 'Unknown'}`}
                       onClick={() => handleMediaOpen(media)}
-                      className="group aspect-[2/3] rounded-xl overflow-hidden blueprint-border bg-brand-bg/50 text-left"
+                      className="group aspect-[2/3] rounded-xl overflow-hidden blueprint-border bg-brand-bg/50 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-cyan"
                     >
                       {media.poster_path || media.backdrop_path ? (
                         <img
@@ -250,6 +235,7 @@ export const ActorSheet = () => {
                           alt={media.title || media.name || 'Unknown'}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           decoding="async"
+                          loading="lazy"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center p-3 text-center text-brand-silver text-xs">
@@ -260,6 +246,7 @@ export const ActorSheet = () => {
                   ))
                 )}
               </div>
+              </section>
             </div>
           </div>
 

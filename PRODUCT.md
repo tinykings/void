@@ -6,11 +6,11 @@ product
 
 ## Users
 
-People who track movies, TV shows, and games across a playlist and history. Mobile-first audience using the app as a PWA. Privacy-conscious: no signup, data lives entirely in the browser.
+People who track movies and TV shows across a playlist and history. Mobile-first audience using the app as a PWA. Privacy-conscious: data is cached locally and synced through a private GitHub Gist.
 
 ## Product Purpose
 
-A personal media tracker for movies, TV shows, and games. Playlist management, history, ratings, and streaming provider discovery for video. No backend, no signup — data lives in IndexedDB. Offline-capable PWA deployed as a static site.
+A personal media tracker for movies and TV shows. Playlist management, history, ratings, recommendations, and streaming provider discovery. Data lives in IndexedDB and a private GitHub Gist. Offline-capable PWA deployed as a static site. Previously saved game records remain in storage and backups but are not displayed or fetched.
 
 ## Brand Personality
 

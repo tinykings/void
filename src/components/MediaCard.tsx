@@ -4,12 +4,14 @@ import React, { useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Media } from '@/lib/types';
 import { getImageUrl } from '@/lib/tmdb';
+import { UPCOMING_DAYS } from '@/lib/discovery';
+import { getPosterIndicator, POSTER_INDICATOR_CLASSES, type PosterIndicatorContext } from '@/lib/posterIndicators';
 import { getDetailsHref, getImageSrc, getMediaKey } from '@/lib/media';
 import { rememberRouteParent, rememberScrollPosition } from '@/lib/clientNavigation';
 import { useAppContext } from '@/context/AppContext';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
-import { Bookmark, Check, DollarSign, Gamepad2, Heart } from 'lucide-react';
+import { Bookmark, Check, Heart, Pin } from 'lucide-react';
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 const MOVIE_PRIORITY_WINDOW_DAYS = 30;
@@ -18,6 +20,9 @@ interface MediaCardProps {
   media: Media;
   showReleaseBadge?: boolean;
   showCaption?: boolean;
+  showCaptionDetails?: boolean;
+  discoveryCountdown?: number | null;
+  indicatorContext?: PosterIndicatorContext;
   onClick?: () => void;
 }
 
@@ -70,11 +75,10 @@ const PosterImage = ({ candidates, title, fit = 'cover' }: PosterImageProps) => 
   );
 };
 
-export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCaption = false, onClick }: MediaCardProps) => {
+export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCaption = false, showCaptionDetails = true, discoveryCountdown = null, indicatorContext = 'library', onClick }: MediaCardProps) => {
   const router = useRouter();
   const {
     sort,
-    isSearchFocused,
     watchlistIds,
     watchedIds,
     watchlistMap,
@@ -92,14 +96,21 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
   const mediaKey = getMediaKey(media);
   const inWatchlist = watchlistIds.has(mediaKey);
   const inWatched = watchedIds.has(mediaKey);
-  const isFavorite = Boolean(
-    media.isFavorite
-    || watchlistMap.get(mediaKey)?.isFavorite
-    || watchedMap.get(mediaKey)?.isFavorite
-  );
-  const isPurchased = media.media_type === 'game'
-    && inWatchlist
-    && Boolean(watchlistMap.get(mediaKey)?.isPurchased ?? media.isPurchased);
+  // Saved state wins over stale search/details snapshots, including explicit unfavorites.
+  const libraryItem = watchlistMap.get(mediaKey) ?? watchedMap.get(mediaKey);
+  const isFavorite = !!libraryItem?.isFavorite;
+  const isSearchCard = indicatorContext === 'search';
+  const isPinned = inWatchlist && !!watchlistMap.get(mediaKey)?.pinnedAt;
+  const hasDiscoveryCountdown = discoveryCountdown !== null && discoveryCountdown >= 1 && discoveryCountdown <= UPCOMING_DAYS;
+  const releaseLabel = hasDiscoveryCountdown ? `Releases in ${discoveryCountdown} ${discoveryCountdown === 1 ? 'day' : 'days'}` : '';
+  const posterIndicator = getPosterIndicator({
+    context: indicatorContext,
+    isPinned,
+    isFavorite,
+    inPlaylist: inWatchlist,
+    inHistory: inWatched,
+    isUpcoming: hasDiscoveryCountdown,
+  });
 
   const nowTime = useMemo(() => {
     const now = new Date();
@@ -119,7 +130,7 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
     const diffTime = releaseDate.getTime() - nowTime;
     const diffDays = Math.ceil(diffTime / DAY_MS);
     
-    if (media.media_type === 'movie' || media.media_type === 'game') {
+    if (media.media_type === 'movie') {
       if (diffDays > MOVIE_PRIORITY_WINDOW_DAYS) return null;
 
       if (diffDays >= 0) return diffDays;
@@ -166,15 +177,16 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
 
   const title = media.title || media.name || 'Untitled';
   const year = (media.release_date || media.first_air_date || '').slice(0, 4);
-  const isGame = media.media_type === 'game';
+  // Legacy games are retained in storage, never rendered as cards.
+  if (media.media_type === 'game') return null;
 
   return (
     <>
       <div ref={cardRef} className="relative group bg-brand-bg rounded-xl overflow-hidden transition-colors duration-300">
         <button
           type="button"
-          className="relative block aspect-[2/3] w-full shrink-0 cursor-pointer overflow-hidden bg-brand-bg/50 blueprint-border"
-          aria-label={`Open details for ${title}${isFavorite ? ', favorite' : ''}${isPurchased ? ', purchased' : ''}`}
+          className="relative block aspect-[2/3] w-full shrink-0 cursor-pointer overflow-hidden rounded-xl bg-brand-bg/50 focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-brand-cyan"
+          aria-label={`Open details for ${title}${isPinned ? ', pinned' : ''}${isFavorite ? ', favorite' : ''}${inWatchlist ? ', on playlist' : inWatched ? ', in history' : ''}${releaseLabel ? `, ${releaseLabel.toLowerCase()}` : ''}`}
           onClick={() => {
             openDetails(media);
             onClick?.();
@@ -196,25 +208,25 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
             </div>
           )}
 
-          {(isFavorite || isPurchased || (shouldShowReleaseBadge && daysUntilRelease !== null)) && (
+          <span
+            aria-hidden="true"
+            data-poster-indicator={posterIndicator}
+            className={clsx('pointer-events-none absolute inset-0 z-20 rounded-xl', POSTER_INDICATOR_CLASSES[posterIndicator])}
+          />
+
+          {(hasDiscoveryCountdown || isPinned || isFavorite || (shouldShowReleaseBadge && daysUntilRelease !== null)) && (
             <div className="absolute left-2 top-2 z-10 flex flex-col items-start gap-1.5">
+              {isPinned && <span aria-label="Pinned" className="rounded-full bg-brand-bg/90 p-2 text-brand-cyan"><Pin size={14} className="fill-current" /></span>}
               {isFavorite && (
                 <div
                   aria-hidden="true"
-                  className="flex h-7 w-7 items-center justify-center rounded-full border border-rose-400/35 bg-brand-bg/85 text-rose-400 shadow-[0_2px_10px_rgba(0,0,0,0.35)] backdrop-blur-md"
+                  className="flex h-7 w-7 items-center justify-center rounded-full border border-brand-favorite/35 bg-brand-bg/85 text-brand-favorite shadow-[0_2px_10px_rgba(0,0,0,0.35)] backdrop-blur-md"
                 >
                   <Heart size={14} className="fill-current" strokeWidth={2.5} />
                 </div>
               )}
 
-              {isPurchased && (
-                <div
-                  aria-hidden="true"
-                  className="flex h-7 w-7 items-center justify-center rounded-full border border-emerald-400/35 bg-brand-bg/85 text-emerald-300 shadow-[0_2px_10px_rgba(0,0,0,0.35)] backdrop-blur-md"
-                >
-                  <DollarSign size={14} strokeWidth={3} />
-                </div>
-              )}
+              {hasDiscoveryCountdown && <span aria-label={releaseLabel} className="type-micro rounded-full border border-brand-upcoming/40 bg-brand-bg/95 px-2 py-1 text-brand-upcoming backdrop-blur-md">In {discoveryCountdown} {discoveryCountdown === 1 ? 'day' : 'days'}</span>}
 
               {shouldShowReleaseBadge && daysUntilRelease !== null && (
                 <div className="type-micro rounded-full border border-white/10 bg-brand-bg/90 px-2 py-0.5 text-brand-cyan backdrop-blur-md">
@@ -232,22 +244,16 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
             </div>
           )}
 
-          {isSearchFocused && (isGame || inWatched || inWatchlist) ? (
+          {isSearchCard && (inWatched || inWatchlist) ? (
             <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1.5">
-              {isGame && (
-                <div className="flex items-center justify-center w-6 h-6 bg-brand-bg/80 backdrop-blur-md text-brand-cyan rounded-full border border-white/10">
-                  <Gamepad2 size={13} strokeWidth={2.5} />
-                </div>
-              )}
-
-              {isSearchFocused && inWatchlist && !inWatched && (
+              {inWatchlist && !inWatched && (
                 <div className="flex items-center justify-center w-6 h-6 bg-brand-cyan/65 backdrop-blur-md text-brand-bg rounded-full border border-white/10">
                   <Bookmark size={12} className="fill-current" />
                 </div>
               )}
 
-              {isSearchFocused && inWatched && (
-                <div className="flex items-center justify-center w-6 h-6 bg-green-500/65 backdrop-blur-md text-brand-bg rounded-full border border-white/10">
+              {inWatched && (
+                <div className="flex items-center justify-center w-6 h-6 bg-brand-history/65 backdrop-blur-md text-brand-bg rounded-full border border-white/10">
                   <Check size={12} strokeWidth={3} />
                 </div>
               )}
@@ -259,13 +265,13 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
         {showCaption && (
           <div className="min-w-0 px-1 pb-2 pt-2">
             <p className="type-action truncate text-white">{title}</p>
-            <p className="type-readout mt-1 flex items-center gap-1.5 text-brand-silver">
+            {showCaptionDetails && <p className="type-readout mt-1 flex items-center gap-1.5 text-brand-silver">
               <span>{year || 'Year unknown'}</span>
               <span aria-hidden="true">·</span>
-              <span>{isGame ? 'Game' : media.media_type === 'tv' ? 'Show' : 'Movie'}</span>
-              {inWatched && <span className="ml-auto text-brand-cyan">History</span>}
+              <span>{media.media_type === 'tv' ? 'Show' : 'Movie'}</span>
+              {inWatched && <span className="ml-auto text-brand-history">History</span>}
               {!inWatched && inWatchlist && <span className="ml-auto text-brand-cyan">Playlist</span>}
-            </p>
+            </p>}
           </div>
         )}
       </div>

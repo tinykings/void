@@ -16,6 +16,8 @@ const ITEM_KEYS = new Set([
   'poster_source',
   'rating',
   'isPurchased',
+  'pinnedAt',
+  'returnedFor',
 ]);
 const PAYLOAD_KEYS = new Set(['version', 'watchlist', 'watched', 'favorites', 'playedEpisodes']);
 
@@ -30,10 +32,12 @@ export type LibraryPayloadItem = {
   poster_source?: Media['poster_source'];
   rating?: number;
   isPurchased?: boolean;
+  pinnedAt?: string;
+  returnedFor?: string;
 };
 
 export interface LibraryPayload {
-  version: 1 | 2 | 3 | 4;
+  version: 1 | 2 | 3 | 4 | 5 | 6;
   watchlist: LibraryPayloadItem[];
   watched: LibraryPayloadItem[];
   favorites: LibraryPayloadItem[];
@@ -83,6 +87,14 @@ const validateItem = (value: unknown, path: string): string | null => {
     return `${path}.source is invalid for ${String(value.media_type)}`;
   }
   if (!isValidDate(value.date_added)) return `${path}.date_added must be a valid date`;
+  if (value.returnedFor !== undefined && (value.media_type !== 'tv'
+    || typeof value.returnedFor !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value.returnedFor)
+    || !isValidDate(value.returnedFor))) {
+    return `${path}.returnedFor must be a valid YYYY-MM-DD date for shows`;
+  }
+  if (value.pinnedAt !== undefined && !isValidDate(value.pinnedAt)) {
+    return `${path}.pinnedAt must be a valid date`;
+  }
   if (value.release_date !== undefined && !isValidDate(value.release_date)) {
     return `${path}.release_date must be a valid date`;
   }
@@ -129,8 +141,8 @@ export const validateLibraryPayload = (value: unknown): LibraryPayloadValidation
   if (!hasOnlyKeys(value, PAYLOAD_KEYS)) {
     return { success: false, error: 'library payload contains unsupported fields' };
   }
-  if (value.version !== 1 && value.version !== 2 && value.version !== 3 && value.version !== 4) {
-    return { success: false, error: 'version must be 1, 2, 3, or 4' };
+  if (![1, 2, 3, 4, 5, 6].includes(value.version as number)) {
+    return { success: false, error: 'version must be 1, 2, 3, 4, 5, or 6' };
   }
 
   for (const list of ['watchlist', 'watched', 'favorites'] as const) {
@@ -138,10 +150,10 @@ export const validateLibraryPayload = (value: unknown): LibraryPayloadValidation
     if (error) return { success: false, error };
   }
 
-  if ((value.version === 3 || value.version === 4) && !isPlayedEpisodesData(value.playedEpisodes)) {
+  if ((value.version === 3 || value.version === 4 || value.version === 5 || value.version === 6) && !isPlayedEpisodesData(value.playedEpisodes)) {
     return { success: false, error: 'playedEpisodes must contain episode keys mapped to true' };
   }
-  if (value.version !== 3 && value.version !== 4 && value.playedEpisodes !== undefined && !isPlayedEpisodesData(value.playedEpisodes)) {
+  if (value.version !== 3 && value.version !== 4 && value.version !== 5 && value.version !== 6 && value.playedEpisodes !== undefined && !isPlayedEpisodesData(value.playedEpisodes)) {
     return { success: false, error: 'playedEpisodes must contain episode keys mapped to true' };
   }
 

@@ -5,21 +5,17 @@ import { usePathname, useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getImageUrl, getSeasonDetails } from '@/lib/tmdb';
-import { formatGamePrice, getSteamAppId } from '@/lib/ggDeals';
-import { getImageSrc, getMediaKey, getMediaSource, getMediaTitle, getPersonHref } from '@/lib/media';
+import { getImageSrc, getMediaKey, getMediaTitle, getPersonHref } from '@/lib/media';
 import { backOrHome, rememberRouteParent } from '@/lib/clientNavigation';
 import type { SeasonDetails, Video } from '@/lib/types';
-import { ArrowLeft, Bookmark, ChevronDown, DollarSign, Eye, Heart, Play, X } from 'lucide-react';
+import { ArrowLeft, Bookmark, ChevronDown, Eye, Heart, Pin, Play, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { FocusTrap } from '@/components/FocusTrap';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useMediaDetails } from '@/hooks/useMediaDetails';
 import { useDetailsSupplementaryData } from '@/hooks/useDetailsSupplementaryData';
-import { useGamePrice } from '@/hooks/useGamePrice';
-
-const basePath = (process.env.NEXT_PUBLIC_BASE_PATH || '').replace(/\/$/, '');
-const episodePlaceholderSrc = `${basePath}/episode-placeholder.svg`;
+import { EpisodeCard } from '@/components/EpisodeCard';
 
 export const DetailsSheet = () => {
   const isOnline = useOnlineStatus();
@@ -39,14 +35,14 @@ export const DetailsSheet = () => {
     toggleWatchlist,
     toggleWatched,
     toggleFavorite,
-    togglePurchased,
+    togglePin,
     updateMediaMetadata,
   } = useAppContext();
 
   const [activeImage, setActiveImage] = useState<{ src: string; alt: string; mediaKey: string } | null>(null);
   const [activeTrailer, setActiveTrailer] = useState<{ video: Video; mediaKey: string } | null>(null);
   const [overviewExpansion, setOverviewExpansion] = useState<{ key: string; expanded: boolean }>({ key: '', expanded: false });
-  const [actionPulse, setActionPulse] = useState<{ key: string; action: 'watchlist' | 'watched' | 'favorite' | 'purchased' } | null>(null);
+  const [actionPulse, setActionPulse] = useState<{ key: string; action: 'watchlist' | 'watched' | 'favorite' } | null>(null);
   const [seasonSelection, setSeasonSelection] = useState<{ mediaKey: string; number: number } | null>(null);
   const [seasonData, setSeasonData] = useState<{ key: string; data: SeasonDetails } | null>(null);
   const [seasonErrorKey, setSeasonErrorKey] = useState<string | null>(null);
@@ -105,8 +101,7 @@ export const DetailsSheet = () => {
     ? watchedMap.get(mediaKey)?.isFavorite ?? watchlistMap.get(mediaKey)?.isFavorite ?? false
     : false;
   const showFavoriteButton = inWatched || (inWatchlist && isFavorited);
-  const isPurchased = watchlistMap.get(mediaKey)?.isPurchased ?? false;
-  const showPurchasedButton = selected?.media_type === 'game' && inWatchlist;
+  const isPinned = !!watchlistMap.get(mediaKey)?.pinnedAt;
   const {
     castItems,
     castKey,
@@ -120,18 +115,6 @@ export const DetailsSheet = () => {
     apiKey,
     enabled: hasResolvedDetails,
     isOnline,
-  });
-  const steamAppId = selected?.media_type === 'game' ? getSteamAppId(selected) : undefined;
-  const {
-    error: gamePriceError,
-    isLoading: isGamePriceLoading,
-    price: gamePrice,
-    retry: retryGamePrice,
-  } = useGamePrice({
-    enabled: selected?.media_type === 'game',
-    isOnline,
-    steamAppId,
-    title: selected ? getMediaTitle(selected) : '',
   });
   const currentActionPulse = selected && actionPulse?.key === mediaKey ? actionPulse.action : null;
 
@@ -194,11 +177,7 @@ export const DetailsSheet = () => {
 
   const isOpen = !!activeDetailsMedia && !!selected;
 
-  if (!isOpen || !selected) return null;
-
-  const isGame = selected.media_type === 'game';
-  const formattedGamePrice = gamePrice ? formatGamePrice(gamePrice) : '';
-  const source = getMediaSource(selected);
+  if (!isOpen || !selected || selected.media_type === 'game') return null;
   const nextEpisode = selected.media_type === 'tv' ? selected.next_episode_to_air : null;
   const episodeLabel = nextEpisode
     ? `Next • S${nextEpisode.season_number}E${nextEpisode.episode_number} • ${nextEpisode.name}`
@@ -225,14 +204,6 @@ export const DetailsSheet = () => {
   const totalEpisodes = selected.media_type === 'tv'
     ? selected.number_of_episodes ?? availableSeasons.reduce((total, season) => total + season.episode_count, 0)
     : 0;
-  const gameTimeItems = isGame
-    ? [
-        selected.playtime_main ? { label: 'MAIN', value: selected.playtime_main } : null,
-        selected.playtime_extra ? { label: 'Main+Sides', value: selected.playtime_extra } : null,
-        selected.playtime_completionist ? { label: 'Completionist', value: selected.playtime_completionist } : null,
-      ].filter((item): item is { label: string; value: number } => !!item)
-    : [];
-  const providerLabel = source === 'igdb' ? 'IGDB' : source === 'rawg' ? 'RAWG' : source === 'steam' ? 'Steam' : 'TMDB';
   const posterSrc = getImageSrc(selected.poster_path, (tmdbPath) => getImageUrl(tmdbPath, 'w342'));
   const detailImages = (selected.screenshots || []).slice(0, 3);
   const detailTrailers = (selected.videos || [])
@@ -247,10 +218,10 @@ export const DetailsSheet = () => {
     && !currentSeason
     && seasonErrorKey !== seasonRequestKey;
   const externalLinks = [
-    selected.source_url && source !== 'igdb' ? { label: providerLabel, url: selected.source_url } : null,
+    selected.source_url ? { label: 'TMDB', url: selected.source_url } : null,
   ].filter((link): link is { label: string; url: string } => !!link && !!link.url);
-  const utilityButtonCount = Number(showFavoriteButton) + Number(showPurchasedButton) + Number(!isPageMode);
-  const runAction = async (action: 'watchlist' | 'watched' | 'favorite' | 'purchased', commit: () => Promise<void> | void) => {
+  const utilityButtonCount = Number(showFavoriteButton) + Number(!isPageMode);
+  const runAction = async (action: 'watchlist' | 'watched' | 'favorite', commit: () => Promise<void> | void) => {
     if (closeActionTimerRef.current) clearTimeout(closeActionTimerRef.current);
 
     setActionPulse({ key: mediaKey, action });
@@ -318,11 +289,6 @@ export const DetailsSheet = () => {
     void runAction('favorite', () => toggleFavorite(selected));
   };
 
-  const handlePurchasedToggle = () => {
-    if (!showPurchasedButton) return;
-    void runAction('purchased', () => togglePurchased(selected));
-  };
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -384,16 +350,16 @@ export const DetailsSheet = () => {
                     </div>
 
                     <div className="type-readout flex flex-wrap items-center gap-2 text-brand-silver">
-                      <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{isGame ? 'game' : selected.media_type}</span>
+                      <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{selected.media_type}</span>
                       {year && <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{year}</span>}
                       <span className={clsx('px-2 py-1 rounded-full backdrop-blur-sm', (selected.vote_average ?? 0) >= 7 ? 'bg-brand-cyan/10 text-brand-cyan' : 'bg-white/10 text-brand-silver')}>★ {selected.vote_average?.toFixed(1) || '0.0'}</span>
-                      {!isGame && <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{contentRatingValue || 'N/A'}</span>}
-                      {!isGame && selected.genres && selected.genres.length > 0 && (
+                      <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{contentRatingValue || 'N/A'}</span>
+                      {selected.genres && selected.genres.length > 0 && (
                         <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">
                           {selected.genres.slice(0, 3).join(' · ')}
                         </span>
                       )}
-                      {!isGame && selected.status && (
+                      {selected.status && (
                         <span className={clsx(
                           'px-2 py-1 rounded-full backdrop-blur-sm',
                           /cancel/i.test(selected.status)
@@ -405,7 +371,6 @@ export const DetailsSheet = () => {
                           {selected.status}
                         </span>
                       )}
-                      {isGame && selected.metacritic ? <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">MC {selected.metacritic}</span> : null}
                       {externalLinks.map((link) => (
                         <a
                           key={`${link.label}-${link.url}`}
@@ -434,16 +399,12 @@ export const DetailsSheet = () => {
                         </button>
                       )}
                     </div>
-                    {isGame && selected.platforms && selected.platforms.length > 0 && (
-                      <p className="text-xs text-brand-silver">
-                        {selected.platforms.slice(0, 8).join(' · ')}
-                      </p>
-                    )}
-                    {isGame && selected.genres && selected.genres.length > 0 && (
-                      <p className="text-xs text-brand-silver/80">
-                        {selected.genres.slice(0, 6).join(' · ')}
-                      </p>
-                    )}
+                    {inWatchlist && <button
+                      type="button"
+                      onClick={() => togglePin(selected)}
+                      aria-pressed={isPinned}
+                      className={clsx('type-action inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 transition-colors focus-visible:outline-2 focus-visible:outline-brand-cyan', isPinned ? 'border-brand-cyan/40 bg-brand-cyan/10 text-brand-cyan' : 'border-white/10 text-brand-silver hover:bg-brand-cyan/10 hover:text-white')}
+                    ><Pin size={16} className={isPinned ? 'fill-current' : undefined} />{isPinned ? 'Unpin' : 'Pin to top'}</button>}
                     {watchProviderItems.length > 0 && (
                       <p className="text-base font-semibold leading-relaxed text-white/90">
                         {watchProviderItems.map((p) => p.provider_name).join(' · ')}
@@ -469,71 +430,11 @@ export const DetailsSheet = () => {
                   <a href="#overview" className="type-action flex min-h-11 shrink-0 items-center rounded-lg px-3 text-brand-silver hover:bg-white/5 hover:text-white">Overview</a>
                   {(detailTrailers.length > 0 || detailImages.length > 0) && <a href="#media" className="type-action flex min-h-11 shrink-0 items-center rounded-lg px-3 text-brand-silver hover:bg-white/5 hover:text-white">Media</a>}
                   {selected.media_type === 'tv' && <a href="#episodes" className="type-action flex min-h-11 shrink-0 items-center rounded-lg px-3 text-brand-silver hover:bg-white/5 hover:text-white">Episodes</a>}
-                  {!isGame && <a href="#cast" className="type-action flex min-h-11 shrink-0 items-center rounded-lg px-3 text-brand-silver hover:bg-white/5 hover:text-white">Cast</a>}
+                  <a href="#cast" className="type-action flex min-h-11 shrink-0 items-center rounded-lg px-3 text-brand-silver hover:bg-white/5 hover:text-white">Cast</a>
                 </nav>
               )}
 
               <span id="overview" className="sr-only">Overview</span>
-
-              {isGame && (gameTimeItems.length > 0 || isGamePriceLoading || (gamePrice?.lowestCurrent && formattedGamePrice) || gamePriceError) && (
-                <section aria-labelledby="game-metrics-heading" className="space-y-3 border-t border-white/10 pt-4">
-                  <h3 id="game-metrics-heading" className="type-label text-brand-silver">
-                    {gamePrice?.lowestCurrent && formattedGamePrice ? 'HLTB + Deals' : 'HLTB'}
-                  </h3>
-                  <div className={clsx(
-                    'grid items-stretch gap-2',
-                    (isGamePriceLoading || (gamePrice?.lowestCurrent && formattedGamePrice) || gamePriceError) && 'sm:grid-cols-[minmax(0,2fr)_minmax(14rem,1fr)]'
-                  )}>
-                    {gameTimeItems.length > 0 && (
-                      <div className={clsx(
-                        'grid min-h-[5rem] w-full overflow-hidden rounded-lg border border-brand-cyan/20 bg-brand-cyan/[0.05]',
-                        gameTimeItems.length === 1 && 'grid-cols-1',
-                        gameTimeItems.length === 2 && 'grid-cols-2',
-                        gameTimeItems.length === 3 && 'grid-cols-3',
-                      )}>
-                        {gameTimeItems.map((item) => (
-                          <div key={item.label} className="flex min-w-0 flex-col justify-center border-r border-white/10 px-2 py-3 text-center last:border-r-0">
-                            <p className="type-label truncate text-brand-silver">{item.label}</p>
-                            <p className="type-readout mt-1 text-xl leading-none text-white sm:text-2xl">{item.value}H</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {isGamePriceLoading && (
-                      <div className="min-h-[5rem] rounded-lg skeleton-shimmer animate-shimmer blueprint-border" aria-label="Loading Steam price" />
-                    )}
-                    {gamePrice?.lowestCurrent && formattedGamePrice && (
-                      <a
-                        href={gamePrice.url}
-                        target="_blank"
-                        rel="noopener noreferrer sponsored"
-                        className="group flex min-h-[5rem] items-center justify-between gap-3 rounded-lg border border-brand-cyan/25 bg-brand-cyan/[0.06] px-4 py-3 transition-colors hover:border-brand-cyan/45 hover:bg-brand-cyan/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
-                        aria-label={`${gamePrice.lowestCurrent.source === 'keyshop' ? 'Keyshop' : 'Retail'} price ${formattedGamePrice}; view prices on GG.deals`}
-                      >
-                        <span>
-                          <span className="type-label block text-brand-cyan">
-                            {gamePrice.lowestCurrent.source === 'keyshop' ? 'Keyshop' : 'Retail'}
-                          </span>
-                          <span className="type-readout mt-1 block text-2xl text-white">{formattedGamePrice}</span>
-                        </span>
-                        <span className="type-label text-right text-brand-silver transition-colors group-hover:text-white">GG.deals ↗</span>
-                      </a>
-                    )}
-                    {gamePriceError && (
-                      <div className="flex min-h-[5rem] items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.025] px-4 text-xs text-brand-silver">
-                        <span>Steam price unavailable.</span>
-                        <button
-                          type="button"
-                          onClick={retryGamePrice}
-                          className="min-h-11 rounded-lg px-3 text-brand-cyan transition-colors hover:bg-brand-cyan/10 hover:text-white"
-                        >
-                          Retry
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </section>
-              )}
 
               {(detailTrailers.length > 0 || detailImages.length > 0) && (
                 <div id="media" className="scroll-mt-16 space-y-4 border-t border-white/10 pt-4">
@@ -599,8 +500,6 @@ export const DetailsSheet = () => {
               )}
 
               <div className="mt-3 space-y-4">
-                  {!isGame && (
-                    <>
                     {selected.media_type === 'tv' && (
                       <section id="episodes" aria-labelledby="episodes-heading" className="scroll-mt-16 space-y-3 border-t border-white/10 pt-4">
                         <div className="flex items-center justify-between gap-3">
@@ -655,27 +554,7 @@ export const DetailsSheet = () => {
                         ) : currentSeason?.episodes.length ? (
                           <div className="space-y-2">
                             {currentSeason.episodes.map((episode) => (
-                              <article key={episode.id} className="grid overflow-hidden rounded-xl bg-white/[0.025] blueprint-border sm:grid-cols-[13rem_1fr]">
-                                <div className="aspect-video min-w-0 overflow-hidden bg-white/5 sm:aspect-auto sm:h-full sm:min-h-32">
-                                  <img
-                                    src={episode.still_path ? getImageUrl(episode.still_path, 'w500') : episodePlaceholderSrc}
-                                    alt=""
-                                    className="block h-full w-full object-cover"
-                                    decoding="async"
-                                    loading="lazy"
-                                  />
-                                </div>
-                                <div className="flex min-w-0 flex-col justify-center p-3 sm:p-4">
-                                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                                    <p className="type-readout text-brand-cyan">E{String(episode.episode_number).padStart(2, '0')}</p>
-                                    {episode.air_date && <p className="type-readout text-brand-silver">{episode.air_date}</p>}
-                                  </div>
-                                  <h4 className="type-title mt-1 text-white">{episode.name || `Episode ${episode.episode_number}`}</h4>
-                                  <p className="mt-1 line-clamp-3 text-sm leading-relaxed text-brand-silver">
-                                    {episode.overview || 'Episode description unavailable.'}
-                                  </p>
-                                </div>
-                              </article>
+                              <EpisodeCard key={`${mediaKey}-${episode.id}`} episode={episode} />
                             ))}
                           </div>
                         ) : (
@@ -731,11 +610,9 @@ export const DetailsSheet = () => {
                         <p className="py-10 text-center text-sm text-brand-silver">Cast unavailable.</p>
                       )}
                     </section>
-                    </>
-                  )}
 
                 <p className="type-readout text-center text-brand-silver/60">
-                  Data provided by {providerLabel}.
+                  Data provided by TMDB.
                 </p>
               </div>
               </div>
@@ -858,27 +735,6 @@ export const DetailsSheet = () => {
                       )}
                     >
                       <Heart size={16} className={isFavorited ? 'fill-current' : ''} />
-                    </motion.button>
-                  )}
-
-                  {showPurchasedButton && (
-                    <motion.button
-                      type="button"
-                      onClick={handlePurchasedToggle}
-                      title="Purchased"
-                      aria-label={isPurchased ? 'Mark as not purchased' : 'Mark as purchased'}
-                      aria-pressed={isPurchased}
-                      disabled={!!currentActionPulse}
-                      animate={currentActionPulse === 'purchased' ? { scale: [1, 1.06, 0.98, 1] } : { scale: 1 }}
-                      transition={{ duration: 0.2, ease: 'easeOut' }}
-                      className={clsx(
-                        'flex h-11 w-full cursor-pointer items-center justify-center rounded-lg border transition-colors duration-200 disabled:cursor-wait',
-                        isPurchased
-                          ? 'border-emerald-400/45 bg-emerald-500/15 text-emerald-300 shadow-[0_0_18px_rgba(52,211,153,0.14)] hover:border-emerald-300/60 hover:bg-emerald-500/25'
-                          : 'border-emerald-400/25 bg-emerald-500/[0.06] text-emerald-300 hover:border-emerald-300/50 hover:bg-emerald-500/15'
-                      )}
-                    >
-                      <DollarSign size={16} strokeWidth={isPurchased ? 3 : 2} />
                     </motion.button>
                   )}
 

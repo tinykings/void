@@ -22,7 +22,7 @@ const isUpcomingTv = (item: Media, nowTime: number) => {
 };
 
 const isPriorityRelease = (item: Media, nowTime: number) => {
-  if (item.media_type !== 'movie' && item.media_type !== 'game') return false;
+  if (item.media_type !== 'movie') return false;
 
   const date = getRelevantDate(item);
   if (!date || isNaN(date)) return false;
@@ -58,7 +58,11 @@ const sortByAddedWithReleasePriority = (list: Media[]) => {
 };
 
 export const sortMedia = (list: Media[]): Media[] => {
-  return sortByAddedWithReleasePriority(list);
+  const sorted = sortByAddedWithReleasePriority(list);
+  return [
+    ...sorted.filter((item) => item.pinnedAt).sort((a, b) => b.pinnedAt!.localeCompare(a.pinnedAt!)),
+    ...sorted.filter((item) => !item.pinnedAt),
+  ];
 };
 
 export const sortByAddedDate = (list: Media[]): Media[] => {

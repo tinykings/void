@@ -29,6 +29,8 @@ export interface SeasonDetails {
   episodes: Episode[];
 }
 
+// 'game' and non-TMDB sources are legacy storage identities only. Keep them so
+// old IndexedDB/Gist libraries and JSON backups can round-trip without data loss.
 export type MediaType = 'movie' | 'tv' | 'game';
 
 export type EnabledMediaTypes = Record<MediaType, boolean>;
@@ -54,7 +56,12 @@ export interface Media {
   status?: string;
   date_added?: string;
   lastChecked?: number;
+  // Device-local cache age, independent of daily History return checks; never synced to Gist.
+  metadataFetchedAt?: number;
   isFavorite?: boolean;
+  pinnedAt?: string;
+  /** Episode air date that most recently returned this show to Playlist. */
+  returnedFor?: string;
   isPurchased?: boolean;
   platforms?: string[];
   genres?: string[];
@@ -84,21 +91,6 @@ export interface Media {
     name: string;
     overview: string;
     still_path: string | null;
-  } | null;
-}
-
-export interface GamePrice {
-  steamAppId: number;
-  title: string;
-  url: string;
-  currency: string;
-  currentRetail: string | null;
-  currentKeyshops: string | null;
-  historicalRetail: string | null;
-  historicalKeyshops: string | null;
-  lowestCurrent: {
-    amount: string;
-    source: 'retail' | 'keyshop';
   } | null;
 }
 
@@ -209,6 +201,7 @@ export type FilterType = 'all' | MediaType;
 export type SortOption = 'added';
 
 export interface UserState {
+  showTitles?: boolean;
   apiKey: string;
   watchlist: Media[];
   watched: Media[];

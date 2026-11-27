@@ -1,8 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getIgdbGameDetails, getIgdbGameDetailsByTitle } from '@/lib/igdb';
-import { getMediaKey, getMediaSource, getMediaTitle } from '@/lib/media';
+import { getMediaKey, getMediaSource } from '@/lib/media';
 import { getMediaDetails } from '@/lib/tmdb';
 import type { Media } from '@/lib/types';
 
@@ -38,38 +37,26 @@ export const useMediaDetails = ({ activeMedia, apiKey, isOnline, updateMediaMeta
       return;
     }
     if (!isOnline) return;
-    if (activeMedia.media_type !== 'game' && !apiKey) return;
+    if (activeMedia.media_type === 'game' || !apiKey) return;
 
     const source = getMediaSource(activeMedia);
     const requestKey = getMediaKey(activeMedia);
     const hasCurrentDetails = details?.key === requestKey;
-    const needsHltbRefresh = hasCurrentDetails
-      && activeMedia.media_type === 'game'
-      && source === 'igdb'
-      && !details.media.hltb_checked_at;
-    if (hasCurrentDetails && !needsHltbRefresh) return;
+    if (hasCurrentDetails) return;
 
     const attemptKey = `${requestKey}:${retryCount}`;
     if (attemptRef.current === attemptKey) return;
     attemptRef.current = attemptKey;
 
     const controller = new AbortController();
-    const request = activeMedia.media_type === 'game'
-      ? source === 'steam'
-        ? Promise.resolve(activeMedia)
-        : source === 'rawg'
-          ? getIgdbGameDetailsByTitle(getMediaTitle(activeMedia), controller.signal)
-          : getIgdbGameDetails(activeMedia.id, controller.signal)
-      : getMediaDetails(activeMedia.id, activeMedia.media_type, apiKey, controller.signal);
+    const request = getMediaDetails(activeMedia.id, activeMedia.media_type, apiKey, controller.signal);
 
     void request
       .then((mediaData) => {
         if (controller.signal.aborted) return;
-        setDetails({ key: requestKey, media: mediaData });
-        updateMediaMetadata(activeMedia.id, activeMedia.media_type, {
-          ...mediaData,
-          lastChecked: Date.now(),
-        }, source);
+        const metadata = { ...mediaData, metadataFetchedAt: Date.now() };
+        setDetails({ key: requestKey, media: metadata });
+        updateMediaMetadata(activeMedia.id, activeMedia.media_type, metadata, source);
       })
       .catch(() => {
         if (!controller.signal.aborted) setErrorKey(requestKey);

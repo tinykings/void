@@ -1,4 +1,4 @@
-const CACHE_VERSION = '8.0';
+const CACHE_VERSION = '8.7';
 const APP_SHELL_CACHE = `void-app-shell-${CACHE_VERSION}`;
 const CACHE_PREFIX = 'void-';
 const scopeUrl = new URL(self.registration.scope);

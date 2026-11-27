@@ -4,14 +4,12 @@ import React, { createContext, useContext, useEffect, useMemo, useRef, useState,
 import { Media, UserState, SortOption, FilterType, CastMember, EnabledMediaTypes, MediaType } from '@/lib/types';
 import { useStore } from '@/store/useStore';
 import { useShallow } from 'zustand/react/shallow';
-import { getMediaDetails } from '@/lib/tmdb';
-import { getIgdbGameDetails } from '@/lib/igdb';
-import { mapWithConcurrency } from '@/lib/concurrency';
-import { getMediaKey, getMediaSource } from '@/lib/media';
+import { useLibraryMetadataRefresh } from '@/hooks/useLibraryMetadataRefresh';
+import { normalizeMediaPreferences } from '@/lib/mediaPreferences';
+import { getMediaKey } from '@/lib/media';
 import { toast } from 'sonner';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
-const METADATA_HYDRATION_CONCURRENCY = 1;
 const normalizeBasePath = (path?: string) => {
   const trimmedPath = (path || '').trim().replace(/^\/+|\/+$/g, '');
   return trimmedPath ? `/${trimmedPath}` : '';
@@ -20,16 +18,12 @@ const basePath = normalizeBasePath(process.env.NEXT_PUBLIC_BASE_PATH);
 const serviceWorkerUrl = `${basePath}/sw.js`;
 const serviceWorkerScope = `${basePath || ''}/`;
 const MEDIA_TYPE_SETTINGS_KEY = 'void_enabled_media_types';
-const DEFAULT_ENABLED_MEDIA_TYPES: EnabledMediaTypes = { movie: true, tv: true, game: true };
+const DEFAULT_ENABLED_MEDIA_TYPES = normalizeMediaPreferences();
 
 const readEnabledMediaTypes = (): EnabledMediaTypes => {
   try {
     const saved = JSON.parse(localStorage.getItem(MEDIA_TYPE_SETTINGS_KEY) || 'null') as Partial<EnabledMediaTypes> | null;
-    return {
-      movie: saved?.movie !== false,
-      tv: saved?.tv !== false,
-      game: saved?.game !== false,
-    };
+    return normalizeMediaPreferences(saved);
   } catch {
     return DEFAULT_ENABLED_MEDIA_TYPES;
   }
@@ -46,6 +40,8 @@ type SheetSnapshot = {
 };
 
 interface AppContextType extends UserState {
+  setShowTitles: (show: boolean) => void;
+  togglePin: (media: Media) => void;
   setApiKey: (key: string) => void;
   setGistId: (id: string) => void;
   setGistToken: (token: string) => void;
@@ -65,7 +61,6 @@ interface AppContextType extends UserState {
   showFavoritesOnly: boolean;
   setShowFavoritesOnly: (show: boolean) => void;
   toggleFavorite: (media: Media) => void;
-  togglePurchased: (media: Media) => void;
   updateMediaMetadata: (id: number, type: 'movie' | 'tv' | 'game', metadata: Partial<Media>, source?: Media['source']) => void;
   isSearchFocused: boolean;
   setIsSearchFocused: (focused: boolean) => void;
@@ -97,6 +92,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [enabledMediaTypes, setEnabledMediaTypes] = useState<EnabledMediaTypes>(DEFAULT_ENABLED_MEDIA_TYPES);
   const [mediaTypeSettingsLoaded, setMediaTypeSettingsLoaded] = useState(false);
   const store = useStore(useShallow((s) => ({
+    showTitles: s.showTitles,
+    setShowTitles: s.setShowTitles,
+    togglePin: s.togglePin,
     apiKey: s.apiKey,
     gistId: s.gistId,
     gistToken: s.gistToken,
@@ -123,10 +121,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setShowWatched: s.setShowWatched,
     setShowFavoritesOnly: s.setShowFavoritesOnly,
     toggleFavorite: s.toggleFavorite,
-    togglePurchased: s.togglePurchased,
     updateMediaMetadata: s.updateMediaMetadata,
     setIsSearchFocused: s.setIsSearchFocused,
-    processTVMigrations: s.processTVMigrations,
+    refreshLibraryMetadata: s.refreshLibraryMetadata,
     markEpisodePlayed: s.markEpisodePlayed,
     unmarkEpisodePlayed: s.unmarkEpisodePlayed,
     toggleWatchlist: s.toggleWatchlist,
@@ -134,27 +131,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   })));
   const initialGistSyncDone = useRef('');
   const initialViewApplied = useRef(false);
-  const hydratedMediaKeys = useRef<Set<string>>(new Set());
-  const hydratingMediaKeys = useRef<Set<string>>(new Set());
+  useLibraryMetadataRefresh({
+    enabled: store.isLoaded && isOnline && !!store.apiKey,
+    watchlist: store.watchlist,
+    watched: store.watched,
+    refreshLibraryMetadata: store.refreshLibraryMetadata,
+  });
   const sheetReturnRef = useRef<SheetSnapshot | null>(null);
   const [pendingLibraryView, setPendingLibraryView] = useState<PendingLibraryView>(null);
   const [activeDetailsMedia, setActiveDetailsMedia] = useState<Media | null>(null);
   const [activeActorMedia, setActiveActorMedia] = useState<CastMember | null>(null);
 
   useEffect(() => {
-    setEnabledMediaTypes(readEnabledMediaTypes());
-    setMediaTypeSettingsLoaded(true);
+    // Browser preferences are an external store; load them after hydration.
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      setEnabledMediaTypes(readEnabledMediaTypes());
+      setMediaTypeSettingsLoaded(true);
+    });
 
     const handleStorage = (event: StorageEvent) => {
       if (event.key === MEDIA_TYPE_SETTINGS_KEY) setEnabledMediaTypes(readEnabledMediaTypes());
     };
     window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    return () => {
+      active = false;
+      window.removeEventListener('storage', handleStorage);
+    };
   }, []);
 
   const setMediaTypeEnabled = useCallback((type: MediaType, enabled: boolean) => {
     setEnabledMediaTypes((current) => {
-      const next = { ...current, [type]: enabled };
+      if (type === 'game') return current;
+      const next = { ...current, [type]: enabled, game: false };
+      if (!next.movie && !next.tv) return current;
       try {
         localStorage.setItem(MEDIA_TYPE_SETTINGS_KEY, JSON.stringify(next));
       } catch {
@@ -250,7 +261,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setPendingLibraryView(inWatchlist ? null : { mode: 'watchlist', filter: 'all' });
     await store.toggleWatchlist(media);
-  }, [store.watchlist, store.toggleWatchlist]);
+  }, [store]);
 
   const toggleWatched = useCallback(async (media: Media, rating?: number) => {
     const mediaKey = getMediaKey(media);
@@ -258,7 +269,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setPendingLibraryView(inWatched ? null : { mode: 'watched', filter: 'all' });
     await store.toggleWatched(media, rating);
-  }, [store.watched, store.toggleWatched]);
+  }, [store]);
 
   const syncFromGist = useCallback(async (showIndicator = false) => {
     if (!isOnline) {
@@ -275,7 +286,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         description: error instanceof Error ? error.message : 'GitHub sync failed. Your local collection is unchanged.',
       });
     }
-  }, [isOnline, store.syncFromGist]);
+  }, [isOnline, store]);
 
   // Service worker registration
   useEffect(() => {
@@ -295,8 +306,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!store.isLoaded) {
       initialGistSyncDone.current = '';
       initialViewApplied.current = false;
-      hydratedMediaKeys.current.clear();
-      hydratingMediaKeys.current.clear();
       return;
     }
 
@@ -356,70 +365,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     store.syncFromGist,
   ]);
 
-  useEffect(() => {
-    if (!store.isLoaded || !isOnline) return;
-
-    const incompleteItems = [...store.watchlist, ...store.watched].filter((item) => !item.poster_path);
-    const itemsToHydrate = incompleteItems.filter((item) => {
-      const key = getMediaKey(item);
-      if (hydratedMediaKeys.current.has(key)) return false;
-      if (hydratingMediaKeys.current.has(key)) return false;
-      hydratingMediaKeys.current.add(key);
-      return true;
-    });
-
-    if (itemsToHydrate.length === 0) return;
-
-    void mapWithConcurrency(itemsToHydrate, METADATA_HYDRATION_CONCURRENCY, async (item) => {
-      const key = getMediaKey(item);
-
-      try {
-        const source = getMediaSource(item);
-        const details = item.media_type === 'game'
-          ? source === 'steam'
-            ? item
-            : await getIgdbGameDetails(item.id)
-          : !store.apiKey
-            ? item
-          : await getMediaDetails(item.id, item.media_type, store.apiKey);
-        store.updateMediaMetadata(item.id, item.media_type, {
-          ...details,
-          date_added: item.date_added,
-          isFavorite: item.isFavorite,
-          isPurchased: item.isPurchased,
-          lastChecked: Date.now(),
-        }, source);
-        hydratedMediaKeys.current.add(key);
-      } catch (error) {
-        console.error('Failed to hydrate library metadata:', error);
-      } finally {
-        hydratingMediaKeys.current.delete(key);
-      }
-    });
-  }, [store.isLoaded, isOnline, store.apiKey, store.watchlist, store.watched, store.updateMediaMetadata]);
-
-  // TV auto-migration: move watched shows with upcoming episodes to watchlist
-  useEffect(() => {
-    if (!store.isLoaded || !isOnline || !store.apiKey) return;
-
-    const timeout = setTimeout(async () => {
-      try {
-        const migrated = await store.processTVMigrations();
-        if (migrated && migrated.length > 0) {
-          migrated.forEach((item) => {
-            toast(`${item.name || item.title}`, {
-              description: "Moved to playlist, new episode airing soon",
-            });
-          });
-        }
-      } catch (err) {
-        console.error('TV migration failed:', err);
-      }
-    }, 5000);
-
-    return () => clearTimeout(timeout);
-  }, [store.isLoaded, isOnline, store.apiKey]);
-
   // O(1) lookup Maps for membership checks
   const watchlistIds = useMemo(() => new Set(store.watchlist.map(m => getMediaKey(m))), [store.watchlist]);
   const watchedIds = useMemo(() => new Set(store.watched.map(m => getMediaKey(m))), [store.watched]);
@@ -444,6 +389,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     watched: store.watched,
     filter: store.filter,
     sort: store.sort,
+    showTitles: store.showTitles || false,
     showWatched: store.showWatched || false,
     showFavoritesOnly: store.showFavoritesOnly || false,
     isSearchFocused: store.isSearchFocused || false,
@@ -467,8 +413,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSort: store.setSort,
     setShowWatched: store.setShowWatched,
     setShowFavoritesOnly: store.setShowFavoritesOnly,
+    setShowTitles: store.setShowTitles,
+    togglePin: store.togglePin,
     toggleFavorite: store.toggleFavorite,
-    togglePurchased: store.togglePurchased,
     updateMediaMetadata: store.updateMediaMetadata,
     setIsSearchFocused: store.setIsSearchFocused,
     activeDetailsMedia,
@@ -488,6 +435,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     watchedMap,
   }), [
     store,
+    toggleWatchlist,
+    toggleWatched,
     enabledMediaTypes,
     mediaTypeSettingsLoaded,
     setMediaTypeEnabled,

@@ -177,7 +177,7 @@ test('payload preserves favorites after they move to playlist', () => {
   assert.equal(payload.favorites[0].id, favorite.id);
 });
 
-test('version 4 payload preserves ratings, purchases, and played episodes', () => {
+test('version 6 payload preserves ratings, purchases, and played episodes', () => {
   const watched: Media = {
     id: 42,
     title: 'Rated movie',
@@ -197,7 +197,7 @@ test('version 4 payload preserves ratings, purchases, and played episodes', () =
 
   const payload = buildGistPayload([], [watched], playedEpisodes);
 
-  assert.equal(payload.version, 4);
+  assert.equal(payload.version, 6);
   assert.equal(payload.watched[0].rating, 4);
   assert.equal(payload.watched[0].isPurchased, undefined);
   assert.deepEqual(payload.playedEpisodes, playedEpisodes);
