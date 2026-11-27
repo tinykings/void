@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { AnimatePresence, motion, useDragControls } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getImageUrl, getSeasonDetails } from '@/lib/tmdb';
 import { getImageSrc, getMediaKey, getMediaTitle, getPersonHref } from '@/lib/media';
@@ -14,6 +14,7 @@ import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { FocusTrap } from '@/components/FocusTrap';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useMediaDetails } from '@/hooks/useMediaDetails';
+import { usePullToDismiss } from '@/hooks/usePullToDismiss';
 import { useDetailsSupplementaryData } from '@/hooks/useDetailsSupplementaryData';
 import { EpisodeCard } from '@/components/EpisodeCard';
 
@@ -48,7 +49,7 @@ export const DetailsSheet = () => {
   const [seasonRetryCount, setSeasonRetryCount] = useState(0);
   const closeActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const detailsScrollRef = useRef<HTMLDivElement>(null);
-  const dismissDrag = useDragControls();
+  const detailsSurfaceRef = useRef<HTMLDivElement>(null);
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -176,6 +177,15 @@ export const DetailsSheet = () => {
   }, [activeDetailsMedia]);
 
   const isOpen = !!activeDetailsMedia && !!selected;
+  const handleClose = useCallback(() => {
+    closeDetails();
+    if (isPageMode) backOrHome(router, '/details');
+  }, [closeDetails, isPageMode, router]);
+  const { offset: pullOffset, phase: pullPhase } = usePullToDismiss(
+    detailsSurfaceRef, detailsScrollRef,
+    isPageMode && isOpen && !modalConfig.isOpen && !activeImage && !activeTrailer,
+    handleClose,
+  );
 
   if (!isOpen || !selected || selected.media_type === 'game') return null;
   const nextEpisode = selected.media_type === 'tv' ? selected.next_episode_to_air : null;
@@ -230,11 +240,6 @@ export const DetailsSheet = () => {
     closeActionTimerRef.current = setTimeout(() => {
       setActionPulse(null);
     }, 400);
-  };
-
-  const handleClose = () => {
-    closeDetails();
-    if (isPageMode) backOrHome(router, '/details');
   };
 
   const handleWatchlistToggle = () => {
@@ -307,16 +312,8 @@ export const DetailsSheet = () => {
               initial={isPageMode ? false : { y: '100%' }}
               animate={isPageMode ? undefined : { y: 0 }}
               exit={isPageMode ? undefined : { y: '100%' }}
-              drag={isPageMode ? 'y' : false}
-              dragControls={dismissDrag}
-              dragListener={false}
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={{ top: 0, bottom: 0.65 }}
-              dragMomentum={false}
-              dragSnapToOrigin
-              onDragEnd={(event, { offset, velocity }) => {
-                if (event.type !== 'pointercancel' && (offset.y >= 88 || (offset.y >= 36 && velocity.y >= 700))) handleClose();
-              }}
+              ref={detailsSurfaceRef}
+              style={isPageMode ? { y: pullOffset } : undefined}
               transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
               onClick={(e) => e.stopPropagation()}
               className={`${isPageMode ? 'page-surface' : 'sheet-surface'} will-change-transform`}
@@ -326,14 +323,15 @@ export const DetailsSheet = () => {
                 <div
                   aria-hidden="true"
                   data-details-drag-handle
-                  className="absolute left-1/2 top-[env(safe-area-inset-top,0px)] z-30 flex h-8 w-20 -translate-x-1/2 touch-none select-none items-center justify-center md:hidden"
-                  onPointerDown={(event) => {
-                    if (event.pointerType === 'touch' && (detailsScrollRef.current?.scrollTop ?? 0) <= 0) {
-                      dismissDrag.start(event);
-                    }
-                  }}
+                  className="absolute left-1/2 top-[env(safe-area-inset-top,0px)] z-30 flex h-8 min-w-20 -translate-x-1/2 select-none items-center justify-center md:hidden"
                 >
-                  <span className="h-1 w-9 rounded-full bg-white/35" />
+                  {pullPhase === 'idle' ? (
+                    <span className="h-1 w-9 rounded-full bg-white/35" />
+                  ) : (
+                    <span className={clsx('type-readout whitespace-nowrap', pullPhase === 'ready' ? 'text-brand-cyan' : 'text-brand-silver')}>
+                      {pullPhase === 'ready' ? 'Release to close' : 'Pull to close'}
+                    </span>
+                  )}
                 </div>
               )}
               <div className={clsx(

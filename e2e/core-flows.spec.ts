@@ -177,7 +177,7 @@ for (const mobile of [false, true]) {
 test.describe('touch details', () => {
   test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
 
-  test('pulling down from the top grip dismisses details without hijacking normal scroll', async ({ page }) => {
+  test('pulling down anywhere in details reveals an indicator and closes only from the scroll top', async ({ page }) => {
     await seedConnectedLibrary(page);
     await mockLibraryGist(page, [gistMovie(movie.id, movie.title)]);
     await mockTmdb(page);
@@ -193,29 +193,40 @@ test.describe('touch details', () => {
     await expect(overview).toBeVisible();
     const scrollArea = overview.locator('xpath=ancestor::div[contains(@class, "overflow-y-auto")][1]');
     const client = await page.context().newCDPSession(page);
-    const drag = async (distance: number) => {
-      const box = (await handle.boundingBox())!;
-      const x = box.x + box.width / 2;
-      const y = box.y + box.height / 2;
+    const pullFromContent = async (distance: number) => {
+      const x = 180;
+      const y = 260;
       await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
       for (let i = 1; i <= 6; i++) {
         await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y + distance * i / 6 }] });
       }
-      await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     };
+    const release = () => client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 
-    await drag(18);
+    await pullFromContent(24);
+    await expect(handle).toHaveText('Pull to close');
+    await release();
+    await expect(handle).toHaveText('');
     await expect(overview).toBeVisible();
 
-    await scrollArea.evaluate((element) => { element.scrollTop = 160; });
-    await expect.poll(() => scrollArea.evaluate((element) => element.scrollTop)).toBeGreaterThan(100);
-    await drag(144);
-    await expect(overview).toBeVisible();
-
-    await scrollArea.evaluate((element) => { element.scrollTop = 0; });
-    await drag(144);
-    await expect(page.getByRole('button', { name: /Open details for Test Movie/ })).toBeVisible();
+    await pullFromContent(144);
+    await expect(handle).toHaveText('Release to close');
+    await expect(page).toHaveURL(/\/details\//);
+    await release();
+    const card = page.getByRole('button', { name: /Open details for Test Movie/ });
+    await expect(card).toBeVisible();
     await expect(page).not.toHaveURL(/\/details\//);
+
+    await card.tap();
+    await expect(handle).toBeVisible();
+    await expect(overview).toBeVisible();
+    await scrollArea.evaluate((element) => { element.scrollTop = 280; });
+    await expect.poll(() => scrollArea.evaluate((element) => element.scrollTop)).toBe(280);
+    await pullFromContent(144);
+    await expect(handle).toHaveText('');
+    await release();
+    await expect.poll(() => scrollArea.evaluate((element) => element.scrollTop)).toBeLessThan(240);
+    await expect(page).toHaveURL(/\/details\//);
   });
 });
 
