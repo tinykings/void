@@ -160,16 +160,19 @@ test('cached app shell starts offline and keeps local UI available', async ({ pa
     await navigator.serviceWorker.register('/sw.js');
     await navigator.serviceWorker.ready;
   });
+  // Wait for the installed worker to take control before simulating a network loss.
+  await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByText('Test Movie')).toBeVisible();
 
-  await page.goto('/search');
-  const offlineSearch = page.getByRole('textbox', { name: 'Search unavailable offline' });
+  // Use the canonical static-export paths, which are precached by the worker.
+  await page.goto('/search/');
+  const offlineSearch = page.getByPlaceholder('Search unavailable offline', { exact: true });
   await expect(offlineSearch).toBeVisible();
   await expect(offlineSearch).toBeDisabled();
 
-  await page.goto('/details?id=101&type=movie&source=tmdb&title=Test+Movie');
+  await page.goto('/details/?id=101&type=movie&source=tmdb&title=Test+Movie');
   await expect(page.getByRole('heading', { name: 'Test Movie', exact: true })).toBeVisible();
 });
 
