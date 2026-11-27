@@ -165,7 +165,9 @@ test('cached app shell starts offline and keeps local UI available', async ({ pa
   await expect(page.getByText('Test Movie')).toBeVisible();
 
   await page.goto('/search');
-  await expect(page.getByRole('textbox', { name: /Search movies and shows/ })).toBeVisible();
+  const offlineSearch = page.getByRole('textbox', { name: 'Search unavailable offline' });
+  await expect(offlineSearch).toBeVisible();
+  await expect(offlineSearch).toBeDisabled();
 
   await page.goto('/details?id=101&type=movie&source=tmdb&title=Test+Movie');
   await expect(page.getByRole('heading', { name: 'Test Movie', exact: true })).toBeVisible();
