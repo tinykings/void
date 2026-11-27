@@ -6,7 +6,7 @@ import { validateLibraryPayload } from './libraryPayload';
 import { mergeGistChanges } from './gistMerge';
 import { sortMedia } from './sort';
 import { toggleWatchedInLibrary, toggleWatchlistInLibrary } from './library';
-import { hasEpisodeAired, scrambleSummary } from './episodeSpoilers';
+import { getEpisodeAirDate } from './episodeDates';
 import { getRecommendations } from './tmdb';
 
 const movie = (id: number, pinnedAt?: string): Media => ({
@@ -56,14 +56,14 @@ test('remote pins survive unrelated local metadata edits and local pins do not r
   assert.equal(mergeGistChanges(buildGistPayload([], []), baseline, remote).watchlist.length, 0);
 });
 
-test('episode spoiler dates use local days and hide missing, invalid, and future dates', () => {
+test('episode air dates use local days and distinguish future dates from unknown dates', () => {
   const now = new Date(2026, 5, 12, 0, 1);
-  assert.equal(hasEpisodeAired('2026-06-11', now), true);
-  assert.equal(hasEpisodeAired('2026-06-12', now), true);
-  for (const value of [undefined, '', '2026-06-13', '2026-02-30', 'invalid', '2026-06-12T00:00:00Z']) {
-    assert.equal(hasEpisodeAired(value, now), false);
+  assert.equal(getEpisodeAirDate('2026-06-11', now)?.aired, true);
+  assert.equal(getEpisodeAirDate('2026-06-12', now)?.aired, true);
+  assert.deepEqual(getEpisodeAirDate('2026-06-13', now), { date: new Date(2026, 5, 13), aired: false });
+  for (const value of [null, undefined, '', '2026-02-30', 'invalid', '2026-06-12T00:00:00Z']) {
+    assert.equal(getEpisodeAirDate(value, now), null);
   }
-  assert.equal(scrambleSummary('Secret 123: résumé.'), '░░░░░░ ░░░: ░░░░░░.');
 });
 
 test('recommendations use the seed media type and normalize TMDB results', async () => {

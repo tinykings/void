@@ -45,7 +45,7 @@ Your library is cached in your browser (IndexedDB) and synced through your priva
 - **Watch Providers** — Click provider icons to open JustWatch search results for that title.
 
 ### App Experience
-- **Episode Spoiler Protection** — Unaired or undated episode summaries are scrambled and stills blurred until you choose Reveal spoilers; you can hide them again.
+- **Episode List** — Aired episodes show their still, title, and summary. Upcoming episodes show their episode number and air date in a compact row, with Date TBA for undated episodes.
 - **Poster Indicators** — Library pins have thick cyan borders; History favorites are pink. Search/discovery/recommendations prioritize pink Favorites, cyan Playlist, green History, then amber upcoming releases. Badges and accessible saved-state labels remain available alongside the colors.
 - **Poster Grid** — Playlist and History use poster-only cards. Search and Recommendations always show titles.
 - **PWA** — Installable as a standalone app on mobile and desktop.

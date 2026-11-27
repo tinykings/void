@@ -12,7 +12,7 @@ export interface Episode {
   name: string;
   overview: string;
   vote_average: number;
-  air_date: string;
+  air_date: string | null;
   episode_number: number;
   season_number: number;
   still_path: string | null;
