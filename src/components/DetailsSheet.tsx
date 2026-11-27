@@ -312,20 +312,40 @@ export const DetailsSheet = () => {
               className={`${isPageMode ? 'page-surface' : 'sheet-surface'} will-change-transform`}
             >
               <FocusTrap active={isOpen && !isPageMode}>
-              <button
-                type="button"
-                onClick={handleClose}
-                className={clsx(
-                  'absolute right-4 z-30 rounded-lg border border-white/10 bg-brand-bg/80 p-3 text-brand-silver backdrop-blur-md transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60',
-                  isPageMode ? 'top-[calc(env(safe-area-inset-top,0px)+0.75rem)]' : 'top-3',
+              <div className={clsx(
+                'absolute right-4 z-30 flex items-center gap-2',
+                isPageMode ? 'top-[calc(env(safe-area-inset-top,0px)+0.75rem)]' : 'top-3',
+              )}>
+                {inWatchlist && (
+                  <button
+                    type="button"
+                    onClick={() => togglePin(selected)}
+                    aria-label={isPinned ? 'Unpin' : 'Pin to top'}
+                    title={isPinned ? 'Unpin' : 'Pin to top'}
+                    aria-pressed={isPinned}
+                    className={clsx(
+                      'grid size-11 place-items-center rounded-lg border bg-brand-bg/80 backdrop-blur-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60',
+                      isPinned ? 'border-brand-cyan/40 text-brand-cyan' : 'border-white/10 text-brand-silver hover:border-brand-cyan/25 hover:text-white',
+                    )}
+                  >
+                    <Pin size={18} aria-hidden="true" className={isPinned ? 'fill-current' : undefined} />
+                  </button>
                 )}
-                aria-label={isPageMode ? 'Back to collection' : 'Close details'}
-                title={isPageMode ? 'Back to collection' : 'Close details'}
-              >
-                {isPageMode ? <ArrowLeft size={20} /> : <X size={20} />}
-              </button>
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="grid size-11 place-items-center rounded-lg border border-white/10 bg-brand-bg/80 text-brand-silver backdrop-blur-md transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
+                  aria-label={isPageMode ? 'Back to collection' : 'Close details'}
+                  title={isPageMode ? 'Back to collection' : 'Close details'}
+                >
+                  {isPageMode ? <ArrowLeft size={20} /> : <X size={20} />}
+                </button>
+              </div>
               <div className="relative z-10 flex-1 overflow-y-auto px-4 pb-[calc(7rem+env(safe-area-inset-bottom,0px))]">
-                <div className="flex gap-4 pb-4 pt-4">
+                <div className={clsx(
+                  'grid items-start gap-x-4 gap-y-3 pb-4 pt-4 md:flex md:gap-4',
+                  posterSrc ? 'grid-cols-[auto_minmax(0,1fr)]' : 'grid-cols-1',
+                )}>
                   {posterSrc && (
                     <img
                       src={posterSrc}
@@ -335,56 +355,58 @@ export const DetailsSheet = () => {
                       loading="lazy"
                     />
                   )}
-                  <div className="min-w-0 flex-1 space-y-3">
-                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 pr-12">
-                      {isPageMode ? (
-                        <h1 className="type-display text-white">{title}</h1>
-                      ) : (
-                        <h2 className="type-display text-white">{title}</h2>
-                      )}
-                      {(episodeLabel || movieReleaseLabel) && (
-                        <span className="type-label text-brand-cyan">
-                          {episodeLabel || movieReleaseLabel}
-                        </span>
-                      )}
+                  <div className="contents md:block md:min-w-0 md:flex-1 md:space-y-3">
+                    <div className="min-w-0 space-y-3">
+                      <div className={clsx('flex flex-wrap items-baseline gap-x-3 gap-y-1', inWatchlist ? 'pr-24' : 'pr-12')}>
+                        {isPageMode ? (
+                          <h1 className="type-display text-white">{title}</h1>
+                        ) : (
+                          <h2 className="type-display text-white">{title}</h2>
+                        )}
+                        {(episodeLabel || movieReleaseLabel) && (
+                          <span className="type-label text-brand-cyan">
+                            {episodeLabel || movieReleaseLabel}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="type-readout flex flex-wrap items-center gap-2 text-brand-silver">
+                        <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{selected.media_type}</span>
+                        {year && <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{year}</span>}
+                        <span className={clsx('px-2 py-1 rounded-full backdrop-blur-sm', (selected.vote_average ?? 0) >= 7 ? 'bg-brand-cyan/10 text-brand-cyan' : 'bg-white/10 text-brand-silver')}>★ {selected.vote_average?.toFixed(1) || '0.0'}</span>
+                        <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{contentRatingValue || 'N/A'}</span>
+                        {selected.genres && selected.genres.length > 0 && (
+                          <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">
+                            {selected.genres.slice(0, 3).join(' · ')}
+                          </span>
+                        )}
+                        {selected.status && (
+                          <span className={clsx(
+                            'px-2 py-1 rounded-full backdrop-blur-sm',
+                            /cancel/i.test(selected.status)
+                              ? 'bg-red-500/10 text-red-200'
+                              : /production|returning/i.test(selected.status)
+                                ? 'bg-brand-cyan/10 text-brand-cyan'
+                                : 'bg-white/10 text-brand-silver'
+                          )}>
+                            {selected.status}
+                          </span>
+                        )}
+                        {externalLinks.map((link) => (
+                          <a
+                            key={`${link.label}-${link.url}`}
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex min-h-11 items-center rounded-lg bg-white/10 px-2 py-1 text-brand-silver backdrop-blur-sm transition-colors hover:bg-brand-cyan/10 hover:text-brand-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
+                          >
+                            {link.label}
+                          </a>
+                        ))}
+                      </div>
                     </div>
 
-                    <div className="type-readout flex flex-wrap items-center gap-2 text-brand-silver">
-                      <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{selected.media_type}</span>
-                      {year && <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{year}</span>}
-                      <span className={clsx('px-2 py-1 rounded-full backdrop-blur-sm', (selected.vote_average ?? 0) >= 7 ? 'bg-brand-cyan/10 text-brand-cyan' : 'bg-white/10 text-brand-silver')}>★ {selected.vote_average?.toFixed(1) || '0.0'}</span>
-                      <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">{contentRatingValue || 'N/A'}</span>
-                      {selected.genres && selected.genres.length > 0 && (
-                        <span className="px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm">
-                          {selected.genres.slice(0, 3).join(' · ')}
-                        </span>
-                      )}
-                      {selected.status && (
-                        <span className={clsx(
-                          'px-2 py-1 rounded-full backdrop-blur-sm',
-                          /cancel/i.test(selected.status)
-                            ? 'bg-red-500/10 text-red-200'
-                            : /production|returning/i.test(selected.status)
-                              ? 'bg-brand-cyan/10 text-brand-cyan'
-                              : 'bg-white/10 text-brand-silver'
-                        )}>
-                          {selected.status}
-                        </span>
-                      )}
-                      {externalLinks.map((link) => (
-                        <a
-                          key={`${link.label}-${link.url}`}
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex min-h-11 items-center rounded-lg bg-white/10 px-2 py-1 text-brand-silver backdrop-blur-sm transition-colors hover:bg-brand-cyan/10 hover:text-brand-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
-                        >
-                          {link.label}
-                        </a>
-                      ))}
-                    </div>
-
-                    <div>
+                    <div className="col-span-full min-w-0">
                       <p className={clsx('text-sm leading-relaxed text-white/90', !isOverviewExpanded && 'line-clamp-6')}>
                         {selected.overview || 'Overview unavailable.'}
                       </p>
@@ -399,31 +421,29 @@ export const DetailsSheet = () => {
                         </button>
                       )}
                     </div>
-                    {inWatchlist && <button
-                      type="button"
-                      onClick={() => togglePin(selected)}
-                      aria-pressed={isPinned}
-                      className={clsx('type-action inline-flex min-h-11 items-center gap-2 rounded-lg border px-3 transition-colors focus-visible:outline-2 focus-visible:outline-brand-cyan', isPinned ? 'border-brand-cyan/40 bg-brand-cyan/10 text-brand-cyan' : 'border-white/10 text-brand-silver hover:bg-brand-cyan/10 hover:text-white')}
-                    ><Pin size={16} className={isPinned ? 'fill-current' : undefined} />{isPinned ? 'Unpin' : 'Pin to top'}</button>}
-                    {watchProviderItems.length > 0 && (
-                      <p className="text-base font-semibold leading-relaxed text-white/90">
-                        {watchProviderItems.map((p) => p.provider_name).join(' · ')}
-                      </p>
+                    {(watchProviderItems.length > 0 || initErrorKey === mediaKey) && (
+                      <div className={clsx('min-w-0 space-y-3', posterSrc && 'col-start-2')}>
+                        {watchProviderItems.length > 0 && (
+                          <p className="text-base font-semibold leading-relaxed text-white/90">
+                            {watchProviderItems.map((p) => p.provider_name).join(' · ')}
+                          </p>
+                        )}
+                        {initErrorKey === mediaKey && (
+                          <div className="flex items-center justify-between rounded-xl bg-red-900/20 border border-red-500/30 p-3">
+                            <p className="text-xs font-medium text-red-200">Could not load details. Check your connection and try again.</p>
+                            <button
+                              type="button"
+                              onClick={handleRetryInit}
+                              className="type-action min-h-11 rounded-lg border border-red-500/40 bg-red-950/40 px-3 py-1 text-red-200 transition-colors hover:border-red-400/60 hover:bg-red-900/60"
+                            >
+                              Retry
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     )}
-                  {initErrorKey === mediaKey && (
-                    <div className="flex items-center justify-between rounded-xl bg-red-900/20 border border-red-500/30 p-3">
-                      <p className="text-xs font-medium text-red-200">Could not load details. Check your connection and try again.</p>
-                      <button
-                        type="button"
-                        onClick={handleRetryInit}
-                        className="type-action min-h-11 rounded-lg border border-red-500/40 bg-red-950/40 px-3 py-1 text-red-200 transition-colors hover:border-red-400/60 hover:bg-red-900/60"
-                      >
-                        Retry
-                      </button>
-                    </div>
-                  )}
+                  </div>
                 </div>
-              </div>
 
               {isPageMode && (
                 <nav className="sticky top-0 z-20 -mx-4 mb-4 hidden gap-1 overflow-x-auto border-y border-white/10 bg-brand-bg/90 px-4 py-2 backdrop-blur-xl md:flex" aria-label="Details sections">

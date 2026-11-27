@@ -109,6 +109,46 @@ for (const mobile of [false, true]) {
   });
 }
 
+for (const mobile of [false, true]) {
+  test(`detail layout ${mobile ? 'mobile' : 'desktop'} keeps the poster, overview and pin in their intended positions`, async ({ page }) => {
+    if (mobile) await page.setViewportSize({ width: 375, height: 812 });
+    const saved = { ...movie, poster_path: '/hero-poster.jpg', date_added: '2026-01-01T00:00:00.000Z' };
+    await seedConnectedLibrary(page, { watchlist: [saved] });
+    await mockLibraryGist(page, [{ ...gistMovie(movie.id, movie.title), image: saved.poster_path }]);
+    await mockTmdb(page);
+    await page.route('https://api.themoviedb.org/3/movie/101?**', (route) => route.fulfill({ json: { ...saved, videos: { results: [] } } }));
+    await page.route('https://image.tmdb.org/**', (route) => route.fulfill({
+      contentType: 'image/svg+xml',
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="150"><rect width="100" height="150" fill="blue"/></svg>',
+    }));
+    await page.goto('/');
+    await page.getByRole('button', { name: /Open details for Test Movie/ }).click();
+    const overview = page.getByText('Fixture overview', { exact: true });
+    const poster = page.locator('img[alt=""][src$="/hero-poster.jpg"]');
+    const pin = page.getByRole('button', { name: 'Pin to top', exact: true });
+    const close = page.getByRole('button', { name: mobile ? 'Back to collection' : 'Close details', exact: true });
+    await expect(overview).toBeVisible();
+    await expect(poster).toBeVisible();
+    await expect(pin).toHaveText('');
+    await expect(pin.locator('svg.lucide-pin')).toBeVisible();
+    const p = (await poster.boundingBox())!;
+    const o = (await overview.boundingBox())!;
+    const pinBox = (await pin.boundingBox())!;
+    const closeBox = (await close.boundingBox())!;
+    expect(pinBox.x + pinBox.width).toBeLessThan(closeBox.x);
+    expect(pinBox.y).toBeCloseTo(closeBox.y, 0);
+    if (mobile) {
+      expect(Math.abs(o.x - p.x)).toBeLessThan(2);
+      expect(o.y).toBeGreaterThan(p.y + p.height);
+      expect(o.width).toBeGreaterThan(300);
+    } else {
+      expect(o.x).toBeGreaterThan(p.x + p.width);
+    }
+    await pin.click();
+    await expect(page.getByRole('button', { name: 'Unpin', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  });
+}
+
 test('mobile search and details use routes without forcing keyboard focus', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await seedConnectedLibrary(page);
@@ -321,6 +361,7 @@ test('legacy media preferences no longer hide shows; games stay hidden but remai
 });
 
 test('unaired episode summaries stay hidden until revealed and can be hidden again', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
   const show = { ...movie, id: 301, title: 'Test Show', name: 'Test Show', media_type: 'tv', status: 'Ended' };
   await seedConnectedLibrary(page, { watchlist: [show] });
   await mockTmdb(page);
@@ -336,6 +377,11 @@ test('unaired episode summaries stay hidden until revealed and can be hidden aga
   await page.goto('/');
   await page.getByRole('button', { name: /Open details for Test Show/ }).click();
   await expect(page.getByText('An aired summary.', { exact: true })).toBeVisible();
+  const episode = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Aired Episode' }) });
+  const still = (await episode.locator('img').boundingBox())!;
+  const episodeTitle = (await episode.getByRole('heading').boundingBox())!;
+  expect(still.width).toBeLessThanOrEqual(90);
+  expect(still.x + still.width).toBeLessThan(episodeTitle.x);
   await expect(page.getByText('A secret future plot.', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Reveal spoilers for episode 2' }).click();
   await expect(page.getByText('A secret future plot.', { exact: true })).toBeVisible();
