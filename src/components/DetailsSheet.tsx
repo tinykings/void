@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useDragControls } from 'framer-motion';
 import { useAppContext } from '@/context/AppContext';
 import { getImageUrl, getSeasonDetails } from '@/lib/tmdb';
 import { getImageSrc, getMediaKey, getMediaTitle, getPersonHref } from '@/lib/media';
@@ -41,13 +41,14 @@ export const DetailsSheet = () => {
 
   const [activeImage, setActiveImage] = useState<{ src: string; alt: string; mediaKey: string } | null>(null);
   const [activeTrailer, setActiveTrailer] = useState<{ video: Video; mediaKey: string } | null>(null);
-  const [overviewExpansion, setOverviewExpansion] = useState<{ key: string; expanded: boolean }>({ key: '', expanded: false });
   const [actionPulse, setActionPulse] = useState<{ key: string; action: 'watchlist' | 'watched' | 'favorite' } | null>(null);
   const [seasonSelection, setSeasonSelection] = useState<{ mediaKey: string; number: number } | null>(null);
   const [seasonData, setSeasonData] = useState<{ key: string; data: SeasonDetails } | null>(null);
   const [seasonErrorKey, setSeasonErrorKey] = useState<string | null>(null);
   const [seasonRetryCount, setSeasonRetryCount] = useState(0);
   const closeActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const detailsScrollRef = useRef<HTMLDivElement>(null);
+  const dismissDrag = useDragControls();
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -81,7 +82,6 @@ export const DetailsSheet = () => {
     return getMediaKey(selected);
   }, [selected]);
   const title = selected ? getMediaTitle(selected) : 'Details';
-  const isOverviewExpanded = overviewExpansion.key === mediaKey && overviewExpansion.expanded;
   const availableSeasons = useMemo(
     () => selected?.media_type === 'tv'
       ? [...(selected.seasons || [])]
@@ -305,13 +305,37 @@ export const DetailsSheet = () => {
 
             <motion.div
               initial={isPageMode ? false : { y: '100%' }}
-              animate={{ y: 0 }}
+              animate={isPageMode ? undefined : { y: 0 }}
               exit={isPageMode ? undefined : { y: '100%' }}
+              drag={isPageMode ? 'y' : false}
+              dragControls={dismissDrag}
+              dragListener={false}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.65 }}
+              dragMomentum={false}
+              dragSnapToOrigin
+              onDragEnd={(event, { offset, velocity }) => {
+                if (event.type !== 'pointercancel' && (offset.y >= 88 || (offset.y >= 36 && velocity.y >= 700))) handleClose();
+              }}
               transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
               onClick={(e) => e.stopPropagation()}
               className={`${isPageMode ? 'page-surface' : 'sheet-surface'} will-change-transform`}
             >
               <FocusTrap active={isOpen && !isPageMode}>
+              {isPageMode && (
+                <div
+                  aria-hidden="true"
+                  data-details-drag-handle
+                  className="absolute left-1/2 top-[env(safe-area-inset-top,0px)] z-30 flex h-8 w-20 -translate-x-1/2 touch-none select-none items-center justify-center md:hidden"
+                  onPointerDown={(event) => {
+                    if (event.pointerType === 'touch' && (detailsScrollRef.current?.scrollTop ?? 0) <= 0) {
+                      dismissDrag.start(event);
+                    }
+                  }}
+                >
+                  <span className="h-1 w-9 rounded-full bg-white/35" />
+                </div>
+              )}
               <div className={clsx(
                 'absolute right-4 z-30 flex items-center gap-2',
                 isPageMode ? 'top-[calc(env(safe-area-inset-top,0px)+0.75rem)]' : 'top-3',
@@ -341,9 +365,10 @@ export const DetailsSheet = () => {
                   {isPageMode ? <ArrowLeft size={20} /> : <X size={20} />}
                 </button>
               </div>
-              <div className="relative z-10 flex-1 overflow-y-auto px-4 pb-[calc(7rem+env(safe-area-inset-bottom,0px))]">
+              <div ref={detailsScrollRef} className="relative z-10 flex-1 overflow-y-auto px-4 pb-[calc(7rem+env(safe-area-inset-bottom,0px))]">
                 <div className={clsx(
-                  'grid items-start gap-x-4 gap-y-3 pb-4 pt-4 md:flex md:gap-4',
+                  'grid items-start gap-x-4 gap-y-3 pb-4 md:flex md:gap-4',
+                  isPageMode ? 'pt-8 md:pt-4' : 'pt-4',
                   posterSrc ? 'grid-cols-[auto_minmax(0,1fr)]' : 'grid-cols-1',
                 )}>
                   {posterSrc && (
@@ -404,42 +429,26 @@ export const DetailsSheet = () => {
                           </a>
                         ))}
                       </div>
-                    </div>
-
-                    <div className="col-span-full min-w-0">
-                      <p className={clsx('text-sm leading-relaxed text-white/90', !isOverviewExpanded && 'line-clamp-6')}>
-                        {selected.overview || 'Overview unavailable.'}
-                      </p>
-                      {(selected.overview?.length || 0) > 320 && (
-                        <button
-                          type="button"
-                          onClick={() => setOverviewExpansion({ key: mediaKey, expanded: !isOverviewExpanded })}
-                          className="type-action mt-2 min-h-11 text-brand-cyan hover:text-white"
-                          aria-expanded={isOverviewExpanded}
-                        >
-                          {isOverviewExpanded ? 'Less' : 'More'}
-                        </button>
+                      {watchProviderItems.length > 0 && (
+                        <p className="text-sm font-semibold leading-relaxed text-white/90">
+                          {watchProviderItems.map((provider) => provider.provider_name).join(' · ')}
+                        </p>
                       )}
                     </div>
-                    {(watchProviderItems.length > 0 || initErrorKey === mediaKey) && (
-                      <div className={clsx('min-w-0 space-y-3', posterSrc && 'col-start-2')}>
-                        {watchProviderItems.length > 0 && (
-                          <p className="text-base font-semibold leading-relaxed text-white/90">
-                            {watchProviderItems.map((p) => p.provider_name).join(' · ')}
-                          </p>
-                        )}
-                        {initErrorKey === mediaKey && (
-                          <div className="flex items-center justify-between rounded-xl bg-red-900/20 border border-red-500/30 p-3">
-                            <p className="text-xs font-medium text-red-200">Could not load details. Check your connection and try again.</p>
-                            <button
-                              type="button"
-                              onClick={handleRetryInit}
-                              className="type-action min-h-11 rounded-lg border border-red-500/40 bg-red-950/40 px-3 py-1 text-red-200 transition-colors hover:border-red-400/60 hover:bg-red-900/60"
-                            >
-                              Retry
-                            </button>
-                          </div>
-                        )}
+
+                    <p className="col-span-full min-w-0 text-sm leading-relaxed text-white/90">
+                      {selected.overview || 'Overview unavailable.'}
+                    </p>
+                    {initErrorKey === mediaKey && (
+                      <div className={clsx('flex min-w-0 items-center justify-between rounded-xl border border-red-500/30 bg-red-900/20 p-3', posterSrc && 'col-start-2')}>
+                        <p className="text-xs font-medium text-red-200">Could not load details. Check your connection and try again.</p>
+                        <button
+                          type="button"
+                          onClick={handleRetryInit}
+                          className="type-action min-h-11 rounded-lg border border-red-500/40 bg-red-950/40 px-3 py-1 text-red-200 transition-colors hover:border-red-400/60 hover:bg-red-900/60"
+                        >
+                          Retry
+                        </button>
                       </div>
                     )}
                   </div>
