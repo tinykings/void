@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { normalizeMediaPreferences } from './mediaPreferences';
 import { buildGistPayload, fromGistItem } from './gist';
 import { mergeGistChanges } from './gistMerge';
 import { validateLibraryPayload } from './libraryPayload';
@@ -13,13 +12,6 @@ const game = (source: 'igdb' | 'rawg' | 'steam'): Media => ({
   overview: '', vote_average: 0, popularity: 0,
   date_added: '2026-01-01T00:00:00.000Z', release_date: '2011-04-18',
   isFavorite: true, isPurchased: true, rating: 5, pinnedAt: '2026-01-02T00:00:00.000Z',
-});
-
-test('media preferences disable games and recover legacy games-only settings', () => {
-  assert.deepEqual(normalizeMediaPreferences(), { movie: true, tv: true, game: false });
-  assert.deepEqual(normalizeMediaPreferences({ movie: false, tv: false, game: true }), { movie: true, tv: true, game: false });
-  assert.deepEqual(normalizeMediaPreferences({ movie: false, tv: true, game: true }), { movie: false, tv: true, game: false });
-  assert.deepEqual(normalizeMediaPreferences({ movie: true, tv: false, game: true }), { movie: true, tv: false, game: false });
 });
 
 test('all legacy game sources survive Gist validation, decoding, and backup serialization', () => {

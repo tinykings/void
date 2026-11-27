@@ -1,5 +1,5 @@
 import { getMediaKey } from './media';
-import type { EnabledMediaTypes, Media } from './types';
+import type { Media } from './types';
 
 export const UPCOMING_DAYS = 30;
 export const UPCOMING_EACH = 6;
@@ -33,12 +33,11 @@ export const mixDiscovery = (
   trending: readonly Media[],
   movies: readonly Media[],
   shows: readonly Media[],
-  enabled: Pick<EnabledMediaTypes, 'movie' | 'tv'> = { movie: true, tv: true },
   now = new Date(),
 ): Media[] => {
   const seen = new Set<string>();
   const takeUnique = (items: readonly Media[]) => items.filter((item) => {
-    if ((item.media_type !== 'movie' && item.media_type !== 'tv') || !enabled[item.media_type]) return false;
+    if (item.media_type !== 'movie' && item.media_type !== 'tv') return false;
     const key = getMediaKey(item);
     if (seen.has(key)) return false;
     seen.add(key);

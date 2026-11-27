@@ -10,18 +10,16 @@ type Options = {
   enabled: boolean;
   isLoaded: boolean;
   isOnline: boolean;
-  movieEnabled: boolean;
-  tvEnabled: boolean;
 };
 
 type DiscoveryResult = { key: string; items: Media[]; failures: number };
 
-export const useMediaDiscovery = ({ apiKey, enabled, isLoaded, isOnline, movieEnabled, tvEnabled }: Options) => {
+export const useMediaDiscovery = ({ apiKey, enabled, isLoaded, isOnline }: Options) => {
   const [day, setDay] = useState(() => discoveryDay());
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<DiscoveryResult | null>(null);
-  const key = JSON.stringify([apiKey, movieEnabled, tvEnabled, day, attempt]);
-  const ready = enabled && isLoaded && isOnline && !!apiKey && (movieEnabled || tvEnabled);
+  const key = JSON.stringify([apiKey, day, attempt]);
+  const ready = enabled && isLoaded && isOnline && !!apiKey;
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
 
   // A feed left open overnight must not keep yesterday's releases or countdowns.
@@ -47,19 +45,19 @@ export const useMediaDiscovery = ({ apiKey, enabled, isLoaded, isOnline, movieEn
     const now = new Date();
     void Promise.allSettled([
       getTrending(apiKey, 'all', controller.signal),
-      movieEnabled ? getUpcomingMedia('movie', apiKey, controller.signal, now) : Promise.resolve([] as Media[]),
-      tvEnabled ? getUpcomingMedia('tv', apiKey, controller.signal, now) : Promise.resolve([] as Media[]),
+      getUpcomingMedia('movie', apiKey, controller.signal, now),
+      getUpcomingMedia('tv', apiKey, controller.signal, now),
     ]).then((responses) => {
       if (controller.signal.aborted) return;
       const [trending, movies, shows] = responses.map((response) => response.status === 'fulfilled' ? response.value : []);
       setResult({
         key,
-        items: mixDiscovery(trending, movies, shows, { movie: movieEnabled, tv: tvEnabled }, now),
+        items: mixDiscovery(trending, movies, shows, now),
         failures: responses.filter((response) => response.status === 'rejected').length,
       });
     });
     return () => controller.abort();
-  }, [apiKey, key, movieEnabled, ready, result?.key, tvEnabled]);
+  }, [apiKey, key, ready, result?.key]);
 
   const current = result?.key === key ? result : null;
   return {

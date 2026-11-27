@@ -20,7 +20,7 @@ export const ActorSheet = () => {
   const pathname = usePathname();
   const router = useRouter();
   const isPageMode = pathname.replace(/\/$/, '').endsWith('/person');
-  const { activeActorMedia, closeActor, closeAllSheets, apiKey, enabledMediaTypes, openDetails } = useAppContext();
+  const { activeActorMedia, closeActor, closeAllSheets, apiKey, openDetails } = useAppContext();
   const [actorCredits, setActorCredits] = useState<{ actorId: number; credits: TmdbResult[] } | null>(null);
   const [creditsErrorActorId, setCreditsErrorActorId] = useState<number | null>(null);
   const [creditsRetry, setCreditsRetry] = useState(0);
@@ -32,8 +32,8 @@ export const ActorSheet = () => {
 
   const topCredits = useMemo(() => {
     if (!actor || actorCredits?.actorId !== actor.id) return [];
-    return curatePersonCredits(actorCredits.credits, enabledMediaTypes);
-  }, [actor, actorCredits, enabledMediaTypes]);
+    return curatePersonCredits(actorCredits.credits);
+  }, [actor, actorCredits]);
 
   const loading = isOnline && !!actor && !!apiKey && actorCredits?.actorId !== actor.id;
 

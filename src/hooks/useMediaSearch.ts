@@ -11,12 +11,10 @@ type UseMediaSearchOptions = {
   enabled: boolean;
   isLoaded: boolean;
   isOnline: boolean;
-  movieEnabled: boolean;
-  tvEnabled: boolean;
 };
 
-export const useMediaSearch = ({ apiKey, enabled, isLoaded, isOnline, movieEnabled, tvEnabled }: UseMediaSearchOptions) => {
-  const discovery = useMediaDiscovery({ apiKey, enabled, isLoaded, isOnline, movieEnabled, tvEnabled });
+export const useMediaSearch = ({ apiKey, enabled, isLoaded, isOnline }: UseMediaSearchOptions) => {
+  const discovery = useMediaDiscovery({ apiKey, enabled, isLoaded, isOnline });
   const [searchResults, setSearchResults] = useState<Media[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);

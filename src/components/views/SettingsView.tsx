@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { DisplaySettings } from '@/components/DisplaySettings';
-import { MediaTypeSettings } from '@/components/MediaTypeSettings';
 import { LibraryBackupSettings } from '@/components/LibraryBackupSettings';
 
 export const SettingsView = () => {
@@ -17,7 +16,6 @@ export const SettingsView = () => {
         <h1 className="type-display text-white">Settings</h1>
       </div>
       <div className="space-y-6">
-        <MediaTypeSettings />
         <DisplaySettings />
         <LibraryBackupSettings />
         <section className="text-center pt-4">

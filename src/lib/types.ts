@@ -33,7 +33,6 @@ export interface SeasonDetails {
 // old IndexedDB/Gist libraries and JSON backups can round-trip without data loss.
 export type MediaType = 'movie' | 'tv' | 'game';
 
-export type EnabledMediaTypes = Record<MediaType, boolean>;
 
 export type MediaSource = 'tmdb' | 'igdb' | 'rawg' | 'steam';
 

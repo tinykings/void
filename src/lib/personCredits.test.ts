@@ -38,22 +38,11 @@ test('deduplicates by type and ID, keeps the most popular entry and posterless t
   assert.equal(result[1].media_type, 'tv');
 });
 
-test('filters enabled types before capping, so a single enabled type fills all 30 slots', () => {
-  const input = Array.from({ length: 40 }, (_, index) => credit(index + 1, 'movie'))
-    .concat(Array.from({ length: 40 }, (_, index) => credit(index + 1, 'tv')));
-  for (const type of ['movie', 'tv'] as const) {
-    const result = curatePersonCredits(input, { movie: type === 'movie', tv: type === 'tv' });
-    assert.equal(result.length, 30);
-    assert.ok(result.every((item) => item.media_type === type));
-  }
-  assert.deepEqual(curatePersonCredits(input, { movie: false, tv: false }), []);
-});
-
 test('sparse filmographies retain available titles; small limits and empty results are safe', () => {
   const input = [credit(1, 'movie', 5), credit(2, 'tv', 10), credit(3, 'tv', 20)];
   assert.deepEqual(curatePersonCredits(input).map((item) => item.id), [1, 3, 2]);
-  assert.equal(curatePersonCredits(input, undefined, 2).length, 2);
-  assert.deepEqual(curatePersonCredits(input, undefined, 0), []);
+  assert.equal(curatePersonCredits(input, 2).length, 2);
+  assert.deepEqual(curatePersonCredits(input, 0), []);
   assert.deepEqual(curatePersonCredits([]), []);
   assert.deepEqual(curatePersonCredits([{ ...credit(1, 'movie'), media_type: 'person' } as unknown as TmdbResult]), []);
 });
