@@ -463,7 +463,7 @@ test('legacy media preferences no longer hide shows; games stay hidden but remai
   expect(gameRequests).toEqual([]);
 });
 
-test('unaired episode summaries stay hidden until revealed and can be hidden again', async ({ page }) => {
+test('upcoming and undated episodes use compact rows while aired episodes show details', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   const show = { ...movie, id: 301, title: 'Test Show', name: 'Test Show', media_type: 'tv', status: 'Ended' };
   await seedConnectedLibrary(page, { watchlist: [show] });
@@ -472,24 +472,37 @@ test('unaired episode summaries stay hidden until revealed and can be hidden aga
   await page.route('https://api.themoviedb.org/3/tv/301**', (route) => {
     const path = new URL(route.request().url()).pathname;
     const episodes = [
-      { id: 1, episode_number: 1, season_number: 1, name: 'Aired Episode', air_date: '2020-01-01', overview: 'An aired summary.', still_path: null },
-      { id: 2, episode_number: 2, season_number: 1, name: 'Future Episode', air_date: '2099-01-01', overview: 'A secret future plot.', still_path: null },
+      { id: 1, episode_number: 1, season_number: 1, name: 'Aired Episode', air_date: '2020-01-01', overview: 'An aired summary.', still_path: '/aired-still.jpg' },
+      { id: 2, episode_number: 2, season_number: 1, name: 'Future Episode', air_date: '2099-01-01', overview: 'A secret future plot.', still_path: '/future-still.jpg' },
+      { id: 3, episode_number: 3, season_number: 1, name: 'Undated Episode', air_date: null, overview: 'An undated plot.', still_path: '/undated-still.jpg' },
     ];
-    return route.fulfill({ json: path.endsWith('/season/1') ? { episodes } : path === '/3/tv/301' ? { ...show, seasons: [{ id: 1, name: 'Season 1', season_number: 1, episode_count: 2 }], videos: { results: [] } } : {} });
+    return route.fulfill({ json: path.endsWith('/season/1') ? { episodes } : path === '/3/tv/301' ? { ...show, seasons: [{ id: 1, name: 'Season 1', season_number: 1, episode_count: episodes.length }], videos: { results: [] } } : {} });
   });
+  await page.route('https://image.tmdb.org/**', (route) => route.fulfill({
+    contentType: 'image/svg+xml',
+    body: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="9"><rect width="16" height="9" fill="blue"/></svg>',
+  }));
   await page.goto('/');
   await page.getByRole('button', { name: /Open details for Test Show/ }).click();
   await expect(page.getByText('An aired summary.', { exact: true })).toBeVisible();
   const episode = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Aired Episode' }) });
-  const still = (await episode.locator('img').boundingBox())!;
+  const stillImage = episode.locator('img');
+  await expect(stillImage).toHaveAttribute('src', 'https://image.tmdb.org/t/p/w185/aired-still.jpg');
+  const still = (await stillImage.boundingBox())!;
   const episodeTitle = (await episode.getByRole('heading').boundingBox())!;
   expect(still.width).toBeLessThanOrEqual(90);
   expect(still.x + still.width).toBeLessThan(episodeTitle.x);
+  const upcoming = page.getByRole('article').filter({ has: page.getByText('E02', { exact: true }) });
+  const undated = page.getByRole('article').filter({ has: page.getByText('E03', { exact: true }) });
+  await expect(upcoming.locator('time')).toHaveText('Jan 1, 2099');
+  await expect(upcoming.locator('time')).toHaveAttribute('datetime', '2099-01-01');
+  await expect(undated.getByText('Date TBA', { exact: true })).toBeVisible();
+  for (const row of [upcoming, undated]) {
+    await expect(row.locator('img, h4, button')).toHaveCount(0);
+    expect((await row.boundingBox())!.height).toBeLessThan((await episode.boundingBox())!.height);
+  }
   await expect(page.getByText('A secret future plot.', { exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Reveal spoilers for episode 2' }).click();
-  await expect(page.getByText('A secret future plot.', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Hide spoilers for episode 2' }).click();
-  await expect(page.getByText('A secret future plot.', { exact: true })).toHaveCount(0);
+  await expect(page.getByText('An undated plot.', { exact: true })).toHaveCount(0);
 });
 
 const persistedMetadataAge = (page: Page, id: number) => page.evaluate((mediaId) => new Promise<number | undefined>((resolve, reject) => {
