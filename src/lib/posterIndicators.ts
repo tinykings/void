@@ -10,11 +10,11 @@ type PosterState = {
   isUpcoming: boolean;
 };
 
-/** Match iOS: library pins win; search favorites win over list/release status. */
+/** Library pins win; favorites are otherwise visible in both lists and search. */
 export const getPosterIndicator = (state: PosterState): PosterIndicator => {
   if (state.context === 'library') {
     if (state.inPlaylist && state.isPinned) return 'pinned';
-    if (state.inHistory && state.isFavorite) return 'favorite';
+    if (state.isFavorite && (state.inPlaylist || state.inHistory)) return 'favorite';
     return 'neutral';
   }
   if (state.isFavorite && (state.inPlaylist || state.inHistory)) return 'favorite';

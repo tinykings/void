@@ -5,9 +5,9 @@ import { getPosterIndicator, POSTER_INDICATOR_CLASSES } from './posterIndicators
 type State = Parameters<typeof getPosterIndicator>[0];
 const base: State = { context: 'library', isPinned: false, isFavorite: false, inPlaylist: false, inHistory: false, isUpcoming: false };
 
-test('library pins take priority over favorites; only History favorites get pink borders', () => {
+test('library pins take priority; Playlist and History favorites get the same accent', () => {
   assert.equal(getPosterIndicator({ ...base, inPlaylist: true, isPinned: true, isFavorite: true }), 'pinned');
-  assert.equal(getPosterIndicator({ ...base, inPlaylist: true, isFavorite: true }), 'neutral');
+  assert.equal(getPosterIndicator({ ...base, inPlaylist: true, isFavorite: true }), 'favorite');
   assert.equal(getPosterIndicator({ ...base, inHistory: true, isFavorite: true }), 'favorite');
   assert.equal(getPosterIndicator({ ...base, inHistory: true }), 'neutral');
   assert.equal(getPosterIndicator({ ...base, inPlaylist: true, isUpcoming: true }), 'neutral');

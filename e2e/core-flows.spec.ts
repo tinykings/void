@@ -661,7 +661,7 @@ const expectPosterIndicator = async (card: Locator, indicator: string, color: st
 };
 
 for (const mobile of [false, true]) {
-  test(`poster indicators ${mobile ? 'mobile' : 'desktop'} match iOS priorities and update with saved state`, async ({ page }, testInfo) => {
+  test(`poster indicators ${mobile ? 'mobile' : 'desktop'} show favorites in both lists and preserve pin priority`, async ({ page }, testInfo) => {
     if (mobile) await page.setViewportSize({ width: 390, height: 844 });
     const fixedTime = new Date('2026-06-01T12:00:00Z');
     const titles = ['Pinned Title', 'Pinned Favorite', 'Favorite History', 'History Title', 'Upcoming Title', 'Neutral Title'];
@@ -689,7 +689,7 @@ for (const mobile of [false, true]) {
     await card('Pinned Favorite').click();
     await page.getByRole('button', { name: 'Unpin', exact: true }).click();
     await closeDetails();
-    await expectPosterIndicator(card('Pinned Favorite'), 'neutral', 'rgba(255, 255, 255, 0.1)');
+    await expectPosterIndicator(card('Pinned Favorite'), 'favorite', 'rgb(255, 45, 85)');
     const unpinnedSize = await card('Pinned Favorite').boundingBox();
     expect(unpinnedSize?.width).toBe(originalSize?.width);
     expect(unpinnedSize?.height).toBe(originalSize?.height);
