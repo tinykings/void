@@ -112,27 +112,51 @@ for (const mobile of [false, true]) {
 for (const mobile of [false, true]) {
   test(`detail layout ${mobile ? 'mobile' : 'desktop'} keeps the poster, overview and pin in their intended positions`, async ({ page }) => {
     if (mobile) await page.setViewportSize({ width: 375, height: 812 });
-    const saved = { ...movie, poster_path: '/hero-poster.jpg', date_added: '2026-01-01T00:00:00.000Z' };
+    const saved = { ...movie, overview: 'A deliberately long description. '.repeat(20).trim(),
+      poster_path: '/hero-poster.jpg', date_added: '2026-01-01T00:00:00.000Z' };
     await seedConnectedLibrary(page, { watchlist: [saved] });
     await mockLibraryGist(page, [{ ...gistMovie(movie.id, movie.title), image: saved.poster_path }]);
     await mockTmdb(page);
     await page.route('https://api.themoviedb.org/3/movie/101?**', (route) => route.fulfill({ json: { ...saved, videos: { results: [] } } }));
+    await page.route('https://api.themoviedb.org/3/movie/101/watch/providers**', (route) => route.fulfill({
+      json: { results: { US: { flatrate: [{ provider_id: 8, provider_name: 'Netflix', logo_path: null, display_priority: 0 }] } } },
+    }));
+    await page.route('https://api.themoviedb.org/3/movie/101/release_dates**', (route) => route.fulfill({
+      json: { results: [{ iso_3166_1: 'US', release_dates: [{ certification: 'PG-13' }] }] },
+    }));
     await page.route('https://image.tmdb.org/**', (route) => route.fulfill({
       contentType: 'image/svg+xml',
       body: '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="150"><rect width="100" height="150" fill="blue"/></svg>',
     }));
     await page.goto('/');
     await page.getByRole('button', { name: /Open details for Test Movie/ }).click();
-    const overview = page.getByText('Fixture overview', { exact: true });
+    const overview = page.getByText(saved.overview, { exact: true });
+    const provider = page.getByText('Netflix', { exact: true });
+    const rating = page.getByText('PG-13', { exact: true });
     const poster = page.locator('img[alt=""][src$="/hero-poster.jpg"]');
     const pin = page.getByRole('button', { name: 'Pin to top', exact: true });
     const close = page.getByRole('button', { name: mobile ? 'Back to collection' : 'Close details', exact: true });
     await expect(overview).toBeVisible();
+    await expect(overview).toHaveCSS('-webkit-line-clamp', 'none');
+    await expect(page.getByRole('button', { name: 'More', exact: true })).toHaveCount(0);
+    await expect(provider).toBeVisible();
+    await expect(rating).toBeVisible();
+    if (!mobile) {
+      // Compare positions after the desktop sheet's entrance animation.
+      await expect.poll(() => page.locator('.sheet-surface').filter({ has: overview }).evaluate((sheet) => {
+        const transform = getComputedStyle(sheet).transform;
+        return transform === 'none' ? 0 : new DOMMatrixReadOnly(transform).m42;
+      })).toBe(0);
+    }
+    const streaming = (await provider.boundingBox())!;
+    const mpaa = (await rating.boundingBox())!;
+    expect(streaming.y).toBeGreaterThan(mpaa.y + mpaa.height);
     await expect(poster).toBeVisible();
     await expect(pin).toHaveText('');
     await expect(pin.locator('svg.lucide-pin')).toBeVisible();
     const p = (await poster.boundingBox())!;
     const o = (await overview.boundingBox())!;
+    expect(o.y).toBeGreaterThan(streaming.y + streaming.height);
     const pinBox = (await pin.boundingBox())!;
     const closeBox = (await close.boundingBox())!;
     expect(pinBox.x + pinBox.width).toBeLessThan(closeBox.x);
@@ -148,6 +172,51 @@ for (const mobile of [false, true]) {
     await expect(page.getByRole('button', { name: 'Unpin', exact: true })).toHaveAttribute('aria-pressed', 'true');
   });
 }
+
+test.describe('touch details', () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+
+  test('pulling down from the top grip dismisses details without hijacking normal scroll', async ({ page }) => {
+    await seedConnectedLibrary(page);
+    await mockLibraryGist(page, [gistMovie(movie.id, movie.title)]);
+    await mockTmdb(page);
+    await page.route('https://api.themoviedb.org/3/movie/101?**', (route) => route.fulfill({
+      json: { ...movie, overview: 'A very long overview. '.repeat(160), videos: { results: [] } },
+    }));
+    await page.goto('/');
+    await page.getByRole('button', { name: /Open details for Test Movie/ }).tap();
+    await expect(page).toHaveURL(/\/details\/\?/);
+    const handle = page.locator('[data-details-drag-handle]');
+    const overview = page.getByText(/A very long overview/);
+    await expect(handle).toBeVisible();
+    await expect(overview).toBeVisible();
+    const scrollArea = overview.locator('xpath=ancestor::div[contains(@class, "overflow-y-auto")][1]');
+    const client = await page.context().newCDPSession(page);
+    const drag = async (distance: number) => {
+      const box = (await handle.boundingBox())!;
+      const x = box.x + box.width / 2;
+      const y = box.y + box.height / 2;
+      await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+      for (let i = 1; i <= 6; i++) {
+        await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y + distance * i / 6 }] });
+      }
+      await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    };
+
+    await drag(18);
+    await expect(overview).toBeVisible();
+
+    await scrollArea.evaluate((element) => { element.scrollTop = 160; });
+    await expect.poll(() => scrollArea.evaluate((element) => element.scrollTop)).toBeGreaterThan(100);
+    await drag(144);
+    await expect(overview).toBeVisible();
+
+    await scrollArea.evaluate((element) => { element.scrollTop = 0; });
+    await drag(144);
+    await expect(page.getByRole('button', { name: /Open details for Test Movie/ })).toBeVisible();
+    await expect(page).not.toHaveURL(/\/details\//);
+  });
+});
 
 test('mobile search and details use routes without forcing keyboard focus', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
