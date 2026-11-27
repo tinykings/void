@@ -14,7 +14,7 @@ const utility = IBM_Plex_Mono({
   weight: ["500", "600", "700"],
   variable: "--font-utility",
 });
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tinykings.github.io/void";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://void.tinyk.ing";
 const normalizeBasePath = (path?: string) => {
   const trimmedPath = (path || "").trim().replace(/^\/+|\/+$/g, "");
   return trimmedPath ? `/${trimmedPath}` : "";

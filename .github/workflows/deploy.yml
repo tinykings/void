@@ -67,8 +67,8 @@ jobs:
         env:
           NEXT_PUBLIC_TMDB_READ_ACCESS_TOKEN: ${{ secrets.NEXT_PUBLIC_TMDB_READ_ACCESS_TOKEN }}
           GIST_AUTH_URL: ${{ vars.GIST_AUTH_URL }}
-          NEXT_PUBLIC_BASE_PATH: /void
-          NEXT_PUBLIC_SITE_URL: https://tinykings.github.io/void
+          NEXT_PUBLIC_BASE_PATH: ""
+          NEXT_PUBLIC_SITE_URL: https://void.tinyk.ing
         run: |
           ${{ steps.detect-package-manager.outputs.runner }} next build
       - name: Upload artifact

@@ -7,7 +7,7 @@
 <h3 align="center">A movie and show tracker hosted on GitHub Pages</h3>
 
 <p align="center">
-  <a href="https://tinykings.github.io/void/">tinykings.github.io/void</a>
+  <a href="https://void.tinyk.ing/">void.tinyk.ing</a>
 </p>
 
 ---
@@ -62,7 +62,7 @@ See [TODO.md](TODO.md) for follow-up feature parity. Games are no longer display
 - Shared OAuth Worker URL set in repository variable `GIST_AUTH_URL`
 
 ### Quick Start
-1. Open the app at [tinykings.github.io/void](https://tinykings.github.io/void/)
+1. Open the app at [void.tinyk.ing](https://void.tinyk.ing/)
 2. Connect GitHub and authorize Gist access
 3. Browse and use provider links directly from the details page
 
@@ -121,7 +121,7 @@ OAuth testing also requires `http://localhost:3000` in the shared Worker's origi
 
 ## Deployment
 
-GitHub Actions builds and deploys to GitHub Pages on every push to `main`. The static export is served from the project path at `https://tinykings.github.io/void/`.
+GitHub Actions builds and deploys to GitHub Pages on every push to `main`. The static export is served at `https://void.tinyk.ing/`, with an empty `NEXT_PUBLIC_BASE_PATH` for the custom domain.
 
 ## Settings Reference
 
