@@ -79,8 +79,35 @@ test('search opens details and keyboard shortcut uses history action', async ({ 
 
   await expect(page.getByRole('heading', { name: 'Test Movie' })).toBeVisible();
   await page.keyboard.press('e');
-  await expect(page.getByRole('button', { name: 'In History' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Played' })).toBeVisible();
 });
+
+for (const mobile of [false, true]) {
+  test(`detail actions ${mobile ? 'mobile' : 'desktop'} show Playlist on the left and played status on the right`, async ({ page }) => {
+    if (mobile) await page.setViewportSize({ width: 390, height: 844 });
+    await seedConnectedLibrary(page, { watchlist: [], watched: [] });
+    await mockLibraryGist(page, []);
+    await mockTmdb(page);
+    await page.goto('/details/?id=101&type=movie&source=tmdb&title=Test+Movie');
+
+    const playlist = page.locator('button[data-details-action=watchlist]');
+    const played = page.locator('button[data-details-action=watched]');
+    await expect(playlist).toHaveAccessibleName('Playlist');
+    await expect(played).toHaveAccessibleName('Mark Played');
+    await expect(playlist.locator('svg.lucide-plus')).toBeVisible();
+    await expect(played.locator('svg.lucide-square-check')).toBeVisible();
+    expect((await playlist.boundingBox())!.x).toBeLessThan((await played.boundingBox())!.x);
+
+    await playlist.click();
+    await expect(playlist).toHaveAccessibleName('On Playlist');
+    await expect(playlist.locator('svg.lucide-check')).toBeVisible();
+    await expect(playlist).toHaveClass(/text-brand-cyan/);
+    await played.click();
+    await expect(played).toHaveAccessibleName('Played');
+    await expect(played.locator('svg.lucide-check')).toBeVisible();
+    await expect(playlist).toHaveAccessibleName('Playlist');
+  });
+}
 
 test('mobile search and details use routes without forcing keyboard focus', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -733,11 +760,11 @@ for (const mobile of [false, true]) {
     await closeDetails();
     await expectPosterIndicator(searchCard('Favorite History'), 'favorite', 'rgb(255, 45, 85)');
     await searchCard('Upcoming Title').click();
-    await page.getByRole('button', { name: 'Add to Playlist', exact: true }).click();
+    await page.locator('button[data-details-action=watchlist]').click();
     await closeDetails();
     await expectPosterIndicator(searchCard('Upcoming Title'), 'playlist', 'rgb(34, 211, 238)');
     await searchCard('Upcoming Title').click();
-    await page.getByRole('button', { name: 'Add to History', exact: true }).click();
+    await page.getByRole('button', { name: 'Mark Played', exact: true }).click();
     await closeDetails();
     await expectPosterIndicator(searchCard('Upcoming Title'), 'history', 'rgb(52, 211, 153)');
   });
