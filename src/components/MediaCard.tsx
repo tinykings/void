@@ -11,7 +11,7 @@ import { rememberRouteParent, rememberScrollPosition } from '@/lib/clientNavigat
 import { useAppContext } from '@/context/AppContext';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
-import { Bookmark, Check, Heart, Pin } from 'lucide-react';
+import { Pin } from 'lucide-react';
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 const MOVIE_PRIORITY_WINDOW_DAYS = 30;
@@ -99,7 +99,6 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
   // Saved state wins over stale search/details snapshots, including explicit unfavorites.
   const libraryItem = watchlistMap.get(mediaKey) ?? watchedMap.get(mediaKey);
   const isFavorite = !!libraryItem?.isFavorite;
-  const isSearchCard = indicatorContext === 'search';
   const isPinned = inWatchlist && !!watchlistMap.get(mediaKey)?.pinnedAt;
   const hasDiscoveryCountdown = discoveryCountdown !== null && discoveryCountdown >= 1 && discoveryCountdown <= UPCOMING_DAYS;
   const releaseLabel = hasDiscoveryCountdown ? `Releases in ${discoveryCountdown} ${discoveryCountdown === 1 ? 'day' : 'days'}` : '';
@@ -214,18 +213,9 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
             className={clsx('pointer-events-none absolute inset-0 z-20 rounded-xl', POSTER_INDICATOR_CLASSES[posterIndicator])}
           />
 
-          {(hasDiscoveryCountdown || isPinned || isFavorite || (shouldShowReleaseBadge && daysUntilRelease !== null)) && (
+          {(hasDiscoveryCountdown || isPinned || (shouldShowReleaseBadge && daysUntilRelease !== null)) && (
             <div className="absolute left-2 top-2 z-10 flex flex-col items-start gap-1.5">
               {isPinned && <span aria-label="Pinned" className="rounded-full bg-brand-bg/90 p-2 text-brand-cyan"><Pin size={14} className="fill-current" /></span>}
-              {isFavorite && (
-                <div
-                  aria-hidden="true"
-                  className="flex h-7 w-7 items-center justify-center rounded-full border border-brand-favorite/35 bg-brand-bg/85 text-brand-favorite shadow-[0_2px_10px_rgba(0,0,0,0.35)] backdrop-blur-md"
-                >
-                  <Heart size={14} className="fill-current" strokeWidth={2.5} />
-                </div>
-              )}
-
               {hasDiscoveryCountdown && <span aria-label={releaseLabel} className="type-micro rounded-full border border-brand-upcoming/40 bg-brand-bg/95 px-2 py-1 text-brand-upcoming backdrop-blur-md">In {discoveryCountdown} {discoveryCountdown === 1 ? 'day' : 'days'}</span>}
 
               {shouldShowReleaseBadge && daysUntilRelease !== null && (
@@ -243,22 +233,6 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
               </p>
             </div>
           )}
-
-          {isSearchCard && (inWatched || inWatchlist) ? (
-            <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1.5">
-              {inWatchlist && !inWatched && (
-                <div className="flex items-center justify-center w-6 h-6 bg-brand-cyan/65 backdrop-blur-md text-brand-bg rounded-full border border-white/10">
-                  <Bookmark size={12} className="fill-current" />
-                </div>
-              )}
-
-              {inWatched && (
-                <div className="flex items-center justify-center w-6 h-6 bg-brand-history/65 backdrop-blur-md text-brand-bg rounded-full border border-white/10">
-                  <Check size={12} strokeWidth={3} />
-                </div>
-              )}
-            </div>
-          ) : null}
 
         </button>
 
