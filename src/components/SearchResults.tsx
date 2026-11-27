@@ -1,5 +1,6 @@
 import { MediaCard } from '@/components/MediaCard';
 import { getMediaKey } from '@/lib/media';
+import { upcomingReleaseDays } from '@/lib/discovery';
 import type { Media } from '@/lib/types';
 
 type SearchResultsProps = {
@@ -24,7 +25,7 @@ export const SearchResults = ({ hasSubmittedSearch, isLoading, media, query }: S
     return (
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {media.map((item) => (
-          <MediaCard key={getMediaKey(item)} media={item} showReleaseBadge={false} showCaption />
+          <MediaCard key={getMediaKey(item)} media={item} indicatorContext="search" showReleaseBadge={false} showCaption discoveryCountdown={hasSubmittedSearch ? null : upcomingReleaseDays(item)} />
         ))}
       </div>
     );
@@ -33,7 +34,7 @@ export const SearchResults = ({ hasSubmittedSearch, isLoading, media, query }: S
   return (
     <div className="rounded-xl border border-dashed border-white/10 px-5 py-14 text-center">
       <p className="type-title text-white">
-        {hasSubmittedSearch ? `No matches for “${query}”` : 'Nothing trending right now'}
+        {hasSubmittedSearch ? `No matches for “${query}”` : 'Nothing trending or upcoming right now'}
       </p>
       <p className="mt-2 text-sm leading-relaxed text-brand-silver">
         {hasSubmittedSearch ? 'Check spelling, try a shorter title, or change the media filter.' : 'Check your connection and try again.'}

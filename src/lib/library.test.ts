@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isDateInLocalDayWindow, toggleFavoriteInLibrary, togglePurchasedInLibrary, toggleWatchedInLibrary, toggleWatchlistInLibrary } from './library';
+import { isDateInLocalDayWindow, toggleFavoriteInLibrary, toggleWatchedInLibrary, toggleWatchlistInLibrary } from './library';
 import type { Media } from './types';
 
 const media = (id: number, media_type: Media['media_type'] = 'movie', source?: Media['source']): Media => ({
@@ -33,23 +33,12 @@ test('moving a favorite to playlist preserves favorite state', () => {
   assert.deepEqual(result.watched, []);
 });
 
-test('moving a game from history to playlist marks it purchased', () => {
-  const selected = media(15, 'game', 'igdb');
-  const result = toggleWatchlistInLibrary([], [selected], selected);
-
-  assert.equal(result.watchlist[0].isPurchased, true);
-});
-
-test('purchased toggle only changes games already in playlist', () => {
-  const game = media(16, 'game', 'igdb');
-  const movie = media(17);
-  const purchased = togglePurchasedInLibrary([game, movie], [], game);
-  const unpurchased = togglePurchasedInLibrary(purchased.watchlist, [], game);
-
-  const moviePlaylist = [movie];
-  assert.equal(purchased.watchlist[0].isPurchased, true);
-  assert.equal(unpurchased.watchlist[0].isPurchased, false);
-  assert.equal(togglePurchasedInLibrary(moviePlaylist, [], movie).watchlist, moviePlaylist);
+test('movie changes leave legacy game entries untouched', () => {
+  const game = { ...media(16, 'game', 'igdb'), isPurchased: true, isFavorite: true };
+  const selected = media(16);
+  const result = toggleWatchedInLibrary([game, selected], [], selected);
+  assert.deepEqual(result.watchlist, [game]);
+  assert.equal(result.watchlist[0], game);
 });
 
 test('adding to history removes matching item from playlist', () => {

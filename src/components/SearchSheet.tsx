@@ -46,11 +46,12 @@ export const SearchSheet = () => {
     hasSubmittedSearch,
     isSearching,
     runSearch,
+    retryDiscovery,
     trendingLoading,
-  } = useMediaSearch({ apiKey, enabled: isSearchFocused, isLoaded, isOnline });
+  } = useMediaSearch({ apiKey, enabled: isSearchFocused, isLoaded, isOnline, movieEnabled: enabledMediaTypes.movie, tvEnabled: enabledMediaTypes.tv });
 
   const searchTerm = query.trim();
-  const availableFilters = useMemo(() => (['movie', 'tv', 'game'] as const).filter((type) => enabledMediaTypes[type]), [enabledMediaTypes]);
+  const availableFilters = useMemo(() => (['movie', 'tv'] as const).filter((type) => enabledMediaTypes[type]), [enabledMediaTypes]);
   const activeMediaFilter = mediaFilter === 'all' || enabledMediaTypes[mediaFilter] ? mediaFilter : 'all';
   const filteredMedia = useMemo(() => {
     const visibleMedia = displayedMedia.filter((item) => enabledMediaTypes[item.media_type]);
@@ -153,7 +154,7 @@ export const SearchSheet = () => {
           onChange={(e) => {
             setQuery(e.target.value);
           }}
-          placeholder={isOnline ? 'Search movies, shows, games...' : 'Search unavailable offline'}
+          placeholder={isOnline ? 'Search movies and shows...' : 'Search unavailable offline'}
           className="h-11 w-full rounded-lg border border-white/10 bg-brand-bg/90 py-2.5 pl-10 pr-12 text-base font-medium text-white outline-none ring-1 ring-transparent placeholder:text-brand-silver/50 focus:border-brand-cyan/25 focus:ring-brand-cyan/30 sm:text-sm"
         />
         <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -252,7 +253,10 @@ export const SearchSheet = () => {
           >
 
             {displayError && (
-              <p className="text-sm text-red-400 mb-4">{displayError}</p>
+              <div role="status" className="mb-4 text-sm text-red-400">
+                {displayError}
+                {!hasSubmittedSearch && isOnline && <button type="button" onClick={retryDiscovery} disabled={trendingLoading} className="type-action ml-2 min-h-11 rounded-lg px-3 text-brand-cyan hover:bg-brand-cyan/10 disabled:opacity-40">Try again</button>}
+              </div>
             )}
 
             {!hasSubmittedSearch && recentSearches.length > 0 && (
@@ -270,7 +274,7 @@ export const SearchSheet = () => {
 
             <div className="mb-3 flex items-center justify-between gap-3 pt-4">
               <h2 className="type-label text-brand-silver">
-                {hasSubmittedSearch ? `Results for “${submittedQuery}”` : 'Trending now'}
+                {hasSubmittedSearch ? `Results for “${submittedQuery}”` : 'Trending & upcoming'}
               </h2>
               {!isSearching && <span className="type-readout text-brand-silver/70">{filteredMedia.length}</span>}
             </div>
@@ -294,7 +298,7 @@ export const SearchSheet = () => {
 
             {isLibraryEmpty && (
               <div className="type-readout pt-10 pb-4 text-center text-brand-silver/60">
-                Data provided by TMDB and IGDB.
+                Data provided by TMDB.
               </div>
             )}
           </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { Film, Gamepad2, Tv } from 'lucide-react';
+import { Film, Tv } from 'lucide-react';
 import { useAppContext } from '@/context/AppContext';
 import type { MediaType } from '@/lib/types';
 
@@ -11,7 +11,6 @@ const mediaTypes: Array<{
 }> = [
   { id: 'movie', label: 'Movies', icon: Film },
   { id: 'tv', label: 'Shows', icon: Tv },
-  { id: 'game', label: 'Games', icon: Gamepad2 },
 ];
 
 export const MediaTypeSettings = () => {

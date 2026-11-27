@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getTrending, searchMedia } from '@/lib/tmdb';
-import { hasGameApi, searchIgdbGames } from '@/lib/igdb';
+import { searchMedia } from '@/lib/tmdb';
+import { useMediaDiscovery } from '@/hooks/useMediaDiscovery';
 import { rankSearchResults } from '@/lib/searchRanking';
 import type { Media } from '@/lib/types';
 
@@ -11,11 +11,13 @@ type UseMediaSearchOptions = {
   enabled: boolean;
   isLoaded: boolean;
   isOnline: boolean;
+  movieEnabled: boolean;
+  tvEnabled: boolean;
 };
 
-export const useMediaSearch = ({ apiKey, enabled, isLoaded, isOnline }: UseMediaSearchOptions) => {
+export const useMediaSearch = ({ apiKey, enabled, isLoaded, isOnline, movieEnabled, tvEnabled }: UseMediaSearchOptions) => {
+  const discovery = useMediaDiscovery({ apiKey, enabled, isLoaded, isOnline, movieEnabled, tvEnabled });
   const [searchResults, setSearchResults] = useState<Media[]>([]);
-  const [trending, setTrending] = useState<Media[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSubmittedSearch, setHasSubmittedSearch] = useState(false);
@@ -36,23 +38,10 @@ export const useMediaSearch = ({ apiKey, enabled, isLoaded, isOnline }: UseMedia
       setError(null);
       setIsSearching(true);
       setHasSubmittedSearch(true);
-      const [tmdbResult, gameResult] = await Promise.allSettled([
-        apiKey ? searchMedia(value, apiKey, controller.signal) : Promise.resolve([] as Media[]),
-        hasGameApi() ? searchIgdbGames(value, controller.signal) : Promise.resolve([] as Media[]),
-      ]);
+      if (!apiKey) throw new Error('Movie and show search needs a configured TMDB connection.');
+      const results = await searchMedia(value, apiKey, controller.signal);
       if (controller.signal.aborted) return;
-
-      const tmdbResults = tmdbResult.status === 'fulfilled' ? tmdbResult.value : [];
-      const gameResults = gameResult.status === 'fulfilled' ? gameResult.value : [];
-      setSearchResults(rankSearchResults([...tmdbResults, ...gameResults], value));
-
-      if (tmdbResult.status === 'rejected') console.error('TMDB search error:', tmdbResult.reason);
-      if (gameResult.status === 'rejected') {
-        console.error('Game search error:', gameResult.reason);
-        if (tmdbResults.length === 0) {
-          setError(gameResult.reason instanceof Error ? gameResult.reason.message : 'Game search failed');
-        }
-      }
+      setSearchResults(rankSearchResults(results, value));
     } catch (searchError: unknown) {
       if (searchError instanceof Error && searchError.name === 'AbortError') return;
       console.error('Search error:', searchError);
@@ -71,36 +60,16 @@ export const useMediaSearch = ({ apiKey, enabled, isLoaded, isOnline }: UseMedia
     setIsSearching(false);
   }, []);
 
-  useEffect(() => {
-    if (!isOnline || !enabled || !apiKey || !isLoaded || trending.length > 0) return;
-
-    const controller = new AbortController();
-    void getTrending(apiKey, 'all', controller.signal)
-      .then((items) => {
-        if (controller.signal.aborted) return;
-        setTrending(items.map((item) => ({
-          ...item,
-          media_type: item.media_type || 'movie',
-        })) as Media[]);
-      })
-      .catch((trendingError) => {
-        if (!controller.signal.aborted) {
-          setError(trendingError instanceof Error ? trendingError.message : 'Failed to load popular titles');
-        }
-      });
-
-    return () => controller.abort();
-  }, [apiKey, enabled, isLoaded, isOnline, trending.length]);
-
   useEffect(() => () => searchControllerRef.current?.abort(), []);
 
   return {
     clearSearch,
-    displayedMedia: hasSubmittedSearch ? searchResults : trending,
-    error,
+    displayedMedia: hasSubmittedSearch ? searchResults : discovery.items,
+    error: hasSubmittedSearch ? error : discovery.error,
+    retryDiscovery: discovery.retry,
     hasSubmittedSearch,
     isSearching,
     runSearch,
-    trendingLoading: isOnline && enabled && !!apiKey && isLoaded && trending.length === 0 && !hasSubmittedSearch,
+    trendingLoading: discovery.isLoading && !hasSubmittedSearch,
   };
 };

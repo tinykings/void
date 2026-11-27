@@ -1,6 +1,6 @@
 ---
 name: Void
-description: A movie, show, and game tracker
+description: A movie and show tracker
 colors:
   brand-bg: "#0F1115"
   surface-raised: "#1A1D23"

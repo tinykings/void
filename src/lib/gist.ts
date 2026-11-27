@@ -23,6 +23,8 @@ export const toGistItem = (item: Media): GistLibraryItem => ({
   image: item.poster_path || item.backdrop_path,
   poster_source: item.poster_source,
   rating: item.rating,
+  pinnedAt: item.pinnedAt,
+  returnedFor: item.media_type === 'tv' ? item.returnedFor : undefined,
   isPurchased: item.media_type === 'game' ? item.isPurchased : undefined,
 });
 
@@ -41,6 +43,8 @@ export const fromGistItem = (item: GistLibraryItem, isFavorite = false): Media =
   release_date: item.release_date,
   poster_source: item.poster_source,
   rating: item.rating,
+  pinnedAt: item.pinnedAt,
+  returnedFor: item.returnedFor,
   isFavorite,
   isPurchased: item.isPurchased,
 });
@@ -50,7 +54,7 @@ export const buildGistPayload = (
   watched: Media[],
   playedEpisodes: Record<string, boolean> = {},
 ): GistLibraryData => ({
-  version: 4,
+  version: 6,
   watchlist: watchlist.map(toGistItem),
   watched: watched.map(toGistItem),
   favorites: [...watchlist, ...watched].filter((item) => item.isFavorite).map(toGistItem),

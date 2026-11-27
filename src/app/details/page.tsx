@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ActorSheet } from '@/components/ActorSheet';
@@ -9,8 +10,8 @@ import { useAppContext } from '@/context/AppContext';
 import { getMediaKey } from '@/lib/media';
 import type { Media, MediaSource, MediaType } from '@/lib/types';
 
-const mediaTypes = new Set<MediaType>(['movie', 'tv', 'game']);
-const mediaSources = new Set<MediaSource>(['tmdb', 'igdb', 'rawg', 'steam']);
+const mediaTypes = new Set<MediaType>(['movie', 'tv']);
+const mediaSources = new Set<MediaSource>(['tmdb']);
 
 function DetailsPageSkeleton() {
   return (
@@ -34,6 +35,7 @@ function DetailsPageSkeleton() {
 function DetailsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const legacyGameRequested = searchParams.get('type') === 'game';
   const {
     activeDetailsMedia,
     closeAllSheets,
@@ -86,16 +88,23 @@ function DetailsPageContent() {
   useEffect(() => {
     if (!isLoaded) return;
     if (!requestedMedia) {
-      router.replace('/');
+      if (!legacyGameRequested) router.replace('/');
       return;
     }
     if (!activeDetailsMedia || getMediaKey(activeDetailsMedia) !== getMediaKey(requestedMedia)) {
       openDetails(requestedMedia);
     }
-  }, [activeDetailsMedia, isLoaded, openDetails, requestedMedia, router]);
+  }, [activeDetailsMedia, isLoaded, legacyGameRequested, openDetails, requestedMedia, router]);
 
   useEffect(() => () => closeAllSheetsRef.current(), []);
 
+  if (isLoaded && legacyGameRequested) return (
+    <section className="mx-auto max-w-lg space-y-4 px-4 py-12">
+      <h1 className="type-title text-white">Games are no longer supported</h1>
+      <p className="text-sm text-brand-silver">This version tracks movies and shows only. Previously saved games remain in your library storage and Gist sync. Download the full JSON backup from Settings to keep a copy.</p>
+      <Link href="/" className="type-action inline-flex min-h-11 items-center text-brand-cyan">Back to collection</Link>
+    </section>
+  );
   if (!isLoaded || !requestedMedia || !activeDetailsMedia) return <DetailsPageSkeleton />;
   if (requiresGithubConnection && !isGithubConnected) return <GithubConnectGate />;
 

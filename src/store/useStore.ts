@@ -5,14 +5,11 @@ import { Media, UserState, FilterType, SortOption } from '@/lib/types';
 import { buildGistPayload, fromGistItem, getGistContent, updateGist, type GistLibraryData } from '@/lib/gist';
 import { mergeGistChanges } from '@/lib/gistMerge';
 import { getMediaDetails } from '@/lib/tmdb';
-import { getIgdbGameDetails } from '@/lib/igdb';
-import { mapWithConcurrency } from '@/lib/concurrency';
+import { createMetadataRefresher, mergeMediaMetadata } from '@/lib/metadataRefresh';
 import { getMediaKey, getMediaSource } from '@/lib/media';
-import { isDateInLocalDayWindow, toggleFavoriteInLibrary, togglePurchasedInLibrary, toggleWatchedInLibrary, toggleWatchlistInLibrary } from '@/lib/library';
+import { applyReturningShowCheck, toggleFavoriteInLibrary, toggleWatchedInLibrary, toggleWatchlistInLibrary } from '@/lib/library';
 
 const DEFAULT_TMDB_ACCESS_TOKEN = process.env.NEXT_PUBLIC_TMDB_READ_ACCESS_TOKEN || '';
-const METADATA_HYDRATION_CONCURRENCY = 1;
-const TV_MIGRATION_WINDOW_DAYS = 7;
 
 let gistQueue: Promise<void> = Promise.resolve();
 const gistBaselines = new Map<string, GistLibraryData>();
@@ -28,17 +25,20 @@ const materializeGistPayload = (payload: GistLibraryData, existingItems: Media[]
     const synced = fromGistItem(item, favorites.has(getMediaKey(fromGistItem(item))));
     const existing = existingByKey.get(getMediaKey(synced));
     if (!existing) return synced;
+    const hasCachedDetails = typeof existing.metadataFetchedAt === 'number';
 
     return {
       ...synced,
       ...existing,
-      title: synced.title,
-      name: synced.name,
+      title: hasCachedDetails ? existing.title ?? synced.title : synced.title,
+      name: hasCachedDetails ? existing.name ?? existing.title ?? synced.name : synced.name,
       date_added: synced.date_added,
-      release_date: synced.release_date,
+      release_date: hasCachedDetails ? existing.release_date : synced.release_date,
       rating: synced.rating,
       isFavorite: synced.isFavorite,
       isPurchased: synced.isPurchased,
+      pinnedAt: synced.pinnedAt,
+      returnedFor: synced.returnedFor,
     };
   };
 
@@ -75,6 +75,8 @@ const storage: StateStorage = {
 interface StoreState extends UserState {
   isLoaded: boolean;
   isSyncingLibrary: boolean;
+  setShowTitles: (show: boolean) => void;
+  togglePin: (media: Media) => void;
   setIsLoaded: (loaded: boolean) => void;
   setIsSyncingLibrary: (syncing: boolean) => void;
   
@@ -93,11 +95,11 @@ interface StoreState extends UserState {
   markEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
   unmarkEpisodePlayed: (tmdbId: number, seasonNum: number, episodeNum: number) => void;
 
+  refreshLibraryMetadata: () => Promise<Media[]>;
   processTVMigrations: () => Promise<Media[]>;
   toggleWatchlist: (media: Media) => Promise<void>;
   toggleWatched: (media: Media, rating?: number) => Promise<void>;
   toggleFavorite: (media: Media) => Promise<void>;
-  togglePurchased: (media: Media) => Promise<void>;
   setShowFavoritesOnly: (show: boolean) => void;
   
   setLists: (watchlist: Media[], watched: Media[], playedEpisodes?: Record<string, boolean>) => void;
@@ -109,8 +111,46 @@ interface StoreState extends UserState {
 export const useStore = create<StoreState>()(
   persist(
     (set, get) => {
+      const refreshMetadata = createMetadataRefresher({
+        snapshot: get,
+        canRefresh: () => (typeof navigator === 'undefined' || navigator.onLine !== false)
+          && (typeof document === 'undefined' || document.visibilityState === 'visible'),
+        fetchDetails: (item, apiKey) => item.media_type === 'game'
+          ? Promise.resolve(item) : getMediaDetails(item.id, item.media_type, apiKey),
+        apply: (entry, details, fetchedAt, checkReturn, apiKey) => {
+          let returned: Media | undefined;
+          set((latest) => {
+            if (latest.apiKey !== apiKey) return latest;
+            const key = getMediaKey(entry.item);
+            const current = [...latest.watchlist, ...latest.watched].find((item) => getMediaKey(item) === key);
+            if (!current) return latest; // Never resurrect a title removed while loading.
+            const hasNewerDetails = (current.metadataFetchedAt ?? 0) > (entry.item.metadataFetchedAt ?? 0);
+            const refreshed = hasNewerDetails ? current : mergeMediaMetadata(current, details, fetchedAt);
+            const update = (items: Media[]) => items.map((item) => getMediaKey(item) === key ? refreshed : item);
+            const watchlist = update(latest.watchlist);
+            const watched = update(latest.watched);
+            if (checkReturn) {
+              const result = applyReturningShowCheck(watchlist, watched, entry.item, refreshed);
+              returned = result.returned;
+              return { watchlist: result.watchlist, watched: result.watched };
+            }
+            return { watchlist, watched };
+          });
+          return returned;
+        },
+        onError: (error) => console.error('Library metadata refresh failed:', error),
+      });
       return {
         // Initial State
+        showTitles: false,
+        setShowTitles: (showTitles) => set({ showTitles }),
+        togglePin: (media) => {
+          const key = getMediaKey(media);
+          set((state) => ({ watchlist: state.watchlist.map((item) => getMediaKey(item) === key
+            ? { ...item, pinnedAt: item.pinnedAt ? undefined : new Date().toISOString() }
+            : item) }));
+          void get().syncToGist();
+        },
         apiKey: DEFAULT_TMDB_ACCESS_TOKEN,
         watchlist: [],
         watched: [],
@@ -154,7 +194,8 @@ export const useStore = create<StoreState>()(
           const updateList = (list: Media[]) => 
             list.map(m => {
               const sameProvider = type !== 'game' || !source || getMediaSource(m) === source;
-              return m.id === id && m.media_type === type && sameProvider ? { ...m, ...metadata } : m;
+              return m.id === id && m.media_type === type && sameProvider
+                ? mergeMediaMetadata(m, metadata, metadata.metadataFetchedAt ?? Date.now()) : m;
             });
           
           return {
@@ -187,7 +228,7 @@ export const useStore = create<StoreState>()(
         })),
 
         syncFromGist: async (showIndicator = false) => {
-          const { apiKey, gistId, gistToken, githubLogin, watchlist, watched, playedEpisodes } = get();
+          const { gistId, gistToken, githubLogin, watchlist, watched, playedEpisodes } = get();
           if (!gistId || !gistToken || !githubLogin) return;
 
           const connectionKey = getGistConnectionKey(gistId, githubLogin);
@@ -213,41 +254,8 @@ export const useStore = create<StoreState>()(
               }
 
               const gist = gistResult.data;
-              const favoriteKeys = new Set(gist.favorites.map((item) => getMediaKey(fromGistItem(item))));
-              const remoteWatchlist = gist.watchlist.map((item) => fromGistItem(item));
-              const remoteWatched = gist.watched.map((item) => {
-                const media = fromGistItem(item);
-                return fromGistItem(item, favoriteKeys.has(getMediaKey(media)));
-              });
-
-              const hydrateList = async (items: Media[]) => mapWithConcurrency(
-                items,
-                METADATA_HYDRATION_CONCURRENCY,
-                async (item) => {
-                  try {
-                    const source = getMediaSource(item);
-                    const details = item.media_type === 'game'
-                      ? source === 'steam'
-                        ? item
-                        : await getIgdbGameDetails(item.id)
-                      : await getMediaDetails(item.id, item.media_type, apiKey);
-                    return {
-                      ...details,
-                      date_added: item.date_added,
-                      isFavorite: item.isFavorite,
-                      isPurchased: item.isPurchased,
-                      rating: item.rating,
-                    } as Media;
-                  } catch {
-                    return item;
-                  }
-                },
-              );
-
-              const [hydratedWatchlist, hydratedWatched] = await Promise.all([
-                hydrateList(remoteWatchlist),
-                hydrateList(remoteWatched),
-              ]);
+              // Sync library state only. The age-aware queue hydrates new/stale titles
+              // afterwards, without re-fetching the whole library on every Gist read.
               const latest = get();
               const baseline = gistBaselines.get(connectionKey)
                 ?? buildGistPayload(latest.watchlist, latest.watched, latest.playedEpisodes);
@@ -255,7 +263,7 @@ export const useStore = create<StoreState>()(
               const mergedPayload = mergeGistChanges(gist, baseline, localPayload);
               const mergedLists = materializeGistPayload(
                 mergedPayload,
-                [...latest.watchlist, ...latest.watched, ...hydratedWatchlist, ...hydratedWatched],
+                [...latest.watchlist, ...latest.watched],
               );
 
               set({
@@ -263,7 +271,7 @@ export const useStore = create<StoreState>()(
                 playedEpisodes: mergedPayload.playedEpisodes ?? {},
               });
 
-              if (gist.version < 4 || !sameGistPayload(gist, mergedPayload)) {
+              if (gist.version < 6 || !sameGistPayload(gist, mergedPayload)) {
                 const payload = buildGistPayload(
                   mergedLists.watchlist,
                   mergedLists.watched,
@@ -331,95 +339,21 @@ export const useStore = create<StoreState>()(
           void get().syncToGist();
         },
 
-        togglePurchased: async (media) => {
-          const { watchlist, watched } = get();
-          const updated = togglePurchasedInLibrary(watchlist, watched, media);
-          if (updated.watchlist === watchlist) return;
-
-          set(updated);
-          void get().syncToGist();
+        refreshLibraryMetadata: async () => {
+          const migrated = await refreshMetadata();
+          if (migrated.length > 0) void get().syncToGist();
+          return migrated;
         },
 
-        processTVMigrations: async () => {
-          const state = get();
-          const { apiKey, watched } = state;
-
-          if (!apiKey || !watched.length) return [];
-
-          const now = Date.now();
-          const checkThreshold = 24 * 60 * 60 * 1000;
-
-          const eligible = watched.filter((m) =>
-            m.media_type === 'tv' &&
-            m.status !== 'Ended' &&
-            m.status !== 'Canceled' &&
-            (now - (m.lastChecked || 0) > checkThreshold)
-          );
-
-          if (!eligible.length) return [];
-
-          const migratedItems: Media[] = [];
-          const migratedIds: Set<string> = new Set();
-          const metadataUpdates: Map<string, Partial<Media>> = new Map();
-
-          for (const show of eligible) {
-            try {
-              const details = await getMediaDetails(show.id, 'tv', apiKey);
-              const airDateStr = details.next_episode_to_air?.air_date;
-              let shouldMigrate = false;
-
-              if (airDateStr) {
-                shouldMigrate = isDateInLocalDayWindow(airDateStr, new Date(), TV_MIGRATION_WINDOW_DAYS);
-              }
-
-              if (shouldMigrate) {
-                migratedItems.push({ ...show, ...details, lastChecked: now, date_added: new Date().toISOString() });
-                migratedIds.add(`${show.id}-${show.media_type}`);
-              } else {
-                metadataUpdates.set(`${show.id}-${show.media_type}`, {
-                  status: details.status,
-                  next_episode_to_air: details.next_episode_to_air,
-                  lastChecked: now,
-                });
-              }
-            } catch (err) {
-              console.error(`Migration check failed for ${show.name || show.title}:`, err);
-            }
-          }
-
-          set((state) => {
-            let newWatched = [...state.watched];
-            let newWatchlist = [...state.watchlist];
-
-            if (metadataUpdates.size > 0) {
-              newWatched = newWatched.map((m) => {
-                const key = `${m.id}-${m.media_type}`;
-                const update = metadataUpdates.get(key);
-                return update ? { ...m, ...update } : m;
-              });
-            }
-
-            if (migratedItems.length > 0) {
-              newWatched = newWatched.filter((m) => !migratedIds.has(`${m.id}-${m.media_type}`));
-              newWatchlist = [...newWatchlist, ...migratedItems];
-            }
-
-            return { watched: newWatched, watchlist: newWatchlist };
-          });
-
-          if (migratedItems.length > 0) {
-            get().syncToGist();
-          }
-
-          return migratedItems;
-        },
+        // Retained for callers/tests; return checks share the same queue and cache.
+        processTVMigrations: () => get().refreshLibraryMetadata(),
 
       };
     },
     {
       name: 'void_user_state',
       storage: createJSONStorage(() => storage),
-      version: 5,
+      version: 6,
       migrate: (persistedState, version) => {
         const state = persistedState as Partial<StoreState> | undefined;
         if (!state) return state;
@@ -451,6 +385,9 @@ export const useStore = create<StoreState>()(
         if (version < 5) {
           state.githubLogin = '';
         }
+
+        // UI migration only: never remove saved items or favorites from either list.
+        if (version < 6 && state.filter === 'game') state.filter = 'all';
 
         return state;
       },

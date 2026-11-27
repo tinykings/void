@@ -53,7 +53,7 @@ export const GithubConnectGate = () => {
 
         <div className="border-y border-blueprint-border py-7">
           <h1 id="connect-title" className="text-balance text-sm font-medium leading-6 text-slate-50">
-            Track movies, shows, and games. Your library lives in this browser; GitHub Gist adds backup and cross-device sync.
+            Track movies and shows. Your library lives in this browser; GitHub Gist adds backup and cross-device sync.
           </h1>
         </div>
 

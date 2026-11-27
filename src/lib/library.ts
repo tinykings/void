@@ -3,6 +3,12 @@ import { getMediaKey } from './media';
 
 export type LibraryLists = Pick<{ watchlist: Media[]; watched: Media[] }, 'watchlist' | 'watched'>;
 
+const withoutPin = (media: Media): Media => {
+  const result = { ...media };
+  delete result.pinnedAt;
+  return result;
+};
+
 export const toggleWatchlistInLibrary = (
   watchlist: Media[],
   watched: Media[],
@@ -22,9 +28,9 @@ export const toggleWatchlistInLibrary = (
 
   return {
     watchlist: [...watchlist, {
-      ...media,
+      ...withoutPin(media),
       ...(watchedItem?.isFavorite !== undefined ? { isFavorite: watchedItem.isFavorite } : {}),
-      ...(media.media_type === 'game' && watchedItem ? { isPurchased: true } : {}),
+      ...(watchedItem?.returnedFor ? { returnedFor: watchedItem.returnedFor } : {}),
       date_added: addedAt,
     }],
     watched: watched.filter((item) => getMediaKey(item) !== mediaKey),
@@ -66,31 +72,13 @@ export const toggleWatchedInLibrary = (
   return {
     watchlist: watchlist.filter((item) => getMediaKey(item) !== mediaKey),
     watched: [...watched, {
-      ...media,
+      ...withoutPin(media),
       ...(watchlistItem?.isFavorite !== undefined ? { isFavorite: watchlistItem.isFavorite } : {}),
+      ...(watchlistItem?.returnedFor ? { returnedFor: watchlistItem.returnedFor } : {}),
       ...(rating === undefined ? {} : { rating }),
       date_added: addedAt,
       lastChecked: checkedAt,
     }],
-  };
-};
-
-export const togglePurchasedInLibrary = (
-  watchlist: Media[],
-  watched: Media[],
-  media: Media,
-): LibraryLists => {
-  if (media.media_type !== 'game') return { watchlist, watched };
-
-  const mediaKey = getMediaKey(media);
-  const watchlistItem = watchlist.find((item) => getMediaKey(item) === mediaKey);
-  if (!watchlistItem) return { watchlist, watched };
-
-  return {
-    watchlist: watchlist.map((item) => getMediaKey(item) === mediaKey
-      ? { ...item, isPurchased: !item.isPurchased }
-      : item),
-    watched,
   };
 };
 
@@ -120,6 +108,33 @@ export const toggleFavoriteInLibrary = (
       : item),
     watched,
   };
+};
+
+/** Apply a completed check against current state, not the list captured before the fetch. */
+export const applyReturningShowCheck = (
+  watchlist: Media[],
+  watched: Media[],
+  checkedShow: Media,
+  details: Media,
+  now = new Date(),
+): LibraryLists & { returned?: Media } => {
+  const key = getMediaKey(checkedShow);
+  const current = watched.find((item) => getMediaKey(item) === key);
+  if (!current || current.media_type !== 'tv' || getMediaKey(details) !== key
+    || current.date_added !== checkedShow.date_added || current.returnedFor !== checkedShow.returnedFor
+    || watchlist.some((item) => getMediaKey(item) === key)) return { watchlist, watched };
+
+  const refreshed = { ...current, ...details, isFavorite: current.isFavorite, rating: current.rating,
+    date_added: current.date_added, returnedFor: current.returnedFor, lastChecked: now.getTime() };
+  const airDate = details.next_episode_to_air?.air_date;
+  // Keep the marker when played or manually moved; only a later episode can return it.
+  if (details.status !== 'Ended' && details.status !== 'Canceled' && airDate
+    && (!current.returnedFor || airDate > current.returnedFor)
+    && isDateInLocalDayWindow(airDate, now, 7)) {
+    const returned = { ...withoutPin(refreshed), returnedFor: airDate, date_added: now.toISOString() };
+    return { watchlist: [...watchlist, returned], watched: watched.filter((item) => getMediaKey(item) !== key), returned };
+  }
+  return { watchlist, watched: watched.map((item) => getMediaKey(item) === key ? refreshed : item) };
 };
 
 export const isDateInLocalDayWindow = (dateValue: string, now: Date, windowDays: number) => {
