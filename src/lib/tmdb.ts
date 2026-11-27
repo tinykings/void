@@ -87,21 +87,18 @@ export const getContentRating = async (id: number, type: 'movie' | 'tv', apiKey:
 
 export const getMediaDetails = async (id: number, type: 'movie' | 'tv', apiKey: string, signal?: AbortSignal): Promise<Media> => {
   const data = await fetchFromTMDB(`/${type}/${id}`, apiKey, {
-    append_to_response: 'videos,images',
-    include_image_language: 'en,null',
+    append_to_response: 'videos',
   }, signal) as Omit<Media, 'videos' | 'genres'> & {
     genres?: { id: number; name: string }[];
     videos?: { results?: Video[] };
-    images?: { backdrops?: { file_path: string }[] };
   };
 
-  const { genres, images, videos, ...media } = data;
+  const { genres, videos, ...media } = data;
   return {
     ...media,
     media_type: type,
     genres: (genres || []).map((genre) => genre.name),
     videos: videos?.results || [],
-    screenshots: (images?.backdrops || []).slice(0, 3).map((image) => image.file_path),
   };
 };
 
