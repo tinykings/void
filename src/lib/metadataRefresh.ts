@@ -5,10 +5,12 @@ export const DAY_MS = 24 * 60 * 60 * 1000;
 export const METADATA_RETRY_DELAY_MS = 5 * 60 * 1000;
 export const METADATA_POLL_INTERVAL_MS = 15 * 60 * 1000;
 export const METADATA_BATCH_LIMIT = 30;
+const POSTER_BATCH_PAUSE_MS = 250;
 
 export type MetadataEntry = { item: Media; list: 'watchlist' | 'watched' };
 export type MetadataSnapshot = { apiKey: string; watchlist: Media[]; watched: Media[] };
 
+const lacksArtwork = ({ item }: MetadataEntry) => !item.poster_path && !item.backdrop_path;
 const isOngoingShow = (item: Media) => item.media_type === 'tv' && item.status !== 'Ended' && item.status !== 'Canceled';
 const validTimestamp = (value: number | undefined, now: number) =>
   typeof value === 'number' && Number.isFinite(value) && value > 0 && value <= now;
@@ -29,6 +31,8 @@ export const needsReturningShowCheck = ({ item, list }: MetadataEntry, now = Dat
 export const mergeMediaMetadata = (current: Media, details: Partial<Media>, fetchedAt: number): Media => ({
   ...current,
   ...details,
+  poster_path: details.poster_path || current.poster_path,
+  backdrop_path: details.backdrop_path || current.backdrop_path,
   id: current.id,
   media_type: current.media_type,
   source: current.source,
@@ -48,6 +52,7 @@ type RefreshOptions = {
   fetchDetails: (item: Media, apiKey: string) => Promise<Media>;
   apply: (entry: MetadataEntry, details: Media, fetchedAt: number, checkReturn: boolean, apiKey: string) => Media | undefined;
   now?: () => number;
+  pauseBetweenPosterBatches?: () => Promise<void>;
   onError?: (error: unknown) => void;
 };
 
@@ -57,28 +62,43 @@ export const createMetadataRefresher = (options: RefreshOptions) => {
   const retryAfter = new Map<string, number>();
   let blockedUntil = 0;
   let running: Promise<Media[]> | null = null;
+  const pauseBetweenPosterBatches = options.pauseBetweenPosterBatches
+    ?? (() => new Promise<void>((resolve) => setTimeout(resolve, POSTER_BATCH_PAUSE_MS)));
+  const snapshotEntries = (snapshot: MetadataSnapshot): MetadataEntry[] => [
+    ...snapshot.watchlist.map((item): MetadataEntry => ({ item, list: 'watchlist' })),
+    ...snapshot.watched.map((item): MetadataEntry => ({ item, list: 'watched' })),
+  ];
 
   const run = async () => {
     const returned: Media[] = [];
     const attempted = new Set<string>();
-    for (let count = 0; count < METADATA_BATCH_LIMIT; count++) {
+    const apiKey = options.snapshot().apiKey;
+    let processed = 0;
+    while (true) {
       const snapshot = options.snapshot();
       const time = now();
-      if (!snapshot.apiKey || !options.canRefresh() || time < blockedUntil) break;
+      if (!apiKey || snapshot.apiKey !== apiKey || !options.canRefresh() || time < blockedUntil) break;
       // Re-read state after each request so removals, moves, syncs, and newer details win.
-      const entries: MetadataEntry[] = [
-        ...snapshot.watchlist.map((item): MetadataEntry => ({ item, list: 'watchlist' })),
-        ...snapshot.watched.map((item): MetadataEntry => ({ item, list: 'watched' })),
-      ];
-      const entry = entries.find((candidate) => {
+      const entries = snapshotEntries(snapshot).filter((candidate) => {
         const key = getMediaKey(candidate.item);
         return candidate.item.media_type !== 'game' && !attempted.has(key)
-          && time >= (retryAfter.get(key) ?? 0)
-          && (isMetadataStale(candidate, time) || needsReturningShowCheck(candidate, time));
+          && time >= (retryAfter.get(key) ?? 0);
       });
+      const missingArtwork = entries.find((candidate) => lacksArtwork(candidate) && isMetadataStale(candidate, time));
+      if (processed === METADATA_BATCH_LIMIT) {
+        // A large Gist import can outlast one pass. Yield and keep filling blank artwork;
+        // ordinary periodic metadata refreshes remain bounded to one batch.
+        if (!missingArtwork) break;
+        await pauseBetweenPosterBatches();
+        processed = 0;
+        continue;
+      }
+      const entry = missingArtwork
+        ?? entries.find((candidate) => isMetadataStale(candidate, time) || needsReturningShowCheck(candidate, time));
       if (!entry) break;
       const key = getMediaKey(entry.item);
       attempted.add(key);
+      processed++;
       const checkReturn = needsReturningShowCheck(entry, time);
       try {
         // A recent details-screen fetch already contains the next episode. Reuse it.

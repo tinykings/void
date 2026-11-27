@@ -34,6 +34,8 @@ const materializeGistPayload = (payload: GistLibraryData, existingItems: Media[]
       name: hasCachedDetails ? existing.name ?? existing.title ?? synced.name : synced.name,
       date_added: synced.date_added,
       release_date: hasCachedDetails ? existing.release_date : synced.release_date,
+      poster_path: existing.poster_path || synced.poster_path,
+      backdrop_path: existing.backdrop_path || synced.backdrop_path,
       rating: synced.rating,
       isFavorite: synced.isFavorite,
       isPurchased: synced.isPurchased,

@@ -7,6 +7,7 @@ import {
 } from './metadataRefresh';
 import type { Media } from './types';
 import { buildGistPayload } from './gist';
+import { getPosterCandidates } from './media';
 import { useStore } from '../store/useStore';
 
 const time = new Date(2026, 5, 12, 12).getTime();
@@ -66,6 +67,7 @@ const harness = (watchlist: Media[], watched: Media[] = []) => {
     snapshot: () => state,
     canRefresh: () => online,
     now: () => clock,
+    pauseBetweenPosterBatches: async () => {},
     fetchDetails: async (item) => { calls.push(item.id); return fetchDetails(item); },
     apply: (checked, details, fetchedAt, checkReturn) => {
       if (checkReturn) checks.push(checked.item.id);
@@ -168,6 +170,34 @@ test('bounded batches prioritize Playlist, leaving the remaining titles for the 
   assert.equal(h.calls.at(-1), 99);
 });
 
+test('artwork backfills blanks before routine checks and continues past one batch', async () => {
+  const blank = Array.from({ length: METADATA_BATCH_LIMIT + 5 }, (_, index) => movie(index + 2, { poster_path: null }));
+  const h = harness([movie(1), ...blank.slice(0, 20)], blank.slice(20));
+  h.setFetch(async (item) => ({ ...item, poster_path: item.id === 2 ? null : `/poster-${item.id}.jpg` }));
+
+  await h.refresh();
+  assert.deepEqual(h.calls, [...blank.map((item) => item.id), 1]);
+  assert.equal(h.state().watchlist[1].poster_path, null);
+  assert.ok(h.state().watched.every((item) => !!item.poster_path));
+  await h.refresh();
+  assert.equal(h.calls.length, blank.length + 1, 'an actual no-art response does not loop');
+});
+
+test('a response without artwork does not remove an existing poster or backdrop', () => {
+  const original = movie(1, { backdrop_path: '/old-backdrop.jpg' });
+  const merged = mergeMediaMetadata(original, { poster_path: null, backdrop_path: null }, time);
+  assert.equal(merged.poster_path, original.poster_path);
+  assert.equal(merged.backdrop_path, original.backdrop_path);
+});
+
+test('poster candidates try backdrop and alternate CDN sizes without repeating external URLs', () => {
+  const build = (path: string, size: string) => `${size}${path}`;
+  assert.deepEqual(getPosterCandidates('/poster.jpg', '/back.jpg', build),
+    ['w342/poster.jpg', 'w342/back.jpg', 'w185/poster.jpg', 'w185/back.jpg']);
+  assert.deepEqual(getPosterCandidates('/poster.jpg', '/poster.jpg', build), ['w342/poster.jpg', 'w185/poster.jpg']);
+  assert.deepEqual(getPosterCandidates('https://example.com/poster.jpg', null, build), ['https://example.com/poster.jpg']);
+});
+
 test('queue rechecks library after each request, skipping titles removed before their turn', async () => {
   const h = harness([movie(1), movie(2)]);
   h.setFetch(async (item) => {
@@ -225,7 +255,9 @@ test('Gist reads preserve local cache ages without rehydrating every title; meta
     useStore.setState({ watchlist: [], watched: [], gistId: '', gistToken: '', githubLogin: '' });
   });
   const fresh = movie(901, { metadataFetchedAt: Date.now(), overview: 'Fresh local metadata', title: 'Fresh title', release_date: '2026-12-15' });
-  let remote = buildGistPayload([{ ...fresh, title: 'Old remote title', release_date: '2025-01-01' }, movie(902)], []);
+  const cachedBlank = movie(903, { poster_path: null, metadataFetchedAt: Date.now() });
+  let remote = buildGistPayload([{ ...fresh, title: 'Old remote title', release_date: '2025-01-01' },
+    movie(902), movie(903, { poster_path: '/remote-poster.jpg' })], []);
   let metadataRequests = 0;
   globalThis.fetch = async (url, init) => {
     if (String(url).includes('api.github.com')) {
@@ -235,7 +267,7 @@ test('Gist reads preserve local cache ages without rehydrating every title; meta
     metadataRequests++;
     return new Response(JSON.stringify(movie(902)));
   };
-  useStore.setState({ apiKey: 'test', watchlist: [fresh], watched: [], gistId: 'metadata-test', gistToken: 'token', githubLogin: 'user' });
+  useStore.setState({ apiKey: 'test', watchlist: [fresh, cachedBlank], watched: [], gistId: 'metadata-test', gistToken: 'token', githubLogin: 'user' });
   await useStore.getState().syncFromGist();
   await useStore.getState().syncFromGist();
   assert.equal(metadataRequests, 0);
@@ -243,6 +275,7 @@ test('Gist reads preserve local cache ages without rehydrating every title; meta
   assert.equal(useStore.getState().watchlist[0].overview, fresh.overview);
   assert.equal(useStore.getState().watchlist[0].title, fresh.title);
   assert.equal(useStore.getState().watchlist[0].release_date, fresh.release_date);
+  assert.equal(useStore.getState().watchlist[2].poster_path, '/remote-poster.jpg');
   await useStore.getState().refreshLibraryMetadata();
   assert.equal(metadataRequests, 1);
   await useStore.getState().syncToGist();

@@ -6,7 +6,7 @@ import { Media } from '@/lib/types';
 import { getImageUrl } from '@/lib/tmdb';
 import { UPCOMING_DAYS } from '@/lib/discovery';
 import { getPosterIndicator, POSTER_INDICATOR_CLASSES, type PosterIndicatorContext } from '@/lib/posterIndicators';
-import { getDetailsHref, getImageSrc, getMediaKey } from '@/lib/media';
+import { getDetailsHref, getMediaKey, getPosterCandidates } from '@/lib/media';
 import { rememberRouteParent, rememberScrollPosition } from '@/lib/clientNavigation';
 import { useAppContext } from '@/context/AppContext';
 import { clsx } from 'clsx';
@@ -88,10 +88,9 @@ export const MediaCard = React.memo(({ media, showReleaseBadge = true, showCapti
   
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const imageCandidates = useMemo(() => {
-    const paths = [media.poster_path, media.backdrop_path].filter((path): path is string => !!path);
-    return [...new Set(paths)].map((path) => getImageSrc(path, (tmdbPath) => getImageUrl(tmdbPath)));
-  }, [media.backdrop_path, media.poster_path]);
+  const imageCandidates = useMemo(() => getPosterCandidates(
+    media.poster_path, media.backdrop_path, getImageUrl,
+  ), [media.backdrop_path, media.poster_path]);
 
   const mediaKey = getMediaKey(media);
   const inWatchlist = watchlistIds.has(mediaKey);

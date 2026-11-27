@@ -364,6 +364,39 @@ test('library metadata refreshes by age on launch, foreground, and reconnect wit
   expect(requests).toEqual({ 401: 4, 402: 2, 403: 2 });
 });
 
+test('large libraries backfill blank grid posters and retry a failed rendition without opening details', async ({ page }) => {
+  const titles = Array.from({ length: 32 }, (_, index) => ({
+    ...movie, id: 5000 + index, title: `Imported film ${index + 1}`,
+    date_added: '2026-01-01T00:00:00.000Z',
+  }));
+  await seedConnectedLibrary(page, { watchlist: titles });
+  await page.route('https://api.github.com/**', (route) => route.fulfill({ status: 503 }));
+  const detailRequests: number[] = [];
+  await page.route('https://api.themoviedb.org/**', (route) => {
+    const id = Number(new URL(route.request().url()).pathname.split('/').at(-1));
+    const item = titles.find((candidate) => candidate.id === id);
+    if (item) detailRequests.push(id);
+    return route.fulfill({ json: item ? { ...item, poster_path: `/${id}.jpg` } : {} });
+  });
+  await page.route('https://image.tmdb.org/**', (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === '/t/p/w342/5031.jpg') return route.fulfill({ status: 404 });
+    return route.fulfill({
+      contentType: 'image/svg+xml',
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="18"><rect width="12" height="18" fill="blue"/></svg>',
+    });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open details for Imported film 24, on playlist', exact: true }).scrollIntoViewIfNeeded();
+  const card = page.getByRole('button', { name: /^Open details for Imported film 32\b/ });
+  await card.scrollIntoViewIfNeeded();
+  const poster = card.locator('img');
+  await expect(poster).toHaveAttribute('src', /\/w185\/5031\.jpg$/);
+  await expect(poster).toHaveClass(/opacity-100/);
+  expect(detailRequests).toHaveLength(titles.length);
+});
+
 test('actor filmography retries failures and handles missing biographies', async ({ page }) => {
   await seedConnectedLibrary(page);
   await page.route('https://api.github.com/**', (route) => route.fulfill({ status: 503 }));
