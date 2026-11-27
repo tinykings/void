@@ -8,7 +8,7 @@ import { getImageUrl, getSeasonDetails } from '@/lib/tmdb';
 import { getImageSrc, getMediaKey, getMediaTitle, getPersonHref } from '@/lib/media';
 import { backOrHome, rememberRouteParent } from '@/lib/clientNavigation';
 import type { SeasonDetails, Video } from '@/lib/types';
-import { ArrowLeft, Check, ChevronDown, Heart, Pin, Play, Plus, SquareCheck, X } from 'lucide-react';
+import { Check, ChevronDown, Heart, Pin, Play, Plus, SquareCheck, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { FocusTrap } from '@/components/FocusTrap';
@@ -356,11 +356,11 @@ export const DetailsSheet = () => {
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="grid size-11 place-items-center rounded-lg border border-white/10 bg-brand-bg/80 text-brand-silver backdrop-blur-md transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60"
-                  aria-label={isPageMode ? 'Back to collection' : 'Close details'}
-                  title={isPageMode ? 'Back to collection' : 'Close details'}
+                  className="hidden size-11 place-items-center rounded-lg border border-white/10 bg-brand-bg/80 text-brand-silver backdrop-blur-md transition-colors hover:border-brand-cyan/25 hover:bg-brand-cyan/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan/60 md:grid"
+                  aria-label="Close details"
+                  title="Close details"
                 >
-                  {isPageMode ? <ArrowLeft size={20} /> : <X size={20} />}
+                  <X size={20} aria-hidden="true" />
                 </button>
               </div>
               <div ref={detailsScrollRef} className="relative z-10 flex-1 overflow-y-auto px-4 pb-[calc(7rem+env(safe-area-inset-bottom,0px))]">
@@ -380,7 +380,7 @@ export const DetailsSheet = () => {
                   )}
                   <div className="contents md:block md:min-w-0 md:flex-1 md:space-y-3">
                     <div className="min-w-0 space-y-3">
-                      <div className={clsx('flex flex-wrap items-baseline gap-x-3 gap-y-1', inWatchlist ? 'pr-24' : 'pr-12')}>
+                      <div className={clsx('flex flex-wrap items-baseline gap-x-3 gap-y-1', inWatchlist ? 'pr-12 md:pr-24' : 'md:pr-12')}>
                         {isPageMode ? (
                           <h1 className="type-display text-white">{title}</h1>
                         ) : (
