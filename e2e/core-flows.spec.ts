@@ -189,12 +189,18 @@ test('cached app shell starts offline and keeps local UI available', async ({ pa
   });
   // Wait for the installed worker to take control before simulating a network loss.
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+  // Chromium 151 can reset navigator.onLine during a service-worker-served navigation.
+  // Keep the UI's offline signal deterministic while Playwright still cuts network access.
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => false });
+  });
   await context.setOffline(true);
   await page.reload();
   await expect(page.getByText('Test Movie')).toBeVisible();
 
   // Use the canonical static-export paths, which are precached by the worker.
-  await page.goto('/search/');
+  const searchDocument = await page.goto('/search/');
+  expect(searchDocument?.fromServiceWorker()).toBe(true);
   const offlineSearch = page.getByPlaceholder('Search unavailable offline', { exact: true });
   await expect(offlineSearch).toBeVisible();
   await expect(offlineSearch).toBeDisabled();
