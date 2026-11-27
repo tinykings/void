@@ -37,9 +37,9 @@ Your library is cached in your browser (IndexedDB) and synced through your priva
 ### Discovery
 - **Search** — Search TMDB movies and TV shows.
 - **Recommendations** — Open Recommendations from the filter menu for movie/show suggestions based on History favorites. Saved titles are excluded; each suggestion names its source favorite.
-- **Trending & Upcoming** — Browse weekly trending movies/shows mixed with up to six upcoming releases of each type, arriving tomorrow through the next 30 days. Upcoming premieres get amber countdowns; regular search results stay unchanged. Disabled media types are excluded, and failed sources can be retried without discarding successful ones.
+- **Trending & Upcoming** — Browse weekly trending movies/shows mixed with up to six upcoming releases of each type, arriving tomorrow through the next 30 days. Upcoming premieres get amber countdowns; regular search results stay unchanged. Failed sources can be retried without discarding successful ones.
 - **Media Details** — Full detail pages with cast, trailers, watch providers, season/episode info, content ratings, and next episode data.
-- **Actor Pages** — Expand full biographies from a six-line preview. Browse up to 30 curated movie/show credits, alternating six of each before filling by popularity, excluding News/Reality/Talk shows and respecting enabled media types.
+- **Actor Pages** — Expand full biographies from a six-line preview. Browse up to 30 curated movie/show credits, alternating six of each before filling by popularity, excluding News/Reality/Talk shows.
 
 ### Streaming Integration
 - **Watch Providers** — Click provider icons to open JustWatch search results for that title.

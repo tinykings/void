@@ -26,7 +26,6 @@ import { HomeStreamSection } from '@/components/HomeStreamSection';
 import { LibraryBackupSettings } from '@/components/LibraryBackupSettings';
 import { DisplaySettings } from '@/components/DisplaySettings';
 import { HomeRecommendationsSection } from '@/components/HomeRecommendationsSection';
-import { MediaTypeSettings } from '@/components/MediaTypeSettings';
 
 type LibraryMode = 'library' | 'watchlist';
 
@@ -45,7 +44,6 @@ export const HomeView = () => {
     setShowWatched,
     showFavoritesOnly,
     setShowFavoritesOnly,
-    enabledMediaTypes,
     showTitles,
     githubLogin,
     disconnectGithub,
@@ -67,8 +65,8 @@ export const HomeView = () => {
   const activeFilter = filter || 'all';
   const activeLibraryMode: LibraryMode = showWatched ? 'library' : 'watchlist';
   const streamablePlaylist = useMemo(() => watchlist.filter((item): item is StreamableMedia =>
-    (item.media_type === 'movie' || item.media_type === 'tv') && enabledMediaTypes[item.media_type]
-  ), [enabledMediaTypes, watchlist]);
+    item.media_type === 'movie' || item.media_type === 'tv'
+  ), [watchlist]);
   const [showStreamView, setShowStreamView] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
   const {
@@ -126,10 +124,10 @@ export const HomeView = () => {
 
   // Combine and process library media
   const baseLibraryMedia = useMemo(() => {
-    const combined = (showWatched ? watched : watchlist).filter((item) => enabledMediaTypes[item.media_type]);
+    const combined = (showWatched ? watched : watchlist).filter((item) => item.media_type === 'movie' || item.media_type === 'tv');
     if (activeFilter === 'all') return combined;
     return combined.filter(m => m.media_type === activeFilter);
-  }, [watchlist, watched, activeFilter, enabledMediaTypes, showWatched]);
+  }, [watchlist, watched, activeFilter, showWatched]);
 
   const libraryMedia = useMemo(() => {
     let filtered = [...baseLibraryMedia];
@@ -337,12 +335,6 @@ export const HomeView = () => {
     sessionStorage.removeItem('void_home_count');
   }, [filter, sort, showWatched, showFavoritesOnly]);
 
-  useEffect(() => {
-    if (activeFilter !== 'all' && !enabledMediaTypes[activeFilter]) setFilter('all');
-    if (showStreamView && !enabledMediaTypes.movie && !enabledMediaTypes.tv) setShowStreamView(false);
-    if (showRecommendations && !enabledMediaTypes.movie && !enabledMediaTypes.tv) setShowRecommendations(false);
-  }, [activeFilter, enabledMediaTypes, setFilter, showStreamView, showRecommendations]);
-
   // Reset favorites filter when leaving watched view
   useEffect(() => {
     if (isInitialMount.current) return;
@@ -488,8 +480,8 @@ export const HomeView = () => {
                   <div className="absolute bottom-full left-0 mb-3 max-h-[calc(100dvh-7rem)] w-44 overflow-y-auto rounded-xl bg-brand-bg blueprint-border">
                     {[
                       { id: 'all' as const, label: 'All', icon: LayoutGrid },
-                      ...(enabledMediaTypes.movie ? [{ id: 'movie' as const, label: 'Movies', icon: Film }] : []),
-                      ...(enabledMediaTypes.tv ? [{ id: 'tv' as const, label: 'Shows', icon: Tv }] : []),
+                      { id: 'movie' as const, label: 'Movies', icon: Film },
+                      { id: 'tv' as const, label: 'Shows', icon: Tv },
                     ].map((item) => {
                       const Icon = item.icon;
                       const isActive = !showSpecialView && activeFilter === item.id;
@@ -528,7 +520,7 @@ export const HomeView = () => {
                       Favorites
                     </button>
 
-                    {(enabledMediaTypes.movie || enabledMediaTypes.tv) && <button
+                    <button
                       type="button"
                       onClick={() => {
                         setShowRecommendations(true);
@@ -539,11 +531,11 @@ export const HomeView = () => {
                         window.scrollTo(0, 0);
                       }}
                       className="type-filter flex min-h-11 w-full items-center gap-2 px-3 py-3 text-left text-brand-silver transition-colors hover:bg-brand-bg/50 hover:text-white"
-                    ><Sparkles size={15} />Recommendations</button>}
+                    ><Sparkles size={15} />Recommendations</button>
 
                     <div className="h-px bg-white/5" />
 
-                    {(enabledMediaTypes.movie || enabledMediaTypes.tv) && <button
+                    <button
                       type="button"
                       onClick={selectStreamView}
                       className={clsx(
@@ -555,7 +547,7 @@ export const HomeView = () => {
                     >
                       <Radio size={15} />
                       Stream
-                    </button>}
+                    </button>
 
                     <div className="h-px bg-white/5" />
 
@@ -691,7 +683,6 @@ export const HomeView = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-5 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] space-y-4">
-              <MediaTypeSettings />
               <DisplaySettings />
               <LibraryBackupSettings />
 

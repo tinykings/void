@@ -12,7 +12,6 @@ import logoPng from '../../public/logo.png';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useMediaSearch } from '@/hooks/useMediaSearch';
 import { backOrHome, rememberScrollPosition, restoreScrollPosition } from '@/lib/clientNavigation';
-import type { MediaType } from '@/lib/types';
 
 export const SearchSheet = () => {
   const isOnline = useOnlineStatus();
@@ -33,11 +32,10 @@ export const SearchSheet = () => {
     isLoaded,
     watchlist,
     watched,
-    enabledMediaTypes,
   } = useAppContext();
   const [query, setQuery] = useState(initialQuery);
   const [submittedQuery, setSubmittedQuery] = useState(initialQuery);
-  const [mediaFilter, setMediaFilter] = useState<'all' | MediaType>('all');
+  const [mediaFilter, setMediaFilter] = useState<'all' | 'movie' | 'tv'>('all');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const {
     clearSearch,
@@ -48,15 +46,13 @@ export const SearchSheet = () => {
     runSearch,
     retryDiscovery,
     trendingLoading,
-  } = useMediaSearch({ apiKey, enabled: isSearchFocused, isLoaded, isOnline, movieEnabled: enabledMediaTypes.movie, tvEnabled: enabledMediaTypes.tv });
+  } = useMediaSearch({ apiKey, enabled: isSearchFocused, isLoaded, isOnline });
 
   const searchTerm = query.trim();
-  const availableFilters = useMemo(() => (['movie', 'tv'] as const).filter((type) => enabledMediaTypes[type]), [enabledMediaTypes]);
-  const activeMediaFilter = mediaFilter === 'all' || enabledMediaTypes[mediaFilter] ? mediaFilter : 'all';
-  const filteredMedia = useMemo(() => {
-    const visibleMedia = displayedMedia.filter((item) => enabledMediaTypes[item.media_type]);
-    return activeMediaFilter === 'all' ? visibleMedia : visibleMedia.filter((item) => item.media_type === activeMediaFilter);
-  }, [activeMediaFilter, displayedMedia, enabledMediaTypes]);
+  const filteredMedia = useMemo(() => displayedMedia.filter((item) =>
+    (item.media_type === 'movie' || item.media_type === 'tv')
+    && (mediaFilter === 'all' || item.media_type === mediaFilter)
+  ), [displayedMedia, mediaFilter]);
   const isLibraryEmpty = watchlist.length === 0 && watched.length === 0;
   const displayError = isSearchFocused
     ? isOnline ? error : 'Search is unavailable offline. Your saved collection remains available.'
@@ -281,8 +277,8 @@ export const SearchSheet = () => {
 
             {hasSubmittedSearch && (
               <div className="mb-4 flex gap-2 overflow-x-auto" aria-label="Filter search results">
-                {(['all', ...availableFilters] as Array<'all' | MediaType>).map((filter) => (
-                  <button key={filter} type="button" onClick={() => setMediaFilter(filter)} className={`type-action min-h-11 shrink-0 rounded-lg border px-3 ${activeMediaFilter === filter ? 'border-brand-cyan/40 bg-brand-cyan/10 text-brand-cyan' : 'border-white/10 text-brand-silver'}`}>
+                {(['all', 'movie', 'tv'] as const).map((filter) => (
+                  <button key={filter} type="button" onClick={() => setMediaFilter(filter)} className={`type-action min-h-11 shrink-0 rounded-lg border px-3 ${mediaFilter === filter ? 'border-brand-cyan/40 bg-brand-cyan/10 text-brand-cyan' : 'border-white/10 text-brand-silver'}`}>
                     {filter === 'all' ? 'All' : filter === 'tv' ? 'Shows' : `${filter[0].toUpperCase()}${filter.slice(1)}s`}
                   </button>
                 ))}

@@ -1,11 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { Media, UserState, SortOption, FilterType, CastMember, EnabledMediaTypes, MediaType } from '@/lib/types';
+import { Media, UserState, SortOption, FilterType, CastMember } from '@/lib/types';
 import { useStore } from '@/store/useStore';
 import { useShallow } from 'zustand/react/shallow';
 import { useLibraryMetadataRefresh } from '@/hooks/useLibraryMetadataRefresh';
-import { normalizeMediaPreferences } from '@/lib/mediaPreferences';
 import { getMediaKey } from '@/lib/media';
 import { toast } from 'sonner';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
@@ -17,18 +16,6 @@ const normalizeBasePath = (path?: string) => {
 const basePath = normalizeBasePath(process.env.NEXT_PUBLIC_BASE_PATH);
 const serviceWorkerUrl = `${basePath}/sw.js`;
 const serviceWorkerScope = `${basePath || ''}/`;
-const MEDIA_TYPE_SETTINGS_KEY = 'void_enabled_media_types';
-const DEFAULT_ENABLED_MEDIA_TYPES = normalizeMediaPreferences();
-
-const readEnabledMediaTypes = (): EnabledMediaTypes => {
-  try {
-    const saved = JSON.parse(localStorage.getItem(MEDIA_TYPE_SETTINGS_KEY) || 'null') as Partial<EnabledMediaTypes> | null;
-    return normalizeMediaPreferences(saved);
-  } catch {
-    return DEFAULT_ENABLED_MEDIA_TYPES;
-  }
-};
-
 type PendingLibraryView = {
   mode: 'watchlist' | 'watched';
   filter: FilterType;
@@ -48,8 +35,6 @@ interface AppContextType extends UserState {
   setGithubConnection: (gistId: string, token: string, login: string) => void;
   disconnectGithub: () => void;
   isGithubConnected: boolean;
-  enabledMediaTypes: EnabledMediaTypes;
-  setMediaTypeEnabled: (type: MediaType, enabled: boolean) => void;
   toggleWatchlist: (media: Media) => void;
   toggleWatched: (media: Media, rating?: number) => void;
   setLists: (watchlist: Media[], watched: Media[], playedEpisodes?: Record<string, boolean>) => void;
@@ -89,8 +74,6 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isOnline = useOnlineStatus();
-  const [enabledMediaTypes, setEnabledMediaTypes] = useState<EnabledMediaTypes>(DEFAULT_ENABLED_MEDIA_TYPES);
-  const [mediaTypeSettingsLoaded, setMediaTypeSettingsLoaded] = useState(false);
   const store = useStore(useShallow((s) => ({
     showTitles: s.showTitles,
     setShowTitles: s.setShowTitles,
@@ -141,39 +124,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [pendingLibraryView, setPendingLibraryView] = useState<PendingLibraryView>(null);
   const [activeDetailsMedia, setActiveDetailsMedia] = useState<Media | null>(null);
   const [activeActorMedia, setActiveActorMedia] = useState<CastMember | null>(null);
-
-  useEffect(() => {
-    // Browser preferences are an external store; load them after hydration.
-    let active = true;
-    queueMicrotask(() => {
-      if (!active) return;
-      setEnabledMediaTypes(readEnabledMediaTypes());
-      setMediaTypeSettingsLoaded(true);
-    });
-
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === MEDIA_TYPE_SETTINGS_KEY) setEnabledMediaTypes(readEnabledMediaTypes());
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => {
-      active = false;
-      window.removeEventListener('storage', handleStorage);
-    };
-  }, []);
-
-  const setMediaTypeEnabled = useCallback((type: MediaType, enabled: boolean) => {
-    setEnabledMediaTypes((current) => {
-      if (type === 'game') return current;
-      const next = { ...current, [type]: enabled, game: false };
-      if (!next.movie && !next.tv) return current;
-      try {
-        localStorage.setItem(MEDIA_TYPE_SETTINGS_KEY, JSON.stringify(next));
-      } catch {
-        // Keep preference for current session when browser storage is unavailable.
-      }
-      return next;
-    });
-  }, []);
 
   const rememberCurrentSheet = useCallback(() => {
     if (!activeDetailsMedia && !activeActorMedia) {
@@ -395,7 +345,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     isSearchFocused: store.isSearchFocused || false,
     isSyncingLibrary: store.isSyncingLibrary || false,
     playedEpisodes: store.playedEpisodes,
-    isLoaded: store.isLoaded && mediaTypeSettingsLoaded,
+    isLoaded: store.isLoaded,
     
     setApiKey: store.setApiKey,
     setGistId: store.setGistId,
@@ -403,8 +353,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setGithubConnection: store.setGithubConnection,
     disconnectGithub: store.disconnectGithub,
     isGithubConnected: Boolean(store.gistId && store.gistToken && store.githubLogin),
-    enabledMediaTypes,
-    setMediaTypeEnabled,
     toggleWatchlist,
     toggleWatched,
     setLists: store.setLists,
@@ -437,9 +385,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     store,
     toggleWatchlist,
     toggleWatched,
-    enabledMediaTypes,
-    mediaTypeSettingsLoaded,
-    setMediaTypeEnabled,
     watchlistIds,
     watchedIds,
     watchlistMap,

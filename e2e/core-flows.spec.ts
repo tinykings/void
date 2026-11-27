@@ -237,29 +237,35 @@ test('recommendations use favorites, deduplicate results, exclude saved titles, 
   await expect(page.getByRole('heading', { name: 'Recommendations', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /Open details for New Recommendation/ })).toHaveCount(1);
   await expect(page.getByRole('button', { name: /Open details for Test Movie/ })).toHaveCount(0);
-  await expect(page.getByText('Because you favorited')).toContainText('Favorite Movie');
+  await expect(page.getByText('Favorite Movie', { exact: true })).toBeVisible();
+  await expect(page.getByText('Because you favorited', { exact: false })).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath('recommendations-mobile.png') });
   await page.getByRole('button', { name: 'Clear Recommendations view' }).click();
   await expect(page.getByRole('button', { name: /Open details for Test Movie/ })).toBeVisible();
 });
 
-test('legacy games are hidden, never fetched, and retained in Gist sync and connected backups', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('void_enabled_media_types', JSON.stringify({ movie: false, tv: false, game: true })));
+test('legacy media preferences no longer hide shows; games stay hidden but remain in backups', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('void_enabled_media_types', JSON.stringify({ movie: true, tv: false, game: true })));
   const archived = { id: 620, title: 'Archived Game', media_type: 'game', source: 'igdb', date_added: '2026-01-01T00:00:00.000Z', image: null, isPurchased: true, rating: 5 };
   const favorite = { ...archived, source: 'steam', title: 'Archived Favorite' };
-  await seedConnectedLibrary(page, { watchlist: [movie, archived], watched: [{ ...favorite, isFavorite: true }], filter: 'game' });
+  const savedShow = { ...movie, id: 621, title: 'Previously hidden Show', media_type: 'tv', status: 'Ended', metadataFetchedAt: Date.now() };
+  await seedConnectedLibrary(page, { watchlist: [movie, savedShow, archived], watched: [{ ...favorite, isFavorite: true }], filter: 'game' });
   await mockTmdb(page);
-  const getGist = await mockLibraryGist(page, [gistMovie(101, 'Test Movie'), archived], [favorite], [favorite]);
+  const getGist = await mockLibraryGist(page, [gistMovie(101, 'Test Movie'), { ...gistMovie(621, savedShow.title), media_type: 'tv' }, archived], [favorite], [favorite]);
   const gameRequests: string[] = [];
   page.on('request', (request) => { if (/\/api\/(games|prices)\//.test(request.url())) gameRequests.push(request.url()); });
   await page.goto('/');
   await expect(page.getByRole('button', { name: /Open details for Test Movie/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Open details for Previously hidden Show/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /Open details for Archived/ })).toHaveCount(0);
   await page.getByRole('button', { name: /Filter:/ }).click();
+  await expect(page.getByRole('button', { name: 'Movies', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Shows', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Games', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Deals', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  await expect(page.getByRole('switch', { name: /Games/ })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Media types', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('switch', { name: /Movies|Shows|Games/ })).toHaveCount(0);
   await expect(page.getByText(/2 previously saved games are hidden, not deleted/)).toBeVisible();
   const downloaded = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Download JSON backup', exact: true }).click();
@@ -563,7 +569,7 @@ test('discovery finishes empty failures, preserves partial results, and retries 
   await expect(page.getByRole('button', { name: 'Try again', exact: true })).toHaveCount(0);
 });
 
-test('discovery skips disabled sources and refreshes its local date window on foreground', async ({ page }) => {
+test('discovery requests both media types despite old preferences and refreshes its date window', async ({ page }) => {
   await seedConnectedLibrary(page);
   await page.evaluate(() => localStorage.setItem('void_enabled_media_types', JSON.stringify({ movie: true, tv: false })));
   await page.clock.setFixedTime(new Date('2026-06-01T12:00:00Z'));
@@ -573,24 +579,27 @@ test('discovery skips disabled sources and refreshes its local date window on fo
   let showRequests = 0;
   await page.route('https://api.themoviedb.org/**', (route) => {
     const url = new URL(route.request().url());
-    if (url.pathname === '/3/discover/tv') showRequests++;
+    if (url.pathname === '/3/discover/tv') {
+      showRequests++;
+      return route.fulfill({ json: { results: [upcomingShow] } });
+    }
     if (url.pathname === '/3/discover/movie') {
       const from = url.searchParams.get('primary_release_date.gte')!;
       fromDates.push(from);
       return route.fulfill({ json: { results: [{ ...upcomingMovie, release_date: from }] } });
     }
-    return route.fulfill({ json: url.pathname.includes('/trending/') ? { results: [...trending, upcomingShow] } : url.pathname === '/3/movie/101' ? { ...movie, videos: { results: [] } } : {} });
+    return route.fulfill({ json: url.pathname.includes('/trending/') ? { results: trending } : url.pathname === '/3/movie/101' ? { ...movie, videos: { results: [] } } : {} });
   });
   await page.goto('/search');
-  await expect(page.getByRole('button', { name: /Open details for/ })).toHaveCount(5);
-  await expect(page.getByLabel('Releases in 1 day', { exact: true })).toBeVisible();
-  expect(showRequests).toBe(0);
+  await expect(page.getByRole('button', { name: /Open details for/ })).toHaveCount(6);
+  await expect(page.getByRole('button', { name: 'Open details for Upcoming Film, releases in 1 day', exact: true })).toBeVisible();
+  expect(showRequests).toBe(1);
   expect(fromDates).toEqual(['2026-06-02']);
   await page.clock.setFixedTime(new Date('2026-06-02T12:00:00Z'));
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await expect.poll(() => fromDates).toEqual(['2026-06-02', '2026-06-03']);
-  await expect(page.getByLabel('Releases in 1 day', { exact: true })).toBeVisible();
-  expect(showRequests).toBe(0);
+  await expect(page.getByRole('button', { name: 'Open details for Upcoming Film, releases in 1 day', exact: true })).toBeVisible();
+  expect(showRequests).toBe(2);
 });
 
 for (const mobile of [false, true]) {
@@ -610,6 +619,7 @@ for (const mobile of [false, true]) {
     await page.getByRole('button', { name: /Filter:/ }).click();
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await expect(page.getByText('@e2e-user', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Media types', exact: true })).toHaveCount(0);
     const exportButton = page.getByRole('button', { name: 'Export library as text', exact: true });
     const textDownload = page.waitForEvent('download');
     await exportButton.click();

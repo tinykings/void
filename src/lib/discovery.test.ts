@@ -41,7 +41,7 @@ test('discovery preserves trending order, inserts after every fourth title, and 
   const trending = Array.from({ length: 8 }, (_, i) => media(i + 1));
   const movies = Array.from({ length: 8 }, (_, i) => media(101 + i, 'movie', '2026-12-25'));
   const shows = Array.from({ length: 8 }, (_, i) => media(201 + i, 'tv', '2026-12-26'));
-  const result = mixDiscovery(trending, movies, shows, undefined, now);
+  const result = mixDiscovery(trending, movies, shows, now);
   assert.deepEqual(result.map((item) => item.id), [1, 2, 3, 4, 101, 5, 6, 7, 8, 201, 102, 202, 103, 203, 104, 204, 105, 205, 106, 206]);
   assert.equal(movies.length, 8);
   assert.equal(trending.length, 8);
@@ -52,11 +52,10 @@ test('discovery deduplicates before capping and excludes missing/out-of-window d
   const show = media(1, 'tv', '2026-12-22');
   const moreMovies = Array.from({ length: 8 }, (_, i) => media(10 + i, 'movie', '2026-12-23'));
   const movies = [movie, movie, media(2), media(3, 'movie', '2026-12-20'), media(4, 'movie', '2027-01-20'), ...moreMovies];
-  const result = mixDiscovery([movie, movie, { ...movie, id: 99, media_type: 'game' }], movies, [show, show], undefined, now);
+  const result = mixDiscovery([movie, movie, { ...movie, id: 99, media_type: 'game' }], movies, [show, show], now);
   assert.deepEqual(result.map((item) => `${item.media_type}-${item.id}`), ['movie-1', 'movie-10', 'tv-1', 'movie-11', 'movie-12', 'movie-13', 'movie-14', 'movie-15']);
-  assert.deepEqual(mixDiscovery([movie], movies, [show], { movie: false, tv: true }, now), [show]);
-  assert.deepEqual(mixDiscovery([], [], [], undefined, now), []);
-  assert.deepEqual(mixDiscovery([], moreMovies, [], undefined, now), moreMovies.slice(0, 6));
+  assert.deepEqual(mixDiscovery([], [], [], now), []);
+  assert.deepEqual(mixDiscovery([], moreMovies, [], now), moreMovies.slice(0, 6));
 });
 
 test('upcoming API requests use local premiere-date windows, popularity order, and normalized types', async () => {

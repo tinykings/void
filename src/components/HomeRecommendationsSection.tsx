@@ -21,14 +21,14 @@ const shuffled = <T,>(items: T[]) => {
 type Recommendation = { media: Media; source: string };
 
 export const HomeRecommendationsSection = () => {
-  const { watched, watchlist, apiKey, enabledMediaTypes } = useAppContext();
+  const { watched, watchlist, apiKey } = useAppContext();
   const isOnline = useOnlineStatus();
   const [result, setResult] = useState<{ seeds: string; items: Recommendation[] }>({ seeds: '', items: [] });
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const [refresh, setRefresh] = useState(0);
   // Stable through unrelated library/metadata changes; never use games as seeds.
-  const seeds = JSON.stringify(watched.filter((item) => item.isFavorite && item.media_type !== 'game' && enabledMediaTypes[item.media_type])
+  const seeds = JSON.stringify(watched.filter((item) => item.isFavorite && item.media_type !== 'game')
     .map((item) => ({ id: item.id, type: item.media_type as 'movie' | 'tv', title: item.title || item.name || 'Untitled' }))
     .sort((a, b) => a.type.localeCompare(b.type) || a.id - b.id));
   const savedKeys = useMemo(() => new Set([...watchlist, ...watched].map(getMediaKey)), [watchlist, watched]);
@@ -72,7 +72,7 @@ export const HomeRecommendationsSection = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seeds, hasSeeds, apiKey, isOnline, refresh]);
 
-  const visible = hasSeeds && result.seeds === seeds ? result.items.filter(({ media }) => !savedKeys.has(getMediaKey(media)) && enabledMediaTypes[media.media_type]) : [];
+  const visible = hasSeeds && result.seeds === seeds ? result.items.filter(({ media }) => !savedKeys.has(getMediaKey(media)) && media.media_type !== 'game') : [];
   return (
     <section aria-label="Recommendations" className="space-y-4">
       <div className="flex items-center justify-between gap-3 px-1">
@@ -85,7 +85,7 @@ export const HomeRecommendationsSection = () => {
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
         {visible.map(({ media, source }) => <div key={getMediaKey(media)}>
           <MediaCard media={media} indicatorContext="search" showCaption showReleaseBadge={false} />
-          <p className="px-1 pb-3 text-xs text-brand-silver">Because you favorited <span className="text-brand-cyan">{source}</span></p>
+          <p className="px-1 pb-3 text-xs text-brand-cyan">{source}</p>
         </div>)}
         {hasSeeds && loading && visible.length === 0 && Array.from({ length: 6 }, (_, index) => <MediaCardSkeleton key={index} />)}
       </div>
