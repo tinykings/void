@@ -136,7 +136,7 @@ for (const mobile of [false, true]) {
     const rating = page.getByText('PG-13', { exact: true });
     const poster = page.locator('img[alt=""][src$="/hero-poster.jpg"]');
     const pin = page.getByRole('button', { name: 'Pin to top', exact: true });
-    const close = page.getByRole('button', { name: mobile ? 'Back to collection' : 'Close details', exact: true });
+    const close = page.getByRole('button', { name: 'Close details', exact: true });
     await expect(overview).toBeVisible();
     await expect(overview).toHaveCSS('-webkit-line-clamp', 'none');
     await expect(page.getByRole('button', { name: 'More', exact: true })).toHaveCount(0);
@@ -159,14 +159,18 @@ for (const mobile of [false, true]) {
     const o = (await overview.boundingBox())!;
     expect(o.y).toBeGreaterThan(streaming.y + streaming.height);
     const pinBox = (await pin.boundingBox())!;
-    const closeBox = (await close.boundingBox())!;
-    expect(pinBox.x + pinBox.width).toBeLessThan(closeBox.x);
-    expect(pinBox.y).toBeCloseTo(closeBox.y, 0);
     if (mobile) {
+      await expect(close).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Back to collection', exact: true })).toHaveCount(0);
+      expect(pinBox.x + pinBox.width).toBeCloseTo(375 - 16, 0);
       expect(Math.abs(o.x - p.x)).toBeLessThan(2);
       expect(o.y).toBeGreaterThan(p.y + p.height);
       expect(o.width).toBeGreaterThan(300);
     } else {
+      await expect(close.locator('svg.lucide-x')).toBeVisible();
+      const closeBox = (await close.boundingBox())!;
+      expect(pinBox.x + pinBox.width).toBeLessThan(closeBox.x);
+      expect(pinBox.y).toBeCloseTo(closeBox.y, 0);
       expect(o.x).toBeGreaterThan(p.x + p.width);
     }
     await pin.click();
@@ -247,7 +251,7 @@ test('mobile search and details use routes without forcing keyboard focus', asyn
 
   await expect(page).toHaveURL(/\/details\/?\?/);
   await expect(page.getByRole('heading', { name: 'Test Movie' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Back to collection' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Close details' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /Test Actor/ })).toBeVisible();
 });
 
@@ -844,7 +848,14 @@ for (const mobile of [false, true]) {
       return route.fulfill({ json: item ? { ...item, videos: { results: [] } } : {} });
     });
     const card = (title: string) => page.getByRole('button', { name: new RegExp(`Open details for ${title}`) });
-    const closeDetails = () => page.getByRole('button', { name: mobile ? 'Back to collection' : 'Close details', exact: true }).click();
+    const closeDetails = async () => {
+      if (mobile) {
+        await page.goBack();
+        await expect(page).not.toHaveURL(/\/details\//);
+      } else {
+        await page.getByRole('button', { name: 'Close details', exact: true }).click();
+      }
+    };
     await page.goto('/');
     await expectPosterIndicator(card('Pinned Title'), 'pinned', 'rgb(34, 211, 238)', '2.5px');
     await expectPosterIndicator(card('Pinned Favorite'), 'pinned', 'rgb(34, 211, 238)', '2.5px');
