@@ -118,9 +118,19 @@ for (const mobile of [false, true]) {
     await seedConnectedLibrary(page, { watchlist: [saved] });
     await mockLibraryGist(page, [{ ...gistMovie(movie.id, movie.title), image: saved.poster_path }]);
     await mockTmdb(page);
-    await page.route('https://api.themoviedb.org/3/movie/101?**', (route) => route.fulfill({ json: { ...saved, videos: { results: [] } } }));
+    await page.route('https://api.themoviedb.org/3/movie/101?**', (route) => route.fulfill({
+      json: {
+        ...saved,
+        screenshots: ['/legacy-gallery.jpg'],
+        videos: { results: [
+          { id: '1', name: 'Teaser', key: 'teaser', site: 'YouTube', type: 'Teaser', official: true },
+          { id: '2', name: 'Early Trailer', key: 'early', site: 'YouTube', type: 'Trailer', official: false },
+          { id: '3', name: 'Official Trailer', key: 'official', site: 'YouTube', type: 'Trailer', official: true },
+        ] },
+      },
+    }));
     await page.route('https://api.themoviedb.org/3/movie/101/watch/providers**', (route) => route.fulfill({
-      json: { results: { US: { flatrate: [{ provider_id: 8, provider_name: 'Netflix', logo_path: null, display_priority: 0 }] } } },
+      json: { results: { US: { flatrate: [{ provider_id: 8, provider_name: 'Netflix', logo_path: '/netflix.jpg', display_priority: 0 }] } } },
     }));
     await page.route('https://api.themoviedb.org/3/movie/101/release_dates**', (route) => route.fulfill({
       json: { results: [{ iso_3166_1: 'US', release_dates: [{ certification: 'PG-13' }] }] },
@@ -132,7 +142,7 @@ for (const mobile of [false, true]) {
     await page.goto('/');
     await page.getByRole('button', { name: /Open details for Test Movie/ }).click();
     const overview = page.getByText(saved.overview, { exact: true });
-    const provider = page.getByText('Netflix', { exact: true });
+    const provider = page.getByRole('img', { name: 'Netflix', exact: true });
     const rating = page.getByText('PG-13', { exact: true });
     const poster = page.locator('img[alt=""][src$="/hero-poster.jpg"]');
     const pin = page.getByRole('button', { name: 'Pin to top', exact: true });
@@ -141,6 +151,8 @@ for (const mobile of [false, true]) {
     await expect(overview).toHaveCSS('-webkit-line-clamp', 'none');
     await expect(page.getByRole('button', { name: 'More', exact: true })).toHaveCount(0);
     await expect(provider).toBeVisible();
+    await expect(provider).toHaveAttribute('src', 'https://image.tmdb.org/t/p/w185/netflix.jpg');
+    await expect(page.getByText('Netflix', { exact: true })).toHaveCount(0);
     await expect(rating).toBeVisible();
     if (!mobile) {
       // Compare positions after the desktop sheet's entrance animation.
@@ -175,6 +187,25 @@ for (const mobile of [false, true]) {
     }
     await pin.click();
     await expect(page.getByRole('button', { name: 'Unpin', exact: true })).toHaveAttribute('aria-pressed', 'true');
+
+    const trailerSection = page.getByRole('region', { name: 'Trailer', exact: true });
+    const trailer = trailerSection.getByRole('button', { name: 'Play Official Trailer' });
+    await expect(trailer).toBeVisible();
+    await expect(trailerSection.getByRole('button')).toHaveCount(1);
+    await expect(page.getByRole('button', { name: /Play (Teaser|Early Trailer)/ })).toHaveCount(0);
+    await expect(page.getByText('Images', { exact: true })).toHaveCount(0);
+    const sectionBox = (await trailerSection.boundingBox())!;
+    const trailerBox = (await trailer.boundingBox())!;
+    expect(trailerBox.width).toBeCloseTo(sectionBox.width, 0);
+    expect(trailerBox.height).toBeCloseTo(trailerBox.width * 9 / 16, 0);
+
+    await page.route('https://www.youtube.com/embed/**', (route) => route.fulfill({ body: '' }));
+    await trailer.click();
+    const player = page.getByRole('dialog', { name: 'Trailer player' });
+    await expect(player.locator('iframe')).toHaveAttribute('src', /\/embed\/official\?/);
+    await page.keyboard.press('Escape');
+    await expect(player).toHaveCount(0);
+    await expect(trailer).toBeVisible();
   });
 }
 

@@ -40,7 +40,6 @@ export const DetailsSheet = () => {
     updateMediaMetadata,
   } = useAppContext();
 
-  const [activeImage, setActiveImage] = useState<{ src: string; alt: string; mediaKey: string } | null>(null);
   const [activeTrailer, setActiveTrailer] = useState<{ video: Video; mediaKey: string } | null>(null);
   const [actionPulse, setActionPulse] = useState<{ key: string; action: 'watchlist' | 'watched' | 'favorite' } | null>(null);
   const [seasonSelection, setSeasonSelection] = useState<{ mediaKey: string; number: number } | null>(null);
@@ -126,19 +125,18 @@ export const DetailsSheet = () => {
   }, []);
 
   useEffect(() => {
-    if (!activeImage && !activeTrailer) return;
+    if (activeTrailer?.mediaKey !== mediaKey) return;
 
     const handler = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      setActiveImage(null);
       setActiveTrailer(null);
     };
 
     document.addEventListener('keydown', handler, true);
     return () => document.removeEventListener('keydown', handler, true);
-  }, [activeImage, activeTrailer]);
+  }, [activeTrailer, mediaKey]);
 
   useEffect(() => {
     if (!selected || selected.media_type !== 'tv' || selectedSeasonNumber === null || !apiKey || !isOnline) return;
@@ -183,7 +181,7 @@ export const DetailsSheet = () => {
   }, [closeDetails, isPageMode, router]);
   const { offset: pullOffset, phase: pullPhase } = usePullToDismiss(
     detailsSurfaceRef, detailsScrollRef,
-    isPageMode && isOpen && !modalConfig.isOpen && !activeImage && !activeTrailer,
+    isPageMode && isOpen && !modalConfig.isOpen && activeTrailer?.mediaKey !== mediaKey,
     handleClose,
   );
 
@@ -215,10 +213,9 @@ export const DetailsSheet = () => {
     ? selected.number_of_episodes ?? availableSeasons.reduce((total, season) => total + season.episode_count, 0)
     : 0;
   const posterSrc = getImageSrc(selected.poster_path, (tmdbPath) => getImageUrl(tmdbPath, 'w342'));
-  const detailImages = (selected.screenshots || []).slice(0, 3);
-  const detailTrailers = (selected.videos || [])
-    .filter((video) => video.site === 'YouTube' && !!video.key)
-    .slice(0, 3);
+  const trailers = (selected.videos || [])
+    .filter((video) => video.type === 'Trailer' && video.site === 'YouTube' && !!video.key);
+  const trailer = trailers.find((video) => video.official) ?? trailers[0];
   const seasonRequestKey = selectedSeasonNumber === null ? '' : `${mediaKey}:${selectedSeasonNumber}:${seasonRetryCount}`;
   const currentSeason = seasonData?.key === seasonRequestKey ? seasonData.data : null;
   const isSeasonLoading = selected.media_type === 'tv'
@@ -428,9 +425,25 @@ export const DetailsSheet = () => {
                         ))}
                       </div>
                       {watchProviderItems.length > 0 && (
-                        <p className="text-sm font-semibold leading-relaxed text-white/90">
-                          {watchProviderItems.map((provider) => provider.provider_name).join(' · ')}
-                        </p>
+                        <ul aria-label="Streaming providers" className="flex flex-wrap items-center gap-2">
+                          {watchProviderItems.map((provider) => (
+                            <li key={provider.provider_id}>
+                              {provider.logo_path ? (
+                                <img
+                                  src={getImageUrl(provider.logo_path, 'w185')}
+                                  alt={provider.provider_name}
+                                  title={provider.provider_name}
+                                  width={40}
+                                  height={40}
+                                  className="size-10 rounded-lg object-contain"
+                                  decoding="async"
+                                />
+                              ) : (
+                                <span className="text-sm font-semibold text-white/90">{provider.provider_name}</span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
                       )}
                     </div>
 
@@ -455,7 +468,7 @@ export const DetailsSheet = () => {
               {isPageMode && (
                 <nav className="sticky top-0 z-20 -mx-4 mb-4 hidden gap-1 overflow-x-auto border-y border-white/10 bg-brand-bg/90 px-4 py-2 backdrop-blur-xl md:flex" aria-label="Details sections">
                   <a href="#overview" className="type-action flex min-h-11 shrink-0 items-center rounded-lg px-3 text-brand-silver hover:bg-white/5 hover:text-white">Overview</a>
-                  {(detailTrailers.length > 0 || detailImages.length > 0) && <a href="#media" className="type-action flex min-h-11 shrink-0 items-center rounded-lg px-3 text-brand-silver hover:bg-white/5 hover:text-white">Media</a>}
+                  {trailer && <a href="#media" className="type-action flex min-h-11 shrink-0 items-center rounded-lg px-3 text-brand-silver hover:bg-white/5 hover:text-white">Trailer</a>}
                   {selected.media_type === 'tv' && <a href="#episodes" className="type-action flex min-h-11 shrink-0 items-center rounded-lg px-3 text-brand-silver hover:bg-white/5 hover:text-white">Episodes</a>}
                   <a href="#cast" className="type-action flex min-h-11 shrink-0 items-center rounded-lg px-3 text-brand-silver hover:bg-white/5 hover:text-white">Cast</a>
                 </nav>
@@ -463,67 +476,29 @@ export const DetailsSheet = () => {
 
               <span id="overview" className="sr-only">Overview</span>
 
-              {(detailTrailers.length > 0 || detailImages.length > 0) && (
-                <div id="media" className="scroll-mt-16 space-y-4 border-t border-white/10 pt-4">
-                  {detailTrailers.length > 0 && (
-                    <div>
-                      <p className="type-label mb-2 text-brand-silver">Trailers</p>
-                      <div className="grid grid-cols-1 gap-2 xs:grid-cols-3">
-                        {detailTrailers.map((video) => (
-                          <button
-                            key={`${video.id}-${video.key}`}
-                            type="button"
-                            onClick={() => setActiveTrailer({ video, mediaKey })}
-                            className="group cursor-pointer overflow-hidden rounded-lg bg-white/5 blueprint-border transition-colors hover:border-brand-cyan/35"
-                            aria-label={`Play ${video.name || 'trailer'}`}
-                          >
-                            <span className="relative block aspect-video overflow-hidden">
-                              <img
-                                src={`https://img.youtube.com/vi/${video.key}/hqdefault.jpg`}
-                                alt=""
-                                className="h-full w-full object-cover opacity-90 transition-transform group-hover:scale-105"
-                                decoding="async"
-                                loading="lazy"
-                              />
-                              <span className="absolute inset-0 flex items-center justify-center bg-black/25">
-                                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-bg/80 text-brand-cyan backdrop-blur-md">
-                                  <Play size={14} fill="currentColor" />
-                                </span>
-                              </span>
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {detailImages.length > 0 && (
-                    <div>
-                      <p className="type-label mb-2 text-brand-silver">Images</p>
-                      <div className="grid grid-cols-1 gap-2 xs:grid-cols-3">
-                        {detailImages.map((image, index) => {
-                          const imageSrc = getImageSrc(image, (tmdbPath) => getImageUrl(tmdbPath, 'w780'));
-                          const fullImageSrc = getImageSrc(image, (tmdbPath) => getImageUrl(tmdbPath, 'original'));
-                          return (
-                            <button
-                              key={image}
-                              type="button"
-                              onClick={() => setActiveImage({ src: fullImageSrc, alt: `${title} image ${index + 1}`, mediaKey })}
-                              className="group cursor-pointer overflow-hidden rounded-lg bg-white/5 blueprint-border transition-colors hover:border-brand-cyan/35"
-                            >
-                              <img
-                                src={imageSrc}
-                                alt={`${title} image ${index + 1}`}
-                                className="aspect-video h-full w-full object-cover transition-transform group-hover:scale-105"
-                                decoding="async"
-                                loading="lazy"
-                              />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
+              {trailer && (
+                <section id="media" aria-labelledby="trailer-heading" className="scroll-mt-16 border-t border-white/10 pt-4">
+                  <h3 id="trailer-heading" className="type-label mb-2 text-brand-silver">Trailer</h3>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTrailer({ video: trailer, mediaKey })}
+                    className="group relative block aspect-video w-full cursor-pointer overflow-hidden rounded-lg bg-white/5 blueprint-border transition-colors hover:border-brand-cyan/35 focus-visible:outline-2 focus-visible:outline-brand-cyan"
+                    aria-label={`Play ${trailer.name || 'trailer'}`}
+                  >
+                    <img
+                      src={`https://img.youtube.com/vi/${trailer.key}/hqdefault.jpg`}
+                      alt=""
+                      className="h-full w-full object-cover opacity-90 transition-transform motion-safe:group-hover:scale-105"
+                      decoding="async"
+                      loading="lazy"
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+                      <span className="flex size-12 items-center justify-center rounded-lg bg-brand-bg/80 text-brand-cyan backdrop-blur-md">
+                        <Play size={22} fill="currentColor" />
+                      </span>
+                    </span>
+                  </button>
+                </section>
               )}
 
               <div className="mt-3 space-y-4">
@@ -643,43 +618,6 @@ export const DetailsSheet = () => {
                 </p>
               </div>
               </div>
-
-              <AnimatePresence>
-                {activeImage?.mediaKey === mediaKey && (
-                  <FocusTrap active>
-                    <div
-                      className="fixed inset-0 z-[380] flex cursor-pointer items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
-                      onClick={() => setActiveImage(null)}
-                      role="dialog"
-                      aria-modal="true"
-                      aria-label="Image preview"
-                      data-block-details-shortcuts="true"
-                    >
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.96 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.96 }}
-                        className="relative flex max-h-[96vh] max-w-[96vw] cursor-default items-center justify-center"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => setActiveImage(null)}
-                          className="absolute right-2 top-2 z-20 cursor-pointer rounded-lg bg-brand-bg/80 p-3 text-brand-cyan backdrop-blur-md"
-                          aria-label="Close image"
-                        >
-                          <X size={18} />
-                        </button>
-                        <img
-                          src={activeImage.src}
-                          alt={activeImage.alt}
-                          className="max-h-[94vh] max-w-[96vw] rounded-xl object-contain blueprint-border"
-                        />
-                      </motion.div>
-                    </div>
-                  </FocusTrap>
-                )}
-              </AnimatePresence>
 
               <AnimatePresence>
                 {activeTrailer?.mediaKey === mediaKey && (
